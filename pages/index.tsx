@@ -10,13 +10,13 @@ import { CommonPageProps, ModuleDescriptor } from "./commonPageProps";
 
 const REQUIRED_LANGUAGE_GROUPS = [
 	"common",
-	"index"
+	"indexPage"
 ];
 
 class IndexPage extends NextBasePage<CommonPageProps> {
 	public render(): JSX.Element {
-		return <PageFrame icon="application" title={this.t("index", "title")}>
-			<p>{this.t("index", "description")}</p>
+		return <PageFrame icon="application" title={this.t("indexPage", "title")}>
+			<p>{this.t("indexPage", "description")}</p>
 			<div className={indexPageStyles.moduleCardList}>
 				{this.props.availableModules.map(x => this.renderModuleDetails(x))}
 			</div>
