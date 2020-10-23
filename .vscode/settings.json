@@ -1,6 +1,17 @@
 {
-    "npm.packageManager": "yarn",
-    "files.exclude": {
-        "node_modules/": true
-    }
+	"npm.packageManager": "yarn",
+	"files.exclude": {
+		"node_modules/": true
+	},
+	"editor.formatOnSave": true,
+	"[typescript]": {
+		"editor.codeActionsOnSave": {
+			"source.organizeImports": true
+		}
+	},
+	"[typescriptreact]": {
+		"editor.codeActionsOnSave": {
+			"source.organizeImports": true
+		}
+	}
 }

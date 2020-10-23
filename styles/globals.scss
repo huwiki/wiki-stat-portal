@@ -1,7 +1,22 @@
 body {
-	background-color: #394b59
+	background-color: #263038;
 }
 
-.headerTitle {
-	font-weight: bold;
+.moduleCard {
+	width: 300px;
+	margin-right: 10px;
+	margin-bottom: 10px;
+	position: relative;
+	overflow: hidden;
+
+	h3 {
+		margin: 0px;
+	}
+
+	.moduleCardIcon.bp3-icon {
+		opacity: 0.1;
+		position: absolute;
+		left: calc(100% - 80px);
+		top: calc(5px);
+	}
 }
