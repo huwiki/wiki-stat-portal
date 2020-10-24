@@ -1,17 +1,27 @@
+import Document, { DocumentInitialProps, Head, Html, Main, NextScript } from "next/document";
+import { parseCookies } from "nookies";
 import * as React from "react";
-import { Classes } from "@blueprintjs/core";
-import Document, { Html, Head, Main, NextScript, DocumentInitialProps } from "next/document";
 
-class WikiStatDocument extends Document {
-	static async getInitialProps(ctx): Promise<DocumentInitialProps> {
+interface WikiStatDocumentProps extends DocumentInitialProps {
+	languageCode: string;
+	appBaseStyle: string;
+}
+
+class WikiStatDocument extends Document<WikiStatDocumentProps> {
+	static async getInitialProps(ctx): Promise<WikiStatDocumentProps> {
 		const initialProps = await Document.getInitialProps(ctx);
-		return { ...initialProps };
+		const cookies = parseCookies(ctx);
+		return {
+			...initialProps,
+			languageCode: cookies["languageCode"] || "en",
+			appBaseStyle: cookies["appBaseStyle"] || "dark",
+		};
 	}
 
 	render(): JSX.Element {
 		return <Html>
 			<Head />
-			<body className={Classes.DARK}>
+			<body>
 				<Main />
 				<NextScript />
 			</body>

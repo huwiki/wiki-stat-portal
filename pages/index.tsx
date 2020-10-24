@@ -1,12 +1,12 @@
 import { Button, Card, Icon } from "@blueprintjs/core";
 import { NextPageContext } from "next";
-import { withCookie } from "next-cookie";
 import { withRouter } from "next/router";
 import * as React from "react";
-import { NextBasePage } from "../helpers/nextBasePage";
-import { PageFrame } from "../modules/pageFrame";
+import { PageFrame } from "../components/pageFrame";
+import { NextBasePage } from "../helpers/client/nextBasePage";
+import { CommonPageProps, ModuleDescriptor } from "../helpers/commonPageProps";
+import { withCommonServerSideProps } from "../helpers/server/serverSidePageHelpers";
 import indexPageStyles from "../styles/indexPage.module.scss";
-import { CommonPageProps, ModuleDescriptor } from "./commonPageProps";
 
 const REQUIRED_LANGUAGE_GROUPS = [
 	"common",
@@ -15,7 +15,11 @@ const REQUIRED_LANGUAGE_GROUPS = [
 
 class IndexPage extends NextBasePage<CommonPageProps> {
 	public render(): JSX.Element {
-		return <PageFrame icon="application" title={this.t("indexPage", "title")}>
+		return <PageFrame
+			icon="application"
+			title={this.t("indexPage", "title")}
+			router={this.props.router}
+			i18nProvider={this.i18nProvider}>
 			<p>{this.t("indexPage", "description")}</p>
 			<div className={indexPageStyles.moduleCardList}>
 				{this.props.availableModules.map(x => this.renderModuleDetails(x))}
@@ -38,9 +42,10 @@ class IndexPage extends NextBasePage<CommonPageProps> {
 		};
 	}
 
-	public static getInitialProps = async (ctx: NextPageContext): Promise<Partial<CommonPageProps>> => {
-		return NextBasePage.withCommonInitialProps<CommonPageProps>(ctx, {}, REQUIRED_LANGUAGE_GROUPS);
-	}
 }
 
-export default withRouter(withCookie(IndexPage));
+export const getServerSideProps = async (ctx: NextPageContext) => {
+	return await withCommonServerSideProps<CommonPageProps>(ctx, {}, REQUIRED_LANGUAGE_GROUPS);
+};
+
+export default withRouter(IndexPage);

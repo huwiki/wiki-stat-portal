@@ -7,5 +7,6 @@
 	"module.another.description": "Another module.",
 	"module.third": "Third module",
 	"module.third.description": "Description of the third module.",
-	"changeLanguage": "Change language"
+	"changeLanguage": "Change language",
+	"toogleAppBaseStyle": "Toogle light/dark mode"
 }

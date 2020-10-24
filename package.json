@@ -10,7 +10,7 @@
   "dependencies": {
     "@blueprintjs/core": "^3.34.1",
     "next": "9.5.5",
-    "next-cookie": "^2.4.2",
+    "nookies": "^2.4.1",
     "react": "16.14.0",
     "react-dom": "16.14.0",
     "sass": "^1.27.0"

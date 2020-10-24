@@ -7,5 +7,6 @@
 	"module.another.description": "Másik modul leírása.",
 	"module.third": "Harmadik",
 	"module.third.description": "Harmadik modul leírása.",
-	"changeLanguage": "Nyelv változtatása"
+	"changeLanguage": "Nyelv változtatása",
+	"toogleAppBaseStyle": "Váltás sötés és világos mód között"
 }
