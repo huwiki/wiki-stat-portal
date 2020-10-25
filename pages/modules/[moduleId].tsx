@@ -19,7 +19,7 @@ interface ModuleParameterPageProps extends CommonPageProps {
 class ModulePage extends NextBasePage<ModuleParameterPageProps> {
 	public render(): JSX.Element {
 		return <PageFrame
-			icon={this.props.moduleIcon}
+			icon={this.props.moduleIcon || "help"}
 			title={this.t("common", `module.${this.props.moduleId}`)}
 			router={this.props.router}
 			i18nProvider={this.i18nProvider}>
@@ -30,7 +30,8 @@ class ModulePage extends NextBasePage<ModuleParameterPageProps> {
 }
 
 export const getServerSideProps = async (ctx: NextPageContext) => {
-	const { moduleId } = ctx.query;
+	let { moduleId } = ctx.query;
+	moduleId = moduleId || "";
 	const matchingModule = moduleManager.getModuleById(Array.isArray(moduleId) ? moduleId[0] : moduleId);
 
 	return await withCommonServerSideProps<ModuleParameterPageProps>(ctx, {
