@@ -3,9 +3,10 @@ import { NextPageContext } from "next";
 import { withRouter } from "next/router";
 import * as React from "react";
 import { PageFrame } from "../components/pageFrame";
+import { CommonPageProps, ModuleDescriptor } from "../helpers/client/commonPageProps";
 import { NextBasePage } from "../helpers/client/nextBasePage";
-import { CommonPageProps, ModuleDescriptor } from "../helpers/commonPageProps";
 import { withCommonServerSideProps } from "../helpers/server/serverSidePageHelpers";
+import { GetServerSidePropsResult } from "../interfaces/server/getServerSidePropsResult";
 import indexPageStyles from "../styles/indexPage.module.scss";
 
 const REQUIRED_LANGUAGE_GROUPS = [
@@ -44,7 +45,7 @@ class IndexPage extends NextBasePage<CommonPageProps> {
 
 }
 
-export const getServerSideProps = async (ctx: NextPageContext) => {
+export const getServerSideProps = async (ctx: NextPageContext): Promise<GetServerSidePropsResult<CommonPageProps>> => {
 	return await withCommonServerSideProps<CommonPageProps>(ctx, {}, REQUIRED_LANGUAGE_GROUPS);
 };
 

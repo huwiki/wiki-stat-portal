@@ -1,12 +1,13 @@
 import { NextPageContext } from "next/dist/next-server/lib/utils";
 import { parseCookies } from "nookies";
+import { GetServerSidePropsResult } from "../../interfaces/server/getServerSidePropsResult";
 import { KNOWN_MODULES } from "../../modules";
-import { CommonPageProps } from "../commonPageProps";
+import { CommonPageProps } from "../client/commonPageProps";
 import { getLocalizations, initializeI18nData } from "./i18nServer";
 
 export const withCommonServerSideProps = async <T extends CommonPageProps>(
 	ctx: NextPageContext, props: Partial<T>, requiredLanguageGroups?: string[]
-) => {
+): Promise<GetServerSidePropsResult<T>> => {
 	const cookies = parseCookies(ctx);
 
 	const languageCode: string = cookies["languageCode"] || "en";
