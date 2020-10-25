@@ -1,10 +1,5 @@
-import { IconName } from "@blueprintjs/core";
 import { NextRouter } from "next/router";
-
-export interface ModuleDescriptor {
-	id: string;
-	icon: IconName;
-}
+import { ModuleDescriptor } from "./moduleDescriptor";
 
 export interface CommonPageProps {
 	availableModules?: ModuleDescriptor[];

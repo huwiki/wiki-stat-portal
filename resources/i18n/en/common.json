@@ -8,5 +8,7 @@
 	"module.third": "Third module",
 	"module.third.description": "Description of the third module.",
 	"changeLanguage": "Change language",
-	"toogleAppBaseStyle": "Toogle light/dark mode"
+	"toogleAppBaseStyle": "Toogle light/dark mode",
+	"input.noSearchResults": "No items match the search criteria.",
+	"input.noSelectedItem": "No item selected"
 }

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { CommonPageProps } from "./commonPageProps";
+import { CommonPageProps } from "../../common/interfaces/commonPageProps";
 import { I18nProvider } from "./i18nClient";
 
 export abstract class NextBasePage<T extends CommonPageProps> extends React.Component<T> {

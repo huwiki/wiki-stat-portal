@@ -1,4 +1,7 @@
 {
 	"title": "Main Page",
-	"description": "Welcome to the Wikipedia Statistics Portal. Select a module to continue."
+	"description": "Welcome to the Wikipedia Statistics Portal. Select a module to continue.",
+	"filterByWiki": "Filter by wiki:",
+	"noFilterByWiki": "< Not filtered >",
+	"moduleNotAvailableOnSelectedWiki": "This module is not yet available for the selected wiki."
 }

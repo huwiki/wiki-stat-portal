@@ -2,7 +2,7 @@ import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
 import "normalize.css/normalize.css";
 import * as React from "react";
-import { CommonPageProps } from "../client/helpers/commonPageProps";
+import { CommonPageProps } from "../common/interfaces/commonPageProps";
 import "../styles/globals.scss";
 
 interface WikiStatAppProps {

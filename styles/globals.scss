@@ -2,6 +2,19 @@ body.bp3-dark {
 	background-color: #263038;
 }
 
+.wspInput-selectInput {
+	min-width: 200px;
+	max-width: 200px;
+
+	.bp3-popover-wrapper {
+		display: block;
+
+		.bp3-popover-target {
+			display: block;
+		}
+	}
+}
+
 .moduleCard {
 	width: 300px;
 	margin-right: 10px;
@@ -18,5 +31,9 @@ body.bp3-dark {
 		position: absolute;
 		left: calc(100% - 80px);
 		top: calc(5px);
+	}
+
+	&.unavailable {
+		opacity: 0.4;
 	}
 }

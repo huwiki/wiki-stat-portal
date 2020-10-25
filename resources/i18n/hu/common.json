@@ -8,5 +8,7 @@
 	"module.third": "Harmadik",
 	"module.third.description": "Harmadik modul leírása.",
 	"changeLanguage": "Nyelv változtatása",
-	"toogleAppBaseStyle": "Váltás sötés és világos mód között"
+	"toogleAppBaseStyle": "Váltás sötés és világos mód között",
+	"input.noSearchResults": "Nincs a keresési feltételeknek megfelelő elem.",
+	"input.noSelectedItem": "Nincs kiválasztva elem"
 }
