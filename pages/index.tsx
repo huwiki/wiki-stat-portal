@@ -95,10 +95,12 @@ class IndexPage extends NextBasePage<IndexPageProps> {
 	private renderAvailableModuleList() {
 		return <div className={indexPageStyles.moduleCardList}>
 			{this.props.availableModules
-				.filter(x => this.selectedWiki.id === "" || x.availableAt.indexOf(this.selectedWiki.id) !== -1)
+				.filter(x => x.availableAt.length > 0
+					&& (this.selectedWiki.id === "" || x.availableAt.indexOf(this.selectedWiki.id) !== -1))
 				.map(x => this.renderModuleDetails(x, true))}
 			{this.props.availableModules
-				.filter(x => this.selectedWiki.id !== "" && x.availableAt.indexOf(this.selectedWiki.id) === -1)
+				.filter(x => x.availableAt.length == 0
+					|| (this.selectedWiki.id !== "" && x.availableAt.indexOf(this.selectedWiki.id) === -1))
 				.map(x => this.renderModuleDetails(x, false))}
 		</div>;
 	}
@@ -108,13 +110,24 @@ class IndexPage extends NextBasePage<IndexPageProps> {
 			<Icon className="moduleCardIcon" icon={module.icon} iconSize={96} />
 			<h3>{this.t("common", `module.${module.id}`)}</h3>
 			<p>{this.t("common", `module.${module.id}.description`)}</p>
-			{isAvailable
-				? <Button text={this.t("common", "button.go")} rightIcon="caret-right" onClick={this.goToModulePage(module.id)} />
-				: <span className={indexPageStyles.moduleUnavailable}>
-					{this.t("indexPage", "moduleNotAvailableOnSelectedWiki")}
-				</span>
-			}
+			{this.renderModuleWarningsOrJumpButton(module, isAvailable)}
 		</Card>;
+	}
+
+	private renderModuleWarningsOrJumpButton(module: ModuleDescriptor, isAvailable: boolean): JSX.Element | null {
+		if (module.availableAt.length === 0) {
+			return <span className={indexPageStyles.moduleUnavailable}>
+				{this.t("indexPage", "moduleNotAvailableOnAnyWikis")}
+			</span>;
+		}
+
+		if (!isAvailable) {
+			return <span className={indexPageStyles.moduleUnavailable}>
+				{this.t("indexPage", "moduleNotAvailableOnSelectedWiki")}
+			</span>;
+		}
+
+		return <Button text={this.t("common", "button.go")} rightIcon="caret-right" onClick={this.goToModulePage(module.id)} />;
 	}
 
 	private goToModulePage(moduleId: string) {

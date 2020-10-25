@@ -8,11 +8,15 @@ const i18nData: MultiLangueageI18nDictionary = {
 
 let isInitialized = false;
 
+export const getResourcesBasePath = (): string => {
+	return path.join(process.cwd(), "resources");
+};
+
 export const initializeI18nData = async (): Promise<void> => {
 	if (isInitialized === true)
 		return;
 
-	const i18nBasePath = path.join(process.cwd(), "resources", "i18n") + "/";
+	const i18nBasePath = path.join(getResourcesBasePath(), "i18n") + "/";
 
 	for await (const languageBasePath of getSubdirectories(i18nBasePath)) {
 		const languageCode = path.basename(languageBasePath);

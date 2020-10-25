@@ -5,8 +5,8 @@ import * as React from "react";
 import { PageFrame } from "../../client/components/pageFrame";
 import { NextBasePage } from "../../client/helpers/nextBasePage";
 import { CommonPageProps } from "../../common/interfaces/commonPageProps";
-import { KNOWN_MODULES } from "../../modules";
 import { IModuleParameter } from "../../modules/common/parameters/moduleParameter";
+import { moduleManager } from "../../modules/moduleManager";
 import { withCommonServerSideProps } from "../../server/helpers/serverSidePageHelpers";
 
 interface ModuleParameterPageProps extends CommonPageProps {
@@ -31,7 +31,7 @@ class ModulePage extends NextBasePage<ModuleParameterPageProps> {
 
 export const getServerSideProps = async (ctx: NextPageContext) => {
 	const { moduleId } = ctx.query;
-	const matchingModule = KNOWN_MODULES.find(x => x.identifier === moduleId);
+	const matchingModule = moduleManager.getModuleById(Array.isArray(moduleId) ? moduleId[0] : moduleId);
 
 	return await withCommonServerSideProps<ModuleParameterPageProps>(ctx, {
 		moduleFound: !!matchingModule,

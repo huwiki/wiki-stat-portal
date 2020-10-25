@@ -1,18 +1,18 @@
-import { IconName } from "@blueprintjs/core";
 import { ModuleBase } from "../common/moduleBase";
+import { ModuleJsonConfiguration } from "../common/moduleJsonConfiguration";
 import { IModuleParameter } from "../common/parameters/moduleParameter";
 
 export class ThirdModule extends ModuleBase {
-	get identifier(): string {
-		return "third";
+	constructor() {
+		super({
+			identifier: "third",
+			icon: "outdated"
+		});
 	}
 
-	get icon(): IconName {
-		return "outdated";
-	}
-
-	get availableAt(): string[] {
-		return [];
+	protected initializeModuleSpecificSettingsFromConfiguration(configuration: ModuleJsonConfiguration): boolean {
+		// TODO: what to do
+		return true;
 	}
 
 	getParameters(): IModuleParameter[] {

@@ -1,21 +1,21 @@
-import { IconName } from "@blueprintjs/core";
 import { ModuleBase } from "../common/moduleBase";
+import { ModuleJsonConfiguration } from "../common/moduleJsonConfiguration";
 import { IModuleParameter } from "../common/parameters/moduleParameter";
 
 export class FunnelModule extends ModuleBase {
-	get identifier(): string {
-		return "funnel";
-	}
-
-	get icon(): IconName {
-		return "filter-list";
-	}
-
-	get availableAt(): string[] {
-		return ["huwiki"];
+	constructor() {
+		super({
+			identifier: "funnel",
+			icon: "filter-list"
+		});
 	}
 
 	getParameters(): IModuleParameter[] {
 		return [];
+	}
+
+	protected initializeModuleSpecificSettingsFromConfiguration(configuration: ModuleJsonConfiguration): boolean {
+		// TODO: what to do
+		return true;
 	}
 }

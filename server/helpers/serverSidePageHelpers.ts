@@ -1,7 +1,7 @@
 import { NextPageContext } from "next/dist/next-server/lib/utils";
 import { parseCookies } from "nookies";
 import { CommonPageProps } from "../../common/interfaces/commonPageProps";
-import { KNOWN_MODULES } from "../../modules";
+import { moduleManager } from "../../modules/moduleManager";
 import { GetServerSidePropsResult } from "../interfaces/getServerSidePropsResult";
 import { getLocalizations, initializeI18nData } from "./i18nServer";
 
@@ -27,7 +27,7 @@ export const withCommonServerSideProps = async <T extends CommonPageProps>(
 			i18nData: getLocalizations(languageCode, pageRequiredLanguageGroups),
 			languageCode: languageCode,
 			appBaseStyle: appBaseStyle,
-			availableModules: KNOWN_MODULES.map(module => ({
+			availableModules: Array.from(moduleManager.getModules()).map(module => ({
 				id: module.identifier,
 				icon: module.icon,
 				availableAt: module.availableAt
