@@ -3,8 +3,8 @@ import Head from "next/head";
 import { NextRouter } from "next/router";
 import { parseCookies, setCookie } from "nookies";
 import * as React from "react";
-import { I18nProvider } from "../helpers/client/i18nClient";
-import { SupportedLanguages } from "../helpers/I18nCommon";
+import { SupportedLanguages } from "../../common/interfaces/I18nCommon";
+import { I18nProvider } from "../helpers/i18nClient";
 import styles from "./pageFrame.module.scss";
 
 interface PageFrameProps {

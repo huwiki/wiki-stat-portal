@@ -2,12 +2,12 @@ import { IconName } from "@blueprintjs/core";
 import { NextPageContext } from "next";
 import { withRouter } from "next/router";
 import * as React from "react";
-import { PageFrame } from "../../components/pageFrame";
-import { CommonPageProps } from "../../helpers/client/commonPageProps";
-import { NextBasePage } from "../../helpers/client/nextBasePage";
-import { withCommonServerSideProps } from "../../helpers/server/serverSidePageHelpers";
+import { PageFrame } from "../../client/components/pageFrame";
+import { CommonPageProps } from "../../client/helpers/commonPageProps";
+import { NextBasePage } from "../../client/helpers/nextBasePage";
 import { KNOWN_MODULES } from "../../modules";
 import { IModuleParameter } from "../../modules/common/parameters/moduleParameter";
+import { withCommonServerSideProps } from "../../server/helpers/serverSidePageHelpers";
 
 interface ModuleParameterPageProps extends CommonPageProps {
 	moduleFound?: boolean;

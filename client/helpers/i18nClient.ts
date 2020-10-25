@@ -1,4 +1,4 @@
-import { I18nDictionary } from "../I18nCommon";
+import { I18nDictionary } from "../../common/interfaces/I18nCommon";
 
 
 export class I18nProvider {

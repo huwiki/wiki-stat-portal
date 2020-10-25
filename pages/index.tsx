@@ -2,11 +2,11 @@ import { Button, Card, Icon } from "@blueprintjs/core";
 import { NextPageContext } from "next";
 import { withRouter } from "next/router";
 import * as React from "react";
-import { PageFrame } from "../components/pageFrame";
-import { CommonPageProps, ModuleDescriptor } from "../helpers/client/commonPageProps";
-import { NextBasePage } from "../helpers/client/nextBasePage";
-import { withCommonServerSideProps } from "../helpers/server/serverSidePageHelpers";
-import { GetServerSidePropsResult } from "../interfaces/server/getServerSidePropsResult";
+import { PageFrame } from "../client/components/pageFrame";
+import { CommonPageProps, ModuleDescriptor } from "../client/helpers/commonPageProps";
+import { NextBasePage } from "../client/helpers/nextBasePage";
+import { withCommonServerSideProps } from "../server/helpers/serverSidePageHelpers";
+import { GetServerSidePropsResult } from "../server/interfaces/getServerSidePropsResult";
 import indexPageStyles from "../styles/indexPage.module.scss";
 
 const REQUIRED_LANGUAGE_GROUPS = [

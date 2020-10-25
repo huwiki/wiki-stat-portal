@@ -1,8 +1,8 @@
 import { NextPageContext } from "next/dist/next-server/lib/utils";
 import { parseCookies } from "nookies";
-import { GetServerSidePropsResult } from "../../interfaces/server/getServerSidePropsResult";
+import { CommonPageProps } from "../../client/helpers/commonPageProps";
 import { KNOWN_MODULES } from "../../modules";
-import { CommonPageProps } from "../client/commonPageProps";
+import { GetServerSidePropsResult } from "../interfaces/getServerSidePropsResult";
 import { getLocalizations, initializeI18nData } from "./i18nServer";
 
 export const withCommonServerSideProps = async <T extends CommonPageProps>(

@@ -1,6 +1,6 @@
 import { promises as fsPromises } from "fs";
 import path from "path";
-import { I18nDictionary, MultiLangueageI18nDictionary } from "../I18nCommon";
+import { I18nDictionary, MultiLangueageI18nDictionary } from "../../common/interfaces/I18nCommon";
 import { getFiles, getSubdirectories } from "./pathUtils";
 
 const i18nData: MultiLangueageI18nDictionary = {
