@@ -7,7 +7,7 @@ import { CommonPageProps } from "../../helpers/client/commonPageProps";
 import { NextBasePage } from "../../helpers/client/nextBasePage";
 import { withCommonServerSideProps } from "../../helpers/server/serverSidePageHelpers";
 import { KNOWN_MODULES } from "../../modules";
-import { IModuleParameter } from "../../modules/parameters/moduleParameter";
+import { IModuleParameter } from "../../modules/common/parameters/moduleParameter";
 
 interface ModuleParameterPageProps extends CommonPageProps {
 	moduleFound?: boolean;

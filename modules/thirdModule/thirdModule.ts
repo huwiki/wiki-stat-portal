@@ -1,6 +1,6 @@
 import { IconName } from "@blueprintjs/core";
-import { ModuleBase } from "./moduleBase";
-import { IModuleParameter } from "./parameters/moduleParameter";
+import { ModuleBase } from "../common/moduleBase";
+import { IModuleParameter } from "../common/parameters/moduleParameter";
 
 export class ThirdModule extends ModuleBase {
 	get identifier(): string {
