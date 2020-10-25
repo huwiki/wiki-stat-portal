@@ -1,4 +1,5 @@
 import { Button, Icon, IconName, Menu, MenuItem, Navbar, NavbarDivider, NavbarGroup, NavbarHeading, Popover, Tooltip } from "@blueprintjs/core";
+import Head from "next/head";
 import { NextRouter } from "next/router";
 import { parseCookies, setCookie } from "nookies";
 import * as React from "react";
@@ -22,10 +23,13 @@ export class PageFrame extends React.Component<PageFrameProps> {
 
 	public render(): JSX.Element {
 		return <div className={styles.pageContentContainer}>
+			<Head>
+				<title>{this.props.title} – {this.t("common", "siteTitle")}</title>
+			</Head>
 			{this.renderNavbar()}
 			<h2 className={styles.pageTitle}>
-				<Icon className={styles.pageTitleIcon} icon={this.props.icon} />
-				{this.props.title}
+				<Icon className={styles.pageTitleIcon} icon={this.props.icon} iconSize={24} />
+				<span className={styles.pageTitleContent}>{this.props.title}</span>
 			</h2>
 			{this.props.children}
 		</div>;

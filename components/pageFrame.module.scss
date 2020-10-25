@@ -14,7 +14,13 @@
 	width: 1200px;
 }
 
-.pageTitle .pageTitleIcon {
-	vertical-align: middle;
-	margin-right: 0.25em;
+.pageTitle {
+	.pageTitleContent,
+	.pageTitleIcon {
+		vertical-align: middle;
+	}
+
+	.pageTitleIcon {
+		margin-right: 0.5em;
+	}
 }
