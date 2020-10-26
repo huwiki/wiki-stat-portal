@@ -37,6 +37,13 @@
 		"semi": [
 			"error",
 			"always"
-		]
+		],
+		"@typescript-eslint/no-inferrable-types": "off",
+		"@typescript-eslint/no-empty-interface": "warn"
+	},
+	"settings": {
+		"react": {
+			"version": "detect"
+		}
 	}
 }

@@ -44,7 +44,7 @@ class IndexPage extends NextBasePage<IndexPageProps> {
 		new SelectableWiki("huwiki", "huwiki label"),
 		new SelectableWiki("skwiki", "skwiki label"),
 	]
-	selectedWiki: SelectableWiki = null;
+	selectedWiki: SelectableWiki | null = null;
 
 	constructor(props: IndexPageProps) {
 		super(props);
@@ -75,12 +75,12 @@ class IndexPage extends NextBasePage<IndexPageProps> {
 			<div className={indexPageStyles.introText}>{this.t("indexPage", "description")}</div>
 			<div className={indexPageStyles.wikiSelector}>
 				{this.t("indexPage", "filterByWiki")}&nbsp;
-				<SelectInput
+				<SelectInput<SelectableWiki | null>
 					value={this.selectedWiki}
 					setValue={this.updateSelectedWiki}
-					itemKeySelector={ele => ele.id}
+					itemKeySelector={ele => ele?.id ?? ""}
 					items={this.selectableWikis}
-					itemRenderer={ele => ele.label}
+					itemRenderer={ele => ele?.label}
 					noSearchResultsLabel={this.t("common", "input.noSearchResults")}
 					noSelectedItemsLabel={this.t("common", "input.noSelectedItem")}
 				/>
@@ -92,15 +92,19 @@ class IndexPage extends NextBasePage<IndexPageProps> {
 		this.selectedWiki = selectedWiki;
 	}
 
-	private renderAvailableModuleList() {
+	private renderAvailableModuleList(): JSX.Element | null {
+		if (!this.props.availableModules)
+			return null;
+
 		return <div className={indexPageStyles.moduleCardList}>
 			{this.props.availableModules
 				.filter(x => x.availableAt.length > 0
-					&& (this.selectedWiki.id === "" || x.availableAt.indexOf(this.selectedWiki.id) !== -1))
+					&& (this.selectedWiki?.id === ""
+						|| (this.selectedWiki && x.availableAt.indexOf(this.selectedWiki.id) !== -1)))
 				.map(x => this.renderModuleDetails(x, true))}
 			{this.props.availableModules
 				.filter(x => x.availableAt.length == 0
-					|| (this.selectedWiki.id !== "" && x.availableAt.indexOf(this.selectedWiki.id) === -1))
+					|| (this.selectedWiki && this.selectedWiki.id !== "" && x.availableAt.indexOf(this.selectedWiki.id) === -1))
 				.map(x => this.renderModuleDetails(x, false))}
 		</div>;
 	}

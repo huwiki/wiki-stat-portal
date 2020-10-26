@@ -17,9 +17,9 @@ export abstract class NextBasePage<T extends CommonPageProps> extends React.Comp
 	public componentDidMount(): void {
 		const { appBaseStyle } = this.props;
 		if (appBaseStyle === "dark") {
-			document.querySelector("body").classList.add("bp3-dark");
+			document.querySelector("body")?.classList.add("bp3-dark");
 		} else {
-			document.querySelector("body").classList.remove("bp3-dark");
+			document.querySelector("body")?.classList.remove("bp3-dark");
 		}
 	}
 }

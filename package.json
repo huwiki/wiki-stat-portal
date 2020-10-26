@@ -5,6 +5,7 @@
 	"scripts": {
 		"dev": "NODE_OPTIONS='--inspect' next dev",
 		"build": "next build",
+		"lint": "eslint . --ext .ts,.tsx",
 		"start": "next start -p $PORT"
 	},
 	"dependencies": {

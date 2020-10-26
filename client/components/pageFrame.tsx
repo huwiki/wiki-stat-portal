@@ -72,9 +72,9 @@ export class PageFrame extends React.Component<PageFrameProps> {
 		});
 
 		if (newBaseStyle === "dark") {
-			document.querySelector("body").classList.add("bp3-dark");
+			document.querySelector("body")?.classList.add("bp3-dark");
 		} else {
-			document.querySelector("body").classList.remove("bp3-dark");
+			document.querySelector("body")?.classList.remove("bp3-dark");
 		}
 
 		this.props.router.push(this.props.router.pathname);
