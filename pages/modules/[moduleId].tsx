@@ -5,9 +5,9 @@ import * as React from "react";
 import { PageFrame } from "../../client/components/pageFrame";
 import { NextBasePage } from "../../client/helpers/nextBasePage";
 import { CommonPageProps } from "../../common/interfaces/commonPageProps";
-import { IModuleParameter } from "../../modules/common/parameters/moduleParameter";
-import { moduleManager } from "../../modules/moduleManager";
 import { withCommonServerSideProps } from "../../server/helpers/serverSidePageHelpers";
+import { IModuleParameter } from "../../server/modules/common/parameters/moduleParameter";
+import { moduleManager } from "../../server/modules/moduleManager";
 
 interface ModuleParameterPageProps extends CommonPageProps {
 	moduleFound: boolean;

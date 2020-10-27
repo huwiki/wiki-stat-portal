@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { getResourcesBasePath } from "../server/helpers/i18nServer";
+import { getResourcesBasePath } from "../helpers/i18nServer";
 import { AnotherModule } from "./anotherModule/anotherModule";
 import { ModuleBase } from "./common/moduleBase";
 import { ModuleJsonConfiguration } from "./common/moduleJsonConfiguration";
