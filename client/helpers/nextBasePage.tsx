@@ -1,3 +1,5 @@
+import DefaultErrorPage from "next/error";
+import Head from "next/head";
 import * as React from "react";
 import { CommonPageProps } from "../../common/interfaces/commonPageProps";
 import { I18nProvider } from "./i18nClient";
@@ -21,5 +23,14 @@ export abstract class NextBasePage<T extends CommonPageProps> extends React.Comp
 		} else {
 			document.querySelector("body")?.classList.remove("bp3-dark");
 		}
+	}
+
+	protected render404Page(): JSX.Element {
+		return <>
+			<Head>
+				<meta name="robots" content="noindex" />
+			</Head>
+			<DefaultErrorPage statusCode={404} title={this.t("common", "pageNotFound")} />
+		</>;
 	}
 }

@@ -10,14 +10,18 @@ import { moduleManager } from "../../modules/moduleManager";
 import { withCommonServerSideProps } from "../../server/helpers/serverSidePageHelpers";
 
 interface ModuleParameterPageProps extends CommonPageProps {
-	moduleFound?: boolean;
-	moduleId?: string;
-	moduleIcon?: IconName;
-	moduleParameters?: IModuleParameter[];
+	moduleFound: boolean;
+	moduleId: string | null;
+	moduleIcon: IconName | null;
+	moduleParameters: IModuleParameter[] | null;
 }
 
 class ModulePage extends NextBasePage<ModuleParameterPageProps> {
 	public render(): JSX.Element {
+		if (!this.props.moduleFound) {
+			return this.render404Page();
+		}
+
 		return <PageFrame
 			icon={this.props.moduleIcon || "help"}
 			title={this.t("common", `module.${this.props.moduleId}`)}
@@ -26,7 +30,6 @@ class ModulePage extends NextBasePage<ModuleParameterPageProps> {
 			Ide jön a kontent
 		</PageFrame>;
 	}
-
 }
 
 export const getServerSideProps = async (ctx: NextPageContext) => {
@@ -36,9 +39,9 @@ export const getServerSideProps = async (ctx: NextPageContext) => {
 
 	return await withCommonServerSideProps<ModuleParameterPageProps>(ctx, {
 		moduleFound: !!matchingModule,
-		moduleId: matchingModule?.identifier,
-		moduleIcon: matchingModule?.icon,
-		moduleParameters: matchingModule?.getParameters(),
+		moduleId: matchingModule?.identifier || null,
+		moduleIcon: matchingModule?.icon || null,
+		moduleParameters: matchingModule?.getParameters() || null,
 	});
 };
 

@@ -1,5 +1,6 @@
 {
 	"siteTitle": "WikiStatPortál",
+	"pageNotFound": "A keresett oldal nem található",
 	"button.go": "Tovább",
 	"module.funnel": "Funnel modul",
 	"module.funnel.description": "Ide jön majd, hogy mire is jó valójában ez a funnel modul.",
