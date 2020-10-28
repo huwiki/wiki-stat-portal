@@ -1,0 +1,15 @@
+{
+	"extends": "../tsconfig.json",
+	"include": [
+		"**/*.ts",
+		"**/*.tsx",
+	],
+	"compilerOptions": {
+		"noEmit": false,
+		"target": "es6",
+		"lib": [
+			"ESNext"
+		],
+		"module": "commonjs",
+	}
+}

@@ -1,7 +1,9 @@
 {
 	"npm.packageManager": "yarn",
 	"files.exclude": {
-		"node_modules/": true
+		"node_modules/": true,
+		"**/*.js": true,
+		"**/*.jsx": true
 	},
 	"editor.formatOnSave": true,
 	"[typescript]": {

@@ -6,7 +6,8 @@
 		"dev": "NODE_OPTIONS='--inspect' next dev",
 		"build": "next build",
 		"lint": "eslint . --ext .ts,.tsx",
-		"start": "next start -p $PORT"
+		"start": "next start -p $PORT",
+		"tool-dbStuffTest": "node tools/db/dbStuffTest"
 	},
 	"dependencies": {
 		"@babel/plugin-proposal-class-properties": "^7.12.1",
