@@ -6,7 +6,7 @@
 		"dev": "NODE_OPTIONS='--inspect' next dev",
 		"build": "next build",
 		"lint": "eslint . --ext .ts,.tsx",
-		"start": "next start -p $PORT",
+		"start": "ts-node src/index.ts",
 		"tool-dbStuffTest": "node tools/db/dbStuffTest"
 	},
 	"dependencies": {
@@ -15,21 +15,26 @@
 		"@blueprintjs/core": "^3.34.1",
 		"@blueprintjs/select": "^3.14.3",
 		"classnames": "^2.2.6",
+		"date-fns": "^2.16.1",
 		"mobx": "^6.0.1",
 		"mobx-react": "^7.0.0",
+		"mysql": "^2.18.1",
 		"next": "9.5.5",
 		"nookies": "^2.4.1",
 		"react": "16.14.0",
 		"react-dom": "16.14.0",
-		"sass": "^1.27.0"
+		"reflect-metadata": "^0.1.10",
+		"sass": "^1.27.0",
+		"typeorm": "0.2.28"
 	},
 	"devDependencies": {
-		"@types/node": "^14.14.0",
+		"@types/node": "^14",
 		"@types/react": "^16.9.53",
 		"@typescript-eslint/eslint-plugin": "^4.5.0",
 		"@typescript-eslint/parser": "^4.5.0",
 		"eslint": "^7.11.0",
 		"eslint-plugin-react": "^7.21.5",
-		"typescript": "^4.0.3"
+		"ts-node": "3.3.0",
+		"typescript": "^4"
 	}
 }

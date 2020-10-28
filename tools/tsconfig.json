@@ -6,8 +6,9 @@
 	],
 	"compilerOptions": {
 		"noEmit": false,
-		"target": "es6",
+		"target": "ES2017",
 		"lib": [
+			"ES2020",
 			"ESNext"
 		],
 		"module": "commonjs",

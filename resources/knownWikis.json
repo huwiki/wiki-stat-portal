@@ -1,10 +1,12 @@
 [
 	{
 		"wiki": "huwiki",
-		"domain": "hu.wikipedia.org"
+		"domain": "hu.wikipedia.org",
+		"database": "huwiki_p"
 	},
 	{
 		"wiki": "skwiki",
-		"domain": "sk.wikipedia.org"
+		"domain": "sk.wikipedia.org",
+		"database": "skwiki_p"
 	}
 ]
