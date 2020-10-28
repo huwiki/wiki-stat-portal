@@ -40,24 +40,25 @@ class ModuleManager {
 		for (const module of this.allModules) {
 			const moduleConfigPath = path.join(getResourcesBasePath(), "modules", module.identifier, "configuration.json");
 
-			fs.readFile(moduleConfigPath, { encoding: "utf-8" }, (err, data) => {
-				if (err) {
-					// TODO: log
+			const fileData = fs.readFileSync(moduleConfigPath, { encoding: "utf-8" });
+
+			const moduleConfig: ModuleJsonConfiguration = JSON.parse(fileData);
+			if (moduleConfig) {
+				module.initialize(moduleConfig);
+				if (!module.isInitialized) {
 					return;
 				}
 
-				const moduleConfig: ModuleJsonConfiguration = JSON.parse(data);
-				if (moduleConfig) {
-					module.initialize(moduleConfig);
-					if (!module.isInitialized)
-						return;
-
-					this.knownModules.push(module);
-					this.moduleDictionary[module.identifier] = module;
-				}
-			});
+				this.knownModules.push(module);
+				this.moduleDictionary[module.identifier] = module;
+			}
 		}
 	}
 }
 
-export const moduleManager = new ModuleManager();
+const moduleManager = new ModuleManager();
+
+
+export {
+	moduleManager
+};
