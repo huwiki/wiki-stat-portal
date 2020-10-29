@@ -2,6 +2,7 @@
 	"recommendations": [
 		"dbaeumer.vscode-eslint",
 		"editorconfig.editorconfig",
-		"usernamehw.errorlens"
+		"usernamehw.errorlens",
+		"hookyqr.beautify"
 	]
 }
