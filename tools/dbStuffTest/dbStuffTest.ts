@@ -2,6 +2,7 @@ import { Connection, createConnection, getConnectionOptions } from "typeorm";
 import { MysqlConnectionOptions } from "typeorm/driver/mysql/MysqlConnectionOptions";
 import { Revision } from "../../server/database/entities/mediawiki/revision";
 import { User } from "../../server/database/entities/mediawiki/user";
+import { createActorEntitiesForWiki } from "../../server/database/entities/toolsDatabase/actorByWiki";
 import { WikiProcessedRevisions } from "../../server/database/entities/toolsDatabase/wikiProcessedRevisions";
 import { moduleManager } from "../../server/modules/moduleManager";
 
@@ -10,7 +11,7 @@ for (const module of mm.getModules()) {
 	console.log(module.identifier);
 }
 
-const createConnectionToUserDatabase = async (databaseName: string): Promise<Connection> => {
+const createConnectionToUserDatabase = async (databaseName: string, wikis: string[]): Promise<Connection> => {
 	const connectionOptions = await getConnectionOptions() as MysqlConnectionOptions;
 
 	return await createConnection({
@@ -24,6 +25,10 @@ const createConnectionToUserDatabase = async (databaseName: string): Promise<Con
 		logging: false,
 		entities: [
 			"server/database/entities/toolsDatabase/**/*.js",
+			...wikis.flatMap(x => {
+				const entities = createActorEntitiesForWiki(x);
+				return [entities.actor, entities.actorStatistics, entities.actorStatisticsByNamespace];
+			})
 		],
 	});
 };
@@ -47,7 +52,7 @@ const createConnectionToMediaWikiReplica = async (databaseName: string): Promise
 };
 
 const fun = async () => {
-	const toolsConnection = await createConnectionToUserDatabase("u27333__userstatistics");
+	const toolsConnection = await createConnectionToUserDatabase("USERNAME__userstatistics", ["huwiki"]);
 	const mwConnection = await createConnectionToMediaWikiReplica("skwiki_p");
 
 	try {
