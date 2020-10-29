@@ -16,5 +16,13 @@
 			"source.organizeImports": true
 		}
 	},
-	"typescript.tsdk": "node_modules/typescript/lib"
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"json.schemas": [
+		{
+			"fileMatch": [
+				"/resources/modules/funnel/*.funnel.json",
+			],
+			"url": "./resources/schemas/funnelConfigurationSchema.json"
+		}
+	]
 }

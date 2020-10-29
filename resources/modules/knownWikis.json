@@ -1,0 +1,12 @@
+[
+	{
+		"id": "huwiki",
+		"domain": "hu.wikipedia.org",
+		"replicaDatabaseName": "huwiki_p"
+	},
+	{
+		"id": "skwiki",
+		"domain": "sk.wikipedia.org",
+		"replicaDatabaseName": "skwiki_p"
+	}
+]

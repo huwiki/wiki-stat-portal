@@ -1,0 +1,39 @@
+{
+	"$schema": "../../schemas/funnelConfigurationSchema.json",
+	"funnels": [
+		{
+			"name": "Tesztfunnel",
+			"groups": [
+				{
+					"name": "First",
+					"requirements": [
+						{
+							"registrationStatus": ["registered"],
+							"editsAtleast": {
+								"edits": 3,
+								"period": 2
+							}
+						}
+					]
+				},
+				{
+					"name": "Second",
+					"requirements": [
+						{
+							"logicalOperator": "or",
+							"items": [
+								{
+									"registrationStatus": ["registered"],
+									"editsAtleast": {
+										"edits": 3,
+										"period": 2
+									}
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

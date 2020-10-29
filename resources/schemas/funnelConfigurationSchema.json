@@ -1,0 +1,133 @@
+{
+	"type": "object",
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"title": "Funnel configuration for a wiki",
+	"properties": {
+		"funnels": {
+			"type": "array",
+			"items": {
+				"$ref": "#/definitions/funnel"
+			}
+		}
+	},
+	"additionalItems": false,
+	"definitions": {
+		"funnel": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"groups": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/group"
+					},
+					"minItems": 2
+				}
+			},
+			"required": [
+				"name",
+				"groups"
+			]
+		},
+		"group": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"requirements": {
+					"type": "array",
+					"items": {
+						"anyOf": [
+							{
+								"$ref": "#/definitions/groupRequirement"
+							},
+							{
+								"$ref": "#/definitions/requirementGroup"
+							}
+						]
+					}
+				}
+			},
+			"required": ["name"],
+			"additionalProperties": false
+		},
+		"requirementGroup": {
+			"type": "object",
+			"properties": {
+				"logicalOperator": {
+					"type": "string",
+					"enum": ["and", "or"]
+				},
+				"items": {
+					"type": "array",
+					"items": {
+						"anyOf": [
+							{
+								"$ref": "#/definitions/groupRequirement"
+							},
+							{
+								"$ref": "#/definitions/requirementGroup"
+							}
+						]
+					},
+					"minItems": 1
+				}
+			},
+			"required": ["logicalOperator", "items"],
+			"additionalProperties": false
+		},
+		"groupRequirement": {
+			"type": "object",
+			"properties": {
+				"registrationStatus": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"enum": ["registered", "anon"]
+					},
+					"minItems": 1,
+					"uniqueItems": true
+				},
+				"userGroups": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"enum": [
+							"bot", "bureaucrat", "checkuser", "editor", "flow-bot",
+							"interface-admin", "interface-editor", "sysop",
+							"templateeditor",
+							"trusted"
+						]
+					},
+					"minItems": 1,
+					"uniqueItems": true
+				},
+				"editsAtleast": {
+					"$ref": "#/definitions/editsInPeriod"
+				},
+				"editsAtMost": {
+					"$ref": "#/definitions/editsInPeriod"
+				}
+			}
+		},
+		"editsInPeriod": {
+			"type": "object",
+			"properties": {
+				"edits": {
+					"type": "number",
+					"minimum": 0
+				},
+				"period": {
+					"type": "number",
+					"minimum": 1,
+					"maximum": 90
+				}
+			},
+			"required": ["edits", "period"],
+			"additionalProperties": false
+		}
+	}
+}
