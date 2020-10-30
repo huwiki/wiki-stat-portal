@@ -38,51 +38,17 @@
 					"type": "string"
 				},
 				"requirements": {
-					"type": "array",
-					"items": {
-						"anyOf": [
-							{
-								"$ref": "#/definitions/groupRequirement"
-							},
-							{
-								"$ref": "#/definitions/requirementGroup"
-							}
-						]
-					}
+					"$ref": "#/definitions/groupRequirement"
 				}
 			},
 			"required": ["name"],
-			"additionalProperties": false
-		},
-		"requirementGroup": {
-			"type": "object",
-			"properties": {
-				"logicalOperator": {
-					"type": "string",
-					"enum": ["and", "or"]
-				},
-				"items": {
-					"type": "array",
-					"items": {
-						"anyOf": [
-							{
-								"$ref": "#/definitions/groupRequirement"
-							},
-							{
-								"$ref": "#/definitions/requirementGroup"
-							}
-						]
-					},
-					"minItems": 1
-				}
-			},
-			"required": ["logicalOperator", "items"],
 			"additionalProperties": false
 		},
 		"groupRequirement": {
 			"type": "object",
 			"properties": {
 				"registrationStatus": {
+					"description": "If specified, only users whose registration status is registered or anon will be counted to the group.",
 					"type": "array",
 					"items": {
 						"type": "string",
@@ -91,7 +57,18 @@
 					"minItems": 1,
 					"uniqueItems": true
 				},
+				"registrationAgeAtLeast": {
+					"description": "If specified, only users whose registration age is at least the specified days at the requested data will be counted to the group.",
+					"type": "number",
+					"minimum": 1
+				},
+				"registrationAgeAtMost": {
+					"description": "If specified, only users whose registration age is at most the specified days at the requested data will be counted to the group.",
+					"type": "number",
+					"minimum": 1
+				},
 				"userGroups": {
+					"description": "If specified, only users who belongs to the specified groups will be counted to the group.",
 					"type": "array",
 					"items": {
 						"type": "string",
@@ -105,13 +82,26 @@
 					"minItems": 1,
 					"uniqueItems": true
 				},
-				"editsAtleast": {
+				"totalEditsAtLeast": {
+					"description": "If specified, only users with total edits at least this amount at the requested date will be counted to the group.",
+					"type": "number",
+					"minimum": 1
+				},
+				"totalEditsAtMost": {
+					"description": "If specified, only users with total edits at most this amount at the requested date will be counted to the group.",
+					"type": "number",
+					"minimum": 1
+				},
+				"inPeriodEditsAtLeast": {
+					"description": "If specified, only users with edits at least this amount in the specified days before the requested date will be counted to the group.",
 					"$ref": "#/definitions/editsInPeriod"
 				},
-				"editsAtMost": {
+				"inPeriodEditsAtMost": {
+					"description": "If specified, only users with edits at most this amount in the specified days before the requested date will be counted to the group.",
 					"$ref": "#/definitions/editsInPeriod"
 				}
-			}
+			},
+			"additionalProperties": false
 		},
 		"editsInPeriod": {
 			"type": "object",
@@ -123,7 +113,12 @@
 				"period": {
 					"type": "number",
 					"minimum": 1,
-					"maximum": 90
+					"maximum": 365
+				},
+				"epoch": {
+					"type": "number",
+					"minimum": -365,
+					"maximum": -1
 				}
 			},
 			"required": ["edits", "period"],

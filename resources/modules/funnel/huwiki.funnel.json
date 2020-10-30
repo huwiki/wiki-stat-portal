@@ -2,36 +2,331 @@
 	"$schema": "../../schemas/funnelConfigurationSchema.json",
 	"funnels": [
 		{
-			"name": "Tesztfunnel",
+			"name": "I. szerkesztői piramis",
 			"groups": [
 				{
-					"name": "First",
-					"requirements": [
-						{
-							"registrationStatus": ["registered"],
-							"editsAtleast": {
-								"edits": 3,
-								"period": 2
-							}
-						}
-					]
+					"name": "anon szerkesztők",
+					"requirements": {
+						"registrationStatus": ["anon"],
+						"inPeriodEditsAtLeast": { "edits": 1, "period": 30 }
+					}
 				},
 				{
-					"name": "Second",
-					"requirements": [
-						{
-							"logicalOperator": "or",
-							"items": [
-								{
-									"registrationStatus": ["registered"],
-									"editsAtleast": {
-										"edits": 3,
-										"period": 2
-									}
-								}
-							]
-						}
-					]
+					"name": "1+ regisztrált szerkesztők",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"inPeriodEditsAtLeast": { "edits": 1, "period": 30 }
+					}
+				},
+				{
+					"name": "5+ regisztrált szerkesztők",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"inPeriodEditsAtLeast": { "edits": 5, "period": 30 }
+					}
+				},
+				{
+					"name": "100+ regisztrált szerkesztők",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"inPeriodEditsAtLeast": { "edits": 100, "period": 30 }
+					}
+				}
+			]
+		},
+		{
+			"name": "II. szerkesztői piramis",
+			"groups": [
+				{
+					"name": "regisztráltak száma",
+					"requirements": {
+						"registrationStatus": ["registered"]
+					}
+				},
+				{
+					"name": "regisztrált és 1+ szerkesztés az elmúlt 30 napban",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"inPeriodEditsAtLeast": { "edits": 1, "period": 30 }
+					}
+				},
+				{
+					"name": "regisztrált és 5+ szerkesztés az elmúlt 30 napban",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"inPeriodEditsAtLeast": { "edits": 5, "period": 30 }
+					}
+				},
+				{
+					"name": "regisztrált és 10+ szerkesztés az elmúlt 30 napban",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"inPeriodEditsAtLeast": { "edits": 10, "period": 30 }
+					}
+				},
+				{
+					"name": "regisztrált és 100+ szerkesztés az elmúlt 30 napban",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"inPeriodEditsAtLeast": { "edits": 100, "period": 30 }
+					}
+				},
+				{
+					"name": "regisztrált és 250+ szerkesztés az elmúlt 30 napban",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"inPeriodEditsAtLeast": { "edits": 250, "period": 30 }
+					}
+				},
+				{
+					"name": "regisztrált és 1000+ szerkesztés az elmúlt 30 napban",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"inPeriodEditsAtLeast": { "edits": 1000, "period": 30 }
+					}
+				},
+				{
+					"name": "regisztrált és 2500+ szerkesztés az elmúlt 30 napban",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"inPeriodEditsAtLeast": { "edits": 2500, "period": 30 }
+					}
+				},
+				{
+					"name": "regisztrált és 10000+ szerkesztés az elmúlt 30 napban",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"inPeriodEditsAtLeast": { "edits": 10000, "period": 30 }
+					}
+				},
+				{
+					"name": "regisztrált és 25000+ szerkesztés az elmúlt 30 napban",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"inPeriodEditsAtLeast": { "edits": 25000, "period": 30 }
+					}
+				}
+			]
+		},
+		{
+			"name": "III. szerkesztői piramis",
+			"groups": [
+				{
+					"name": "regisztráltak száma",
+					"requirements": {
+						"registrationStatus": ["registered"]
+					}
+				},
+				{
+					"name": "regisztrált és 1+ szerkesztése van",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"totalEditsAtLeast": 1
+					}
+				},
+				{
+					"name": "regisztrált és 5+ szerkesztése van",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"totalEditsAtLeast": 5
+					}
+				},
+				{
+					"name": "regisztrált és 10+ szerkesztése van",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"totalEditsAtLeast": 10
+					}
+				},
+				{
+					"name": "regisztrált és 100+ szerkesztése van",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"totalEditsAtLeast": 100
+					}
+				},
+				{
+					"name": "regisztrált és 250+ szerkesztése van",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"totalEditsAtLeast": 250
+					}
+				},
+				{
+					"name": "regisztrált és 1000+ szerkesztése van",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"totalEditsAtLeast": 1000
+					}
+				},
+				{
+					"name": "regisztrált és 2500+ szerkesztése van",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"totalEditsAtLeast": 2500
+					}
+				},
+				{
+					"name": "regisztrált és 10 000+ szerkesztése van",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"totalEditsAtLeast": 10000
+					}
+				},
+				{
+					"name": "regisztrált és 25 000+ szerkesztése van",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"totalEditsAtLeast": 25000
+					}
+				},
+				{
+					"name": "regisztrált és 100 000+ szerkesztése van",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"totalEditsAtLeast": 100000
+					}
+				},
+				{
+					"name": "regisztrált és 250 000+ szerkesztése van",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"totalEditsAtLeast": 250000
+					}
+				},
+				{
+					"name": "regisztrált és 1 000 000+ szerkesztése van",
+					"requirements": {
+						"registrationStatus": ["registered"],
+						"totalEditsAtLeast": 1000000
+					}
+				}
+			]
+		},
+		{
+			"name": "IV. szerkesztői piramis",
+			"groups": [
+				{
+					"name": "az elmúlt 30 napban regisztrált",
+					"requirements": {
+						"registrationAgeAtMost": 30
+					}
+				},
+				{
+					"name": "az elmúlt 30 napban regisztrált, és van legalább 1 szerkesztése ebben az időszakban",
+					"requirements": {
+						"registrationAgeAtMost": 30,
+						"inPeriodEditsAtLeast": { "edits": 1, "period": 30 }
+					}
+				},
+				{
+					"name": "az elmúlt 30 napban regisztrált, és van legalább 5 szerkesztése ebben az időszakban",
+					"requirements": {
+						"registrationAgeAtMost": 30,
+						"inPeriodEditsAtLeast": { "edits": 5, "period": 30 }
+					}
+				},
+				{
+					"name": "az elmúlt 30 napban regisztrált, és van legalább 10 szerkesztése ebben az időszakban",
+					"requirements": {
+						"registrationAgeAtMost": 30,
+						"inPeriodEditsAtLeast": { "edits": 10, "period": 30 }
+					}
+				},
+				{
+					"name": "az elmúlt 30 napban regisztrált, és van legalább 50 szerkesztése ebben az időszakban",
+					"requirements": {
+						"registrationAgeAtMost": 30,
+						"inPeriodEditsAtLeast": { "edits": 50, "period": 30 }
+					}
+				},
+				{
+					"name": "az elmúlt 30 napban regisztrált, és van legalább 100 szerkesztése ebben az időszakban",
+					"requirements": {
+						"registrationAgeAtMost": 30,
+						"inPeriodEditsAtLeast": { "edits": 100, "period": 30 }
+					}
+				}
+			]
+		},
+		{
+			"name": "V. szerkesztői piramis",
+			"groups": [
+				{
+					"name": "30-60 nappal ezelőtt regisztrált",
+					"requirements": {
+						"registrationAgeAtLeast": 30,
+						"registrationAgeAtMost": 60
+					}
+				},
+				{
+					"name": "30-60 nappal ezelőtt regisztrált, és van legalább 1 szerkesztése az elmúlt 30 napban",
+					"requirements": {
+						"registrationAgeAtLeast": 30,
+						"registrationAgeAtMost": 60,
+						"inPeriodEditsAtLeast": { "edits": 1, "period": 30 }
+					}
+				},
+				{
+					"name": "30-60 nappal ezelőtt regisztrált, és van legalább 5 szerkesztése az elmúlt 30 napban",
+					"requirements": {
+						"registrationAgeAtLeast": 30,
+						"registrationAgeAtMost": 60,
+						"inPeriodEditsAtLeast": { "edits": 5, "period": 30 }
+					}
+				},
+				{
+					"name": "30-60 nappal ezelőtt regisztrált, és van legalább 10 szerkesztése az elmúlt 30 napban",
+					"requirements": {
+						"registrationAgeAtLeast": 30,
+						"registrationAgeAtMost": 60,
+						"inPeriodEditsAtLeast": { "edits": 10, "period": 30 }
+					}
+				},
+				{
+					"name": "30-60 nappal ezelőtt regisztrált, és van legalább 50 szerkesztése az elmúlt 30 napban",
+					"requirements": {
+						"registrationAgeAtLeast": 30,
+						"registrationAgeAtMost": 60,
+						"inPeriodEditsAtLeast": { "edits": 50, "period": 30 }
+					}
+				},
+				{
+					"name": "30-60 nappal ezelőtt regisztrált, és van legalább 100 szerkesztése az elmúlt 30 napban",
+					"requirements": {
+						"registrationAgeAtLeast": 30,
+						"registrationAgeAtMost": 60,
+						"inPeriodEditsAtLeast": { "edits": 100, "period": 30 }
+					}
+				}
+			]
+		},
+		{
+			"name": "Tgr szerkesztői piramisa",
+			"groups": [
+				{
+					"name": "61..90 napja regisztrált szerkesztők, akik 61..90 napja legalább 10 szerkesztést végeztek",
+					"requirements": {
+						"registrationAgeAtLeast": 60,
+						"registrationAgeAtMost": 90,
+						"inPeriodEditsAtLeast": { "edits": 10, "period": 30, "epoch": -60 }
+					}
+				},
+				{
+					"name": "61..90 napja regisztrált szerkesztők, akik 61..90 napja legalább 10 szerkesztést végeztek",
+					"requirements": {
+						"registrationAgeAtLeast": 60,
+						"registrationAgeAtMost": 90,
+						"inPeriodEditsAtLeast": { "edits": 10, "period": 30, "epoch": -30 },
+					}
+				},
+				{
+					"name": "61..90 napja regisztrált szerkesztők, akik az elmúlt 30 napban legalább 10 szerkesztést végeztek",
+					"requirements": {
+						"registrationAgeAtLeast": 60,
+						"registrationAgeAtMost": 90,
+						"inPeriodEditsAtLeast": { "edits": 10, "period": 30 }
+					}
 				}
 			]
 		}
