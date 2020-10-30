@@ -17,14 +17,14 @@ interface PageFrameProps {
 }
 
 export class PageFrame extends React.Component<PageFrameProps> {
-	protected t(group: string, key: string): string {
-		return this.props.i18nProvider.t(group, key);
+	protected t(key: string): string {
+		return this.props.i18nProvider.t(key);
 	}
 
 	public render(): JSX.Element {
 		return <div className={styles.pageContentContainer}>
 			<Head>
-				<title>{this.props.title} – {this.t("common", "siteTitle")}</title>
+				<title>{this.props.title} – {this.t("siteTitle")}</title>
 			</Head>
 			{this.renderNavbar()}
 			<h2 className={styles.pageTitle}>
@@ -43,17 +43,17 @@ export class PageFrame extends React.Component<PageFrameProps> {
 			<div className={styles.headerMargin}>
 				<NavbarGroup>
 					<NavbarHeading className={styles.headerTitle} onClick={this.goToMainPage}>
-						{this.t("common", "siteTitle")}
+						{this.t("siteTitle")}
 					</NavbarHeading>
 					<NavbarDivider />
 				</NavbarGroup>
 
 				<NavbarGroup align="right">
-					<Tooltip content={this.t("common", "toogleAppBaseStyle")}>
+					<Tooltip content={this.t("toogleAppBaseStyle")}>
 						<Button icon={isDark ? "flash" : "moon"} minimal onClick={this.toggleAppBaseStyle} />
 					</Tooltip>
 					<Popover content={this.renderLanguageSelectorMenu()}>
-						<Tooltip content={this.t("common", "changeLanguage")}>
+						<Tooltip content={this.t("changeLanguage")}>
 							<Button icon="translate" minimal />
 						</Tooltip>
 					</Popover>

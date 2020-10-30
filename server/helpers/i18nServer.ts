@@ -1,7 +1,7 @@
 import { promises as fsPromises } from "fs";
 import path from "path";
 import { I18nDictionary, MultiLangueageI18nDictionary } from "../../common/interfaces/I18nCommon";
-import { getFiles, getSubdirectories } from "./pathUtils";
+import { getFiles } from "./pathUtils";
 
 const i18nData: MultiLangueageI18nDictionary = {
 };
@@ -18,39 +18,25 @@ export const initializeI18nData = async (): Promise<void> => {
 
 	const i18nBasePath = path.join(getResourcesBasePath(), "i18n") + "/";
 
-	for await (const languageBasePath of getSubdirectories(i18nBasePath)) {
-		const languageCode = path.basename(languageBasePath);
-		i18nData[languageCode] = {};
-
-		for await (const fullPath of getFiles(languageBasePath)) {
-			const fileName = path.basename(fullPath);
-
-			const fnMatch = fileName.match(/^(.+).json$/);
-			if (fnMatch && fnMatch.length === 2) {
-				const i18nGroupId = fnMatch[1];
-				const fileContent = await fsPromises.readFile(fullPath, { encoding: "utf-8" });
-				i18nData[languageCode][i18nGroupId] = JSON.parse(fileContent);
-			}
+	for await (const languageFilePath of getFiles(i18nBasePath)) {
+		const fileName = path.basename(languageFilePath);
+		const fnMatch = fileName.match(/^(.+).json$/);
+		if (fnMatch && fnMatch.length === 2) {
+			const languageCode = path.basename(fnMatch[1]);
+			const fileContent = await fsPromises.readFile(languageFilePath, { encoding: "utf-8" });
+			i18nData[languageCode] = JSON.parse(fileContent);
 		}
 	}
 
 	isInitialized = true;
 };
 
-export const getLocalizations = (languageCode: string, groups: string[]): I18nDictionary => {
-	const ret: I18nDictionary = {};
+export const getLocalizations = (languageCode: string): I18nDictionary => {
 	let usedLanguageCode = languageCode || "en";
 
 	// Fallback to english if the language code is not known
 	if (!i18nData[usedLanguageCode])
 		usedLanguageCode = "en";
 
-	const languageDictionary = i18nData[usedLanguageCode];
-	for (const group of groups) {
-		if (languageDictionary && languageDictionary[group]) {
-			ret[group] = languageDictionary[group];
-		}
-	}
-
-	return ret;
+	return i18nData[usedLanguageCode];
 };

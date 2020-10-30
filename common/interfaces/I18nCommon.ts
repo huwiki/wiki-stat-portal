@@ -1,7 +1,5 @@
 export type I18nDictionary = {
-	[index: string]: {
-		[index: string]: string;
-	};
+	[index: string]: string;
 };
 
 export type MultiLangueageI18nDictionary = {

@@ -317,7 +317,7 @@
 					"requirements": {
 						"registrationAgeAtLeast": 60,
 						"registrationAgeAtMost": 90,
-						"inPeriodEditsAtLeast": { "edits": 10, "period": 30, "epoch": -30 },
+						"inPeriodEditsAtLeast": { "edits": 10, "period": 30, "epoch": -30 }
 					}
 				},
 				{

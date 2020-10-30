@@ -24,7 +24,7 @@ class ModulePage extends NextBasePage<ModuleParameterPageProps> {
 
 		return <PageFrame
 			icon={this.props.moduleIcon || "help"}
-			title={this.t("common", `module.${this.props.moduleId}`)}
+			title={this.t(`module.${this.props.moduleId}`)}
 			router={this.props.router}
 			i18nProvider={this.i18nProvider}>
 			Ide jön a kontent

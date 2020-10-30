@@ -24,7 +24,7 @@ export const withCommonServerSideProps = async <T extends CommonPageProps>(
 	return {
 		props: {
 			...props,
-			i18nData: getLocalizations(languageCode, pageRequiredLanguageGroups),
+			i18nData: getLocalizations(languageCode),
 			languageCode: languageCode,
 			appBaseStyle: appBaseStyle,
 			availableModules: Array.from(moduleManager.getModules()).map(module => ({

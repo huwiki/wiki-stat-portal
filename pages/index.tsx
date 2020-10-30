@@ -54,14 +54,14 @@ class IndexPage extends NextBasePage<IndexPageProps> {
 		});
 
 		// TODO: this should happen elsewhere
-		this.selectableWikis[0].label = this.t("indexPage", "noFilterByWiki");
+		this.selectableWikis[0].label = this.t("indexPage.noFilterByWiki");
 		this.selectedWiki = this.selectableWikis[0];
 	}
 
 	public render(): JSX.Element {
 		return <PageFrame
 			icon="application"
-			title={this.t("indexPage", "title")}
+			title={this.t("indexPage.title")}
 			router={this.props.router}
 			i18nProvider={this.i18nProvider}>
 
@@ -72,17 +72,17 @@ class IndexPage extends NextBasePage<IndexPageProps> {
 
 	private renderIndexPageIntro() {
 		return <div className={indexPageStyles.intro}>
-			<div className={indexPageStyles.introText}>{this.t("indexPage", "description")}</div>
+			<div className={indexPageStyles.introText}>{this.t("indexPage.description")}</div>
 			<div className={indexPageStyles.wikiSelector}>
-				{this.t("indexPage", "filterByWiki")}&nbsp;
+				{this.t("indexPage.filterByWiki")}&nbsp;
 				<SelectInput<SelectableWiki | null>
 					value={this.selectedWiki}
 					setValue={this.updateSelectedWiki}
 					itemKeySelector={ele => ele?.id ?? ""}
 					items={this.selectableWikis}
 					itemRenderer={ele => ele?.label}
-					noSearchResultsLabel={this.t("common", "input.noSearchResults")}
-					noSelectedItemsLabel={this.t("common", "input.noSelectedItem")}
+					noSearchResultsLabel={this.t("input.noSearchResults")}
+					noSelectedItemsLabel={this.t("input.noSelectedItem")}
 				/>
 			</div>
 		</div>;
@@ -112,8 +112,8 @@ class IndexPage extends NextBasePage<IndexPageProps> {
 	private renderModuleDetails(module: ModuleDescriptor, isAvailable: boolean) {
 		return <Card className={classnames("moduleCard", !isAvailable && "unavailable")} key={module.id}>
 			<Icon className="moduleCardIcon" icon={module.icon} iconSize={96} />
-			<h3>{this.t("common", `module.${module.id}`)}</h3>
-			<p>{this.t("common", `module.${module.id}.description`)}</p>
+			<h3>{this.t(`module.${module.id}`)}</h3>
+			<p>{this.t(`module.${module.id}.description`)}</p>
 			{this.renderModuleWarningsOrJumpButton(module, isAvailable)}
 		</Card>;
 	}
@@ -121,17 +121,17 @@ class IndexPage extends NextBasePage<IndexPageProps> {
 	private renderModuleWarningsOrJumpButton(module: ModuleDescriptor, isAvailable: boolean): JSX.Element | null {
 		if (module.availableAt.length === 0) {
 			return <span className={indexPageStyles.moduleUnavailable}>
-				{this.t("indexPage", "moduleNotAvailableOnAnyWikis")}
+				{this.t("indexPage.moduleNotAvailableOnAnyWikis")}
 			</span>;
 		}
 
 		if (!isAvailable) {
 			return <span className={indexPageStyles.moduleUnavailable}>
-				{this.t("indexPage", "moduleNotAvailableOnSelectedWiki")}
+				{this.t("indexPage.moduleNotAvailableOnSelectedWiki")}
 			</span>;
 		}
 
-		return <Button text={this.t("common", "button.go")} rightIcon="caret-right" onClick={this.goToModulePage(module.id)} />;
+		return <Button text={this.t("button.go")} rightIcon="caret-right" onClick={this.goToModulePage(module.id)} />;
 	}
 
 	private goToModulePage(moduleId: string) {

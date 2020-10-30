@@ -7,8 +7,8 @@ import { I18nProvider } from "./i18nClient";
 export abstract class NextBasePage<T extends CommonPageProps> extends React.Component<T> {
 	protected i18nProvider: I18nProvider;
 
-	protected t(group: string, key: string): string {
-		return this.i18nProvider.t(group, key);
+	protected t(key: string): string {
+		return this.i18nProvider.t(key);
 	}
 
 	constructor(props: T) {
@@ -30,7 +30,7 @@ export abstract class NextBasePage<T extends CommonPageProps> extends React.Comp
 			<Head>
 				<meta name="robots" content="noindex" />
 			</Head>
-			<DefaultErrorPage statusCode={404} title={this.t("common", "pageNotFound")} />
+			<DefaultErrorPage statusCode={404} title={this.t("pageNotFound")} />
 		</>;
 	}
 }
