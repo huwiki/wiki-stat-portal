@@ -1,21 +1,69 @@
 import { Column, Entity, PrimaryColumn } from "typeorm";
 import { bufferToStringTransformer, intToBooleanTransformer } from "../../transformers";
 
-// const ENTITY_CACHE_BY_WIKI: { [index: string]: unknown } = {};
+/**
+ * Type models for these classes are required so we can type the return value of `createActorEntitiesForWiki` method
+ * and type `ENTITY_CACHE_BY_WIKI` (the cache for generated types). If a new property is added to a dynamically generated
+ * class, it must be added to the type models too, so consumers of the `createActorEntitiesForWiki` will be able
+ * to use proper typing for these classes.
+ */
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const createActorEntitiesForWiki = (wikiId: string) => {
-	// if (ENTITY_CACHE_BY_WIKI[wikiId])
-	// 	return ENTITY_CACHE_BY_WIKI[wikiId];
+class ActorTypeModel {
+	public actorId: number;
+	public actorName: string;
+	public isRegistered: boolean;
+	public registrationTimestamp: Date;
+	public userGroups: string;
+}
+
+class ActorStatisticsTypeModel {
+	public actorId: number;
+	public date: Date;
+	public dailyEdits: number;
+	public editsToDate: number;
+}
+
+class ActorStatisticsByNamespaceTypeModel {
+	public actorId: number;
+	public date: Date;
+	public namespace: number;
+	public dailyEdits: number;
+	public editsToDate: number;
+}
+
+interface CreateActorEntitiesForWikiResult {
+	/**
+	 * Entity representing an actor of a wiki (anonymus or registered user)
+	 */
+	actor: typeof ActorTypeModel,
+	/**
+	 * Entity representing a daily edit statistics of an actor on a wiki.
+	 */
+	actorStatistics: typeof ActorStatisticsTypeModel,
+	/**
+	 * Entity representing a daily edit statistics for a given namespace of an actor on a wiki.
+	 */
+	actorStatisticsByNamespace: typeof ActorStatisticsByNamespaceTypeModel,
+}
+
+const ENTITY_CACHE_BY_WIKI: { [index: string]: CreateActorEntitiesForWikiResult } = {};
+
+/**
+ * Generates dynamic entity classes for a given wiki. As table names are static in TypeORM,
+ * the classes must be manually created for each wiki or generated dynamically (as we do
+ * with this method)
+ * @param wikiId Identifier of the wiki as defined in `knownWikis.json`
+ */
+export const createActorEntitiesForWiki = (wikiId: string): CreateActorEntitiesForWikiResult => {
+	if (ENTITY_CACHE_BY_WIKI[wikiId])
+		return ENTITY_CACHE_BY_WIKI[wikiId];
 
 	const actorTableName = `${wikiId}_actor`;
 	const actorStatisticsTableName = `${wikiId}_actor_stats`;
 	const actorStatisticsByNamespaceTableName = `${wikiId}_actor_stats_by_ns`;
 
-	@Entity({ database: actorTableName })
+	@Entity({ name: actorTableName })
 	class Actor {
-		public static tableName = actorTableName;
-
 		@PrimaryColumn({ name: "actor_id", type: "bigint" })
 		public actorId: number;
 
@@ -25,14 +73,15 @@ export const createActorEntitiesForWiki = (wikiId: string) => {
 		@Column({ name: "is_registered", type: "tinyint", transformer: intToBooleanTransformer })
 		public isRegistered: boolean;
 
+		@Column({ name: "registration_timestamp", type: "datetime" })
+		public registrationTimestamp: Date;
+
 		@Column({ name: "user_groups", type: "varbinary", length: 255, transformer: bufferToStringTransformer })
 		public userGroups: string;
 	}
 
-	@Entity({ database: actorStatisticsTableName })
+	@Entity({ name: actorStatisticsTableName })
 	class ActorStatistics {
-		public static tableName = actorStatisticsTableName;
-
 		@PrimaryColumn({ name: "actor_id", type: "bigint" })
 		public actorId: number;
 
@@ -46,10 +95,8 @@ export const createActorEntitiesForWiki = (wikiId: string) => {
 		public editsToDate: number;
 	}
 
-	@Entity({ database: actorStatisticsByNamespaceTableName })
+	@Entity({ name: actorStatisticsByNamespaceTableName })
 	class ActorStatisticsByNamespace {
-		public static tableName = actorStatisticsByNamespaceTableName;
-
 		@PrimaryColumn({ name: "actor_id", type: "bigint" })
 		public actorId: number;
 
@@ -66,12 +113,12 @@ export const createActorEntitiesForWiki = (wikiId: string) => {
 		public editsToDate: number;
 	}
 
-	const ret = {
+	const ret: CreateActorEntitiesForWikiResult = {
 		actor: Actor,
 		actorStatistics: ActorStatistics,
 		actorStatisticsByNamespace: ActorStatisticsByNamespace,
 	};
 
-	// ENTITY_CACHE_BY_WIKI[wikiId] = ret;
+	ENTITY_CACHE_BY_WIKI[wikiId] = ret;
 	return ret;
 };
