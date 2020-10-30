@@ -12,7 +12,8 @@ class ActorTypeModel {
 	public actorId: number;
 	public actorName: string;
 	public isRegistered: boolean;
-	public registrationTimestamp: Date;
+	public registrationTimestamp: Date | null;
+	public isRegistrationTimestampFromFirstEdit: boolean | null;
 	public userGroups: string;
 }
 
@@ -74,7 +75,10 @@ export const createActorEntitiesForWiki = (wikiId: string): CreateActorEntitiesF
 		public isRegistered: boolean;
 
 		@Column({ name: "registration_timestamp", type: "datetime" })
-		public registrationTimestamp: Date;
+		public registrationTimestamp: Date | null;
+
+		@Column({ name: "is_registration_timestamp_from_first_edit", type: "boolean", transformer: intToBooleanTransformer })
+		public isRegistrationTimestampFromFirstEdit: boolean | null;
 
 		@Column({ name: "user_groups", type: "varbinary", length: 255, transformer: bufferToStringTransformer })
 		public userGroups: string;

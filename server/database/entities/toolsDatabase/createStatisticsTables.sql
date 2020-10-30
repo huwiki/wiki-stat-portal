@@ -2,6 +2,8 @@ CREATE TABLE `huwiki_actor` (
   `actor_id` bigint(20) NOT NULL,
   `actor_name` varbinary(255) NOT NULL,
   `is_registered` tinyint(1) NOT NULL,
+  `registration_timestamp` datetime DEFAULT NULL,
+  `is_registration_timestamp_from_first_edit` tinyint(1) DEFAULT NULL,
   `user_groups` varbinary(255) NOT NULL,
   PRIMARY KEY (`actor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
