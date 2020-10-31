@@ -26,8 +26,8 @@ class ActorStatisticsTypeModel {
 
 class ActorStatisticsByNamespaceTypeModel {
 	public actorId: number;
-	public date: Date;
 	public namespace: number;
+	public date: Date;
 	public dailyEdits: number;
 	public editsToDate: number;
 }
@@ -104,11 +104,11 @@ export const createActorEntitiesForWiki = (wikiId: string): CreateActorEntitiesF
 		@PrimaryColumn({ name: "actor_id", type: "bigint" })
 		public actorId: number;
 
-		@PrimaryColumn({ type: "date" })
-		public date: Date;
-
 		@PrimaryColumn({ type: "int" })
 		public namespace: number;
+
+		@PrimaryColumn({ type: "date" })
+		public date: Date;
 
 		@Column({ name: "daily_edits", type: "int" })
 		public dailyEdits: number;

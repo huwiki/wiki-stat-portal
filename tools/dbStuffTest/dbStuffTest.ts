@@ -1,8 +1,6 @@
-import { Connection, createConnection, getConnectionOptions } from "typeorm";
-import { MysqlConnectionOptions } from "typeorm/driver/mysql/MysqlConnectionOptions";
+import { createConnectionToMediaWikiReplica, createConnectionToUserDatabase } from "../../server/database/connectionManager";
 import { Revision } from "../../server/database/entities/mediawiki/revision";
 import { User } from "../../server/database/entities/mediawiki/user";
-import { createActorEntitiesForWiki } from "../../server/database/entities/toolsDatabase/actorByWiki";
 import { WikiProcessedRevisions } from "../../server/database/entities/toolsDatabase/wikiProcessedRevisions";
 import { moduleManager } from "../../server/modules/moduleManager";
 
@@ -10,46 +8,6 @@ const mm = moduleManager;
 for (const module of mm.getModules()) {
 	console.log(module.identifier);
 }
-
-const createConnectionToUserDatabase = async (databaseName: string, wikis: string[]): Promise<Connection> => {
-	const connectionOptions = await getConnectionOptions() as MysqlConnectionOptions;
-
-	return await createConnection({
-		...connectionOptions,
-		type: "mysql",
-		name: "toolsDb",
-		// TODO: move to config
-		port: 4712,
-		database: databaseName,
-		synchronize: false,
-		logging: false,
-		entities: [
-			"server/database/entities/toolsDatabase/**/*.js",
-			...wikis.flatMap(x => {
-				const entities = createActorEntitiesForWiki(x);
-				return [entities.actor, entities.actorStatistics, entities.actorStatisticsByNamespace];
-			})
-		],
-	});
-};
-
-const createConnectionToMediaWikiReplica = async (databaseName: string): Promise<Connection> => {
-	const connectionOptions = await getConnectionOptions() as MysqlConnectionOptions;
-
-	return await createConnection({
-		...connectionOptions,
-		name: "mwReplicas",
-		type: "mysql",
-		// TODO: move to config
-		port: 4711,
-		database: databaseName,
-		synchronize: false,
-		logging: false,
-		entities: [
-			"server/database/entities/mediawiki/**/*.js"
-		],
-	});
-};
 
 const fun = async () => {
 	const toolsConnection = await createConnectionToUserDatabase("USERNAME__userstatistics", ["huwiki"]);
