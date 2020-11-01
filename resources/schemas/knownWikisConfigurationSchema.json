@@ -1,0 +1,29 @@
+{
+	"type": "array",
+	"items": {
+		"$ref": "#/definitions/wiki"
+	},
+	"minItems": 1,
+	"definitions": {
+		"wiki": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"domain": {
+					"type": "string"
+				},
+				"replicaDatabaseName": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"id",
+				"domain",
+				"replicaDatabaseName"
+			],
+			"additionalProperties": false
+		}
+	}
+}

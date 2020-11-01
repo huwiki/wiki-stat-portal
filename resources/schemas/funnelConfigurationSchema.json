@@ -7,10 +7,12 @@
 			"type": "array",
 			"items": {
 				"$ref": "#/definitions/funnel"
-			}
+			},
+			"minItems": 1
 		}
 	},
-	"additionalItems": false,
+	"additionalProperties": false,
+	"required": ["funnels"],
 	"definitions": {
 		"funnel": {
 			"type": "object",

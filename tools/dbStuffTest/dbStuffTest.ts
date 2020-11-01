@@ -1,4 +1,4 @@
-import { getApplicationConfiguration, isApplicationConfigurationValid } from "../../server/configuration/configurationReader";
+import { readApplicationConfiguration } from "../../server/configuration/configurationReader";
 import { createConnectionToMediaWikiReplica, createConnectionToUserDatabase } from "../../server/database/connectionManager";
 import { Revision } from "../../server/database/entities/mediawiki/revision";
 import { User } from "../../server/database/entities/mediawiki/user";
@@ -14,15 +14,9 @@ for (const module of mm.getModules()) {
 const fun = async () => {
 	const logger = createWikiStatLogger("dbStuffTest");
 
-	const appConfig = await getApplicationConfiguration();
-	if (!appConfig) {
-		logger.error("[runTool] Failed to read configuration file for application.");
-		return;
-	}
-
-	const configValidationResult = isApplicationConfigurationValid(appConfig);
-	if (configValidationResult.valid === false) {
-		logger.error(`[runTool] Failed to start tool due to invalid configuration: ${configValidationResult.validationError}`);
+	const appConfig = await readApplicationConfiguration();
+	if (typeof appConfig === "string") {
+		logger.error(`[runTool] Failed to start due to invalid application configuration: ${appConfig}`);
 		return;
 	}
 

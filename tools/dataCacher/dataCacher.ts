@@ -3,7 +3,7 @@ import * as _ from "lodash";
 import { Connection, EntityManager, getManager } from "typeorm";
 import winston from "winston";
 import { ApplicationConfiguration } from "../../server/configuration/applicationConfiguration";
-import { getApplicationConfiguration, isApplicationConfigurationValid } from "../../server/configuration/configurationReader";
+import { readApplicationConfiguration, readKnownWikisConfiguration } from "../../server/configuration/configurationReader";
 import { createConnectionToMediaWikiReplica, createConnectionToUserDatabase } from "../../server/database/connectionManager";
 import { Actor } from "../../server/database/entities/mediawiki/actor";
 import { Revision } from "../../server/database/entities/mediawiki/revision";
@@ -256,15 +256,15 @@ const doWikiCacheProcess = async (appConfig: ApplicationConfiguration, toolsConn
 const runTool = async (): Promise<void> => {
 	const logger = createWikiStatLogger("dataCacher");
 
-	const appConfig = await getApplicationConfiguration();
-	if (!appConfig) {
-		logger.error("[runTool] Failed to read configuration file for application.");
+	const appConfig = await readApplicationConfiguration();
+	if (typeof appConfig === "string") {
+		logger.error(`[runTool] Failed to start due to invalid application configuration: ${appConfig}`);
 		return;
 	}
 
-	const configValidationResult = isApplicationConfigurationValid(appConfig);
-	if (configValidationResult.valid === false) {
-		logger.error(`[runTool] Failed to start tool due to invalid configuration: ${configValidationResult.validationError}`);
+	const knownWikisConfiguration = readKnownWikisConfiguration();
+	if (typeof knownWikisConfiguration === "string") {
+		logger.error(`[runTool] Failed to start tool due to invalid knownWikis.json: ${knownWikisConfiguration}`);
 		return;
 	}
 

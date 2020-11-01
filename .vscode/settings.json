@@ -20,7 +20,13 @@
 	"json.schemas": [
 		{
 			"fileMatch": [
-				"/resources/modules/funnel/*.funnel.json",
+				"/resources/configuration/knownWikis.json",
+			],
+			"url": "./resources/schemas/knownWikisConfigurationSchema.json"
+		},
+		{
+			"fileMatch": [
+				"/resources/configuration/modules/funnel/*.funnel.json",
 			],
 			"url": "./resources/schemas/funnelConfigurationSchema.json"
 		}
