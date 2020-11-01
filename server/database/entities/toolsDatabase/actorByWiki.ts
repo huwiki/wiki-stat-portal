@@ -32,7 +32,7 @@ class ActorStatisticsByNamespaceTypeModel {
 	public editsToDate: number;
 }
 
-interface CreateActorEntitiesForWikiResult {
+export interface WikiStatisticsTypesResult {
 	/**
 	 * Entity representing an actor of a wiki (anonymus or registered user)
 	 */
@@ -47,7 +47,7 @@ interface CreateActorEntitiesForWikiResult {
 	actorStatisticsByNamespace: typeof ActorStatisticsByNamespaceTypeModel,
 }
 
-const ENTITY_CACHE_BY_WIKI: { [index: string]: CreateActorEntitiesForWikiResult } = {};
+const ENTITY_CACHE_BY_WIKI: { [index: string]: WikiStatisticsTypesResult } = {};
 
 /**
  * Generates dynamic entity classes for a given wiki. As table names are static in TypeORM,
@@ -55,7 +55,7 @@ const ENTITY_CACHE_BY_WIKI: { [index: string]: CreateActorEntitiesForWikiResult 
  * with this method)
  * @param wikiId Identifier of the wiki as defined in `knownWikis.json`
  */
-export const createActorEntitiesForWiki = (wikiId: string): CreateActorEntitiesForWikiResult => {
+export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesResult => {
 	if (ENTITY_CACHE_BY_WIKI[wikiId])
 		return ENTITY_CACHE_BY_WIKI[wikiId];
 
@@ -117,7 +117,7 @@ export const createActorEntitiesForWiki = (wikiId: string): CreateActorEntitiesF
 		public editsToDate: number;
 	}
 
-	const ret: CreateActorEntitiesForWikiResult = {
+	const ret: WikiStatisticsTypesResult = {
 		actor: Actor,
 		actorStatistics: ActorStatistics,
 		actorStatisticsByNamespace: ActorStatisticsByNamespace,
