@@ -38,7 +38,7 @@ class ModuleManager {
 		];
 
 		for (const module of this.allModules) {
-			const moduleConfigPath = path.join(getResourcesBasePath(), "modules", module.identifier, "configuration.json");
+			const moduleConfigPath = path.join(getResourcesBasePath(), "configuration", "modules", module.identifier, "configuration.json");
 
 			const fileData = fs.readFileSync(moduleConfigPath, { encoding: "utf-8" });
 
