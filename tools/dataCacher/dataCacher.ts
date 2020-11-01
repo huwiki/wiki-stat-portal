@@ -1,10 +1,13 @@
 import { compareAsc, isSameDay, startOfDay } from "date-fns";
+import * as _ from "lodash";
 import { Connection, EntityManager, getManager } from "typeorm";
+import winston from "winston";
 import { createConnectionToMediaWikiReplica, createConnectionToUserDatabase } from "../../server/database/connectionManager";
 import { Actor } from "../../server/database/entities/mediawiki/actor";
 import { Revision } from "../../server/database/entities/mediawiki/revision";
 import { createActorEntitiesForWiki } from "../../server/database/entities/toolsDatabase/actorByWiki";
 import { WikiProcessedRevisions } from "../../server/database/entities/toolsDatabase/wikiProcessedRevisions";
+import { createWikiStatLogger } from "../../server/loggingHelper";
 import { moduleManager } from "../../server/modules/moduleManager";
 
 moduleManager.getModules();
@@ -28,16 +31,16 @@ interface StatsByActor {
 	editsByDateAndNs: EditsByDateAndNs[];
 }
 
-const doWikiCacheProcess = async (toolsConnection: Connection, wiki: string) => {
+const doWikiCacheProcess = async (toolsConnection: Connection, wiki: string, logger: winston.Logger): Promise<void> => {
 	const mwConnection = await createConnectionToMediaWikiReplica("huwiki_p");
 	const wikiStatisticsEntities = createActorEntitiesForWiki("huwiki");
-
 
 	const wikiProcessEntry = await toolsConnection.getRepository(WikiProcessedRevisions)
 		.findOne({ where: { wiki: wiki } });
 
 	const lastProcessedRevisionId = wikiProcessEntry?.lastProcessedRevisionId ?? 0;
-	console.log(`Starting processing ${REVISIONS_PROCESSED_AT_ONCE} revisions for ${wiki} from ${lastProcessedRevisionId + 1}...`);
+
+	logger.info(`[doWikiCacheProcess/${wiki}] Getting at most ${REVISIONS_PROCESSED_AT_ONCE} revisions starting at revision ${lastProcessedRevisionId + 1}...`);
 
 	const ret = await mwConnection.getRepository(Revision)
 		.createQueryBuilder("rev")
@@ -51,9 +54,12 @@ const doWikiCacheProcess = async (toolsConnection: Connection, wiki: string) => 
 		.getMany();
 
 	if (!ret || ret.length == 0) {
+		logger.info(`[doWikiCacheProcess/${wiki}] No new revisions to process.`);
 		mwConnection.close();
 		return;
 	}
+
+	logger.info(`[doWikiCacheProcess/${wiki}] Starting processing ${REVISIONS_PROCESSED_AT_ONCE} revisions.`);
 
 	const statsByActorList: StatsByActor[] = [];
 
@@ -118,7 +124,7 @@ const doWikiCacheProcess = async (toolsConnection: Connection, wiki: string) => 
 
 				// TODO: manage user groups
 				if (existingActor.actorName !== actorName) {
-					console.log(`[doWikiCacheProcess] Updating actor for ${actorName}...`);
+					logger.info(`[doWikiCacheProcess/${wiki}] Persistence: Updating actor in db for '${actorName}'...`);
 					await em
 						.createQueryBuilder()
 						.update(wikiStatisticsEntities.actor)
@@ -126,11 +132,11 @@ const doWikiCacheProcess = async (toolsConnection: Connection, wiki: string) => 
 						.where("id = :actorId", { actorId: actorStat.actorId })
 						.execute();
 				} else {
-					console.log(`[doWikiCacheProcess] Actor ${actorName} is up to date`);
+					logger.info(`[doWikiCacheProcess/${wiki}] Persistence: Actor '${actorName}' is up to date in cache db`);
 				}
 
 			} else {
-				console.log(`[doWikiCacheProcess] Creating actor for ${actorName}`);
+				logger.info(`[doWikiCacheProcess/${wiki}] Persistence: Creating actor for '${actorName}'`);
 				await em.createQueryBuilder()
 					.insert()
 					.into(wikiStatisticsEntities.actor)
@@ -151,7 +157,7 @@ const doWikiCacheProcess = async (toolsConnection: Connection, wiki: string) => 
 					.execute();
 			}
 
-			console.log(`[doWikiCacheProcess] Updating edits by date for ${actorName}...`);
+			logger.info(`[doWikiCacheProcess/${wiki}] Persistence: Updating edits by date for ${actorName} (${actorStat.editsByDate.length} items)...`);
 
 			for (const editByDate of actorStat.editsByDate) {
 				const existingStat = await em.getRepository(wikiStatisticsEntities.actorStatistics)
@@ -181,7 +187,8 @@ const doWikiCacheProcess = async (toolsConnection: Connection, wiki: string) => 
 
 			}
 
-			console.log(`[doWikiCacheProcess] Updating edits by date by namespace for ${actorName}...`);
+			const nsItemCount = _.sumBy(actorStat.editsByDateAndNs, x => x.editsByDate.length);
+			logger.info(`[doWikiCacheProcess/${wiki}] Persistence: Updating edits by date by namespace for ${actorName} (${nsItemCount} items)...`);
 
 			for (const editByNs of actorStat.editsByDateAndNs) {
 				for (const editByDateAndNs of editByNs.editsByDate) {
@@ -214,7 +221,7 @@ const doWikiCacheProcess = async (toolsConnection: Connection, wiki: string) => 
 				}
 			}
 
-			console.log(`[doWikiCacheProcess] ${actorName} finished.`);
+			logger.info(`[doWikiCacheProcess/${wiki}] Persistence: ${actorName} successfully finished.`);
 		}
 
 		const currentWikiProcessEntry = await toolsConnection.getRepository(WikiProcessedRevisions)
@@ -239,21 +246,17 @@ const doWikiCacheProcess = async (toolsConnection: Connection, wiki: string) => 
 	});
 
 
-	console.log(`Finished processing ${REVISIONS_PROCESSED_AT_ONCE} revisions for ${wiki}.`);
-	console.log(statsByActorList);
+	logger.info(`[doWikiCacheProcess/${wiki}] Finished processing ${REVISIONS_PROCESSED_AT_ONCE} revisions for ${wiki}.`);
 
 	mwConnection.close();
 };
 
 const runTool = async () => {
+	const logger = createWikiStatLogger("dataCacher");
 	const toolsConnection = await createConnectionToUserDatabase("USERNAME__userstatistics", ["huwiki"]);
 
-	const huwikiActorTypes = createActorEntitiesForWiki("huwiki");
+	await doWikiCacheProcess(toolsConnection, "huwiki", logger);
 
-	const wikiEntry = await toolsConnection.getRepository(WikiProcessedRevisions)
-		.findOne({ where: { wiki: "huwiki" } });
-
-	await doWikiCacheProcess(toolsConnection, "huwiki");
 	toolsConnection.close();
 };
 
