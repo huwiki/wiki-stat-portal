@@ -3,6 +3,10 @@
 	"include": [
 		"**/*.ts",
 		"**/*.tsx",
+		"../common/**/*.ts",
+		"../common/**/*.tsx",
+		"../server/**/*.ts",
+		"../server/**/*.tsx",
 	],
 	"compilerOptions": {
 		"noEmit": false,

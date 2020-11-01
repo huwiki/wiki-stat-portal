@@ -1,6 +1,8 @@
 import { promises as fsPromises } from "fs";
 
-export async function* getSubdirectories(path = "./"): AsyncGenerator<string> {
+export const fileExistsAsync = async (path: string): Promise<boolean> => !!(await fsPromises.stat(path).catch(_ => false));
+
+export async function* getSubdirectoriesAsync(path = "./"): AsyncGenerator<string> {
 	const entries = await fsPromises.readdir(path, { withFileTypes: true });
 
 	for (const entry of entries) {
@@ -10,12 +12,12 @@ export async function* getSubdirectories(path = "./"): AsyncGenerator<string> {
 	}
 }
 
-export async function* getFiles(path = "./", recursive: boolean = false): AsyncGenerator<string> {
+export async function* getFilesAsync(path = "./", recursive: boolean = false): AsyncGenerator<string> {
 	const entries = await fsPromises.readdir(path, { withFileTypes: true });
 
 	for (const entry of entries) {
 		if (entry.isDirectory() && recursive === true) {
-			yield* getFiles(`${path}/${entry.name}`, recursive);
+			yield* getFilesAsync(`${path}/${entry.name}`, recursive);
 		} else {
 			//yield { ...entry, path: path + entry.name }
 			yield `${path}/${entry.name}`;

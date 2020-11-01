@@ -1,10 +1,8 @@
-import { Connection, createConnection, getConnectionOptions } from "typeorm";
-import { MysqlConnectionOptions } from "typeorm/driver/mysql/MysqlConnectionOptions";
+import { Connection, createConnection } from "typeorm";
+import { ApplicationConfiguration } from "../configuration/applicationConfiguration";
 import { createActorEntitiesForWiki } from "./entities/toolsDatabase/actorByWiki";
 
-export const createConnectionToUserDatabase = async (databaseName: string, wikis: string[]): Promise<Connection> => {
-	const connectionOptions = await getConnectionOptions() as MysqlConnectionOptions;
-
+export const createConnectionToUserDatabase = async (appConfig: ApplicationConfiguration, databaseName: string, wikis: string[]): Promise<Connection> => {
 	// eslint-disable-next-line @typescript-eslint/ban-types
 	const items: Function[] = [];
 	for (const wikiId of wikis) {
@@ -13,11 +11,10 @@ export const createConnectionToUserDatabase = async (databaseName: string, wikis
 	}
 
 	return await createConnection({
-		...connectionOptions,
 		type: "mysql",
 		name: "toolsDb",
-		// TODO: move to config
-		port: 4712,
+		host: appConfig.toolsDbHost,
+		port: appConfig.toolsDbPort,
 		database: databaseName,
 		synchronize: false,
 		logging: false,
@@ -28,15 +25,12 @@ export const createConnectionToUserDatabase = async (databaseName: string, wikis
 	});
 };
 
-export const createConnectionToMediaWikiReplica = async (databaseName: string): Promise<Connection> => {
-	const connectionOptions = await getConnectionOptions() as MysqlConnectionOptions;
-
+export const createConnectionToMediaWikiReplica = async (appConfig: ApplicationConfiguration, databaseName: string): Promise<Connection> => {
 	return await createConnection({
-		...connectionOptions,
 		name: "mwReplicas",
 		type: "mysql",
-		// TODO: move to config
-		port: 4711,
+		host: appConfig.toolsDbHost,
+		port: appConfig.toolsDbPort,
 		database: databaseName,
 		synchronize: false,
 		logging: false,

@@ -2,6 +2,8 @@ import { compareAsc, isSameDay, startOfDay } from "date-fns";
 import * as _ from "lodash";
 import { Connection, EntityManager, getManager } from "typeorm";
 import winston from "winston";
+import { ApplicationConfiguration } from "../../server/configuration/applicationConfiguration";
+import { getApplicationConfiguration, isApplicationConfigurationValid } from "../../server/configuration/configurationReader";
 import { createConnectionToMediaWikiReplica, createConnectionToUserDatabase } from "../../server/database/connectionManager";
 import { Actor } from "../../server/database/entities/mediawiki/actor";
 import { Revision } from "../../server/database/entities/mediawiki/revision";
@@ -31,8 +33,8 @@ interface StatsByActor {
 	editsByDateAndNs: EditsByDateAndNs[];
 }
 
-const doWikiCacheProcess = async (toolsConnection: Connection, wiki: string, logger: winston.Logger): Promise<void> => {
-	const mwConnection = await createConnectionToMediaWikiReplica("huwiki_p");
+const doWikiCacheProcess = async (appConfig: ApplicationConfiguration, toolsConnection: Connection, wiki: string, logger: winston.Logger): Promise<void> => {
+	const mwConnection = await createConnectionToMediaWikiReplica(appConfig, "huwiki_p");
 	const wikiStatisticsEntities = createActorEntitiesForWiki("huwiki");
 
 	const wikiProcessEntry = await toolsConnection.getRepository(WikiProcessedRevisions)
@@ -251,12 +253,23 @@ const doWikiCacheProcess = async (toolsConnection: Connection, wiki: string, log
 	mwConnection.close();
 };
 
-const runTool = async () => {
+const runTool = async (): Promise<void> => {
 	const logger = createWikiStatLogger("dataCacher");
-	const toolsConnection = await createConnectionToUserDatabase("USERNAME__userstatistics", ["huwiki"]);
 
-	await doWikiCacheProcess(toolsConnection, "huwiki", logger);
+	const appConfig = await getApplicationConfiguration();
+	if (!appConfig) {
+		logger.error("[runTool] Failed to read configuration file for application.");
+		return;
+	}
 
+	const configValidationResult = isApplicationConfigurationValid(appConfig);
+	if (configValidationResult.valid === false) {
+		logger.error(`[runTool] Failed to start tool due to invalid configuration: ${configValidationResult.validationError}`);
+		return;
+	}
+
+	const toolsConnection = await createConnectionToUserDatabase(appConfig, `${appConfig.toolForgeUserName}__userstatistics`, ["huwiki"]);
+	await doWikiCacheProcess(appConfig, toolsConnection, "huwiki", logger);
 	toolsConnection.close();
 };
 

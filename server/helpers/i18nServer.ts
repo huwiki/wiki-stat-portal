@@ -1,7 +1,7 @@
 import { promises as fsPromises } from "fs";
 import path from "path";
 import { I18nDictionary, MultiLangueageI18nDictionary } from "../../common/interfaces/I18nCommon";
-import { getFiles } from "./pathUtils";
+import { getFilesAsync } from "./pathUtils";
 
 const i18nData: MultiLangueageI18nDictionary = {
 };
@@ -18,7 +18,7 @@ export const initializeI18nData = async (): Promise<void> => {
 
 	const i18nBasePath = path.join(getResourcesBasePath(), "i18n") + "/";
 
-	for await (const languageFilePath of getFiles(i18nBasePath)) {
+	for await (const languageFilePath of getFilesAsync(i18nBasePath)) {
 		const fileName = path.basename(languageFilePath);
 		const fnMatch = fileName.match(/^(.+).json$/);
 		if (fnMatch && fnMatch.length === 2) {

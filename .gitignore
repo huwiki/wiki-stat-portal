@@ -32,6 +32,10 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# configuration files
+wikiStatConfig.json
+wikiStatConfig.production.json
+
 # vercel
 .vercel
 

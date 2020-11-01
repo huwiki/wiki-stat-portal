@@ -1,0 +1,10 @@
+{
+	"toolForgeUserName": "toolforge username here (eg.: u1234567)",
+	"toolForgePassword": "toolforge password here",
+
+	"replicaDbHost": "replica db host / 127.0.0.1 if ssh tunneling",
+	"replicaDbPort": "mysql port or ssh tunnel port as number",
+
+	"toolsDbHost": "tools db host / 127.0.0.1 if ssh tunneling",
+	"toolsDbPort": "mysql port or ssh tunnel port as a number"
+}

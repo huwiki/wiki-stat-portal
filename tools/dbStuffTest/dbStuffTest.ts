@@ -1,7 +1,9 @@
+import { getApplicationConfiguration, isApplicationConfigurationValid } from "../../server/configuration/configurationReader";
 import { createConnectionToMediaWikiReplica, createConnectionToUserDatabase } from "../../server/database/connectionManager";
 import { Revision } from "../../server/database/entities/mediawiki/revision";
 import { User } from "../../server/database/entities/mediawiki/user";
 import { WikiProcessedRevisions } from "../../server/database/entities/toolsDatabase/wikiProcessedRevisions";
+import { createWikiStatLogger } from "../../server/loggingHelper";
 import { moduleManager } from "../../server/modules/moduleManager";
 
 const mm = moduleManager;
@@ -10,8 +12,22 @@ for (const module of mm.getModules()) {
 }
 
 const fun = async () => {
-	const toolsConnection = await createConnectionToUserDatabase("USERNAME__userstatistics", ["huwiki"]);
-	const mwConnection = await createConnectionToMediaWikiReplica("skwiki_p");
+	const logger = createWikiStatLogger("dbStuffTest");
+
+	const appConfig = await getApplicationConfiguration();
+	if (!appConfig) {
+		logger.error("[runTool] Failed to read configuration file for application.");
+		return;
+	}
+
+	const configValidationResult = isApplicationConfigurationValid(appConfig);
+	if (configValidationResult.valid === false) {
+		logger.error(`[runTool] Failed to start tool due to invalid configuration: ${configValidationResult.validationError}`);
+		return;
+	}
+
+	const toolsConnection = await createConnectionToUserDatabase(appConfig, `${appConfig.toolForgeUserName}__userstatistics`, ["huwiki"]);
+	const mwConnection = await createConnectionToMediaWikiReplica(appConfig, "skwiki_p");
 
 	try {
 		const wikiEntry = await toolsConnection.getRepository(WikiProcessedRevisions)
