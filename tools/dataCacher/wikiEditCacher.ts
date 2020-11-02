@@ -1,5 +1,7 @@
-import { compareAsc, isSameDay, startOfDay } from "date-fns";
+import { compareAsc, isSameDay } from "date-fns";
 import * as _ from "lodash";
+import moment from "moment";
+import "moment-timezone";
 import { Connection, EntityManager, getManager } from "typeorm";
 import { Logger } from "winston";
 import { ApplicationConfiguration } from "../../server/configuration/applicationConfiguration";
@@ -114,8 +116,7 @@ export class WikiEditCacher {
 		for (const revision of revisions) {
 			const actor = revision.actor;
 
-			// TODO: convert to wiki local tz, and then calculate
-			const editDate = startOfDay(revision.timestamp);
+			const editDate = this.getStartOfDayAsPlainDate(revision);
 
 			let statsByActor = this.statsByActorList.find(x => x.actorId == actor.id);
 			if (!statsByActor) {
@@ -153,6 +154,16 @@ export class WikiEditCacher {
 				}
 			}
 		}
+	}
+
+	private getStartOfDayAsPlainDate(revision: Revision) {
+		return moment.tz(
+			moment.tz(revision.timestamp, "UTC")
+				.tz(this.wiki.timeZone, false)
+				.startOf("day")
+				.format("YYYY-MM-DDTHH:mm:ss"),
+			"YYYY-MM-DDTHH:mm:ss", "UTC"
+		).toDate();
 	}
 
 	private async saveCachedDataToToolsDb(): Promise<void> {
@@ -231,6 +242,7 @@ export class WikiEditCacher {
 					.where("actorId = :actorId", { actorId: actorStat.actorId })
 					.where("date = :date", { date: editByDate.date })
 					.execute();
+				// TODO: update later days
 			} else {
 				await em.createQueryBuilder()
 					.insert()

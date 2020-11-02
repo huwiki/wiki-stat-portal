@@ -2,11 +2,13 @@
 	{
 		"id": "huwiki",
 		"domain": "hu.wikipedia.org",
-		"replicaDatabaseName": "huwiki_p"
+		"replicaDatabaseName": "huwiki_p",
+		"timeZone": "Europe/Budapest"
 	},
 	{
 		"id": "skwiki",
 		"domain": "sk.wikipedia.org",
-		"replicaDatabaseName": "skwiki_p"
+		"replicaDatabaseName": "skwiki_p",
+		"timeZone": "Europe/Bratislava"
 	}
 ]

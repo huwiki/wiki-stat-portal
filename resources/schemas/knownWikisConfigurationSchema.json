@@ -16,12 +16,16 @@
 				},
 				"replicaDatabaseName": {
 					"type": "string"
+				},
+				"timeZone": {
+					"type": "string"
 				}
 			},
 			"required": [
 				"id",
 				"domain",
-				"replicaDatabaseName"
+				"replicaDatabaseName",
+				"timeZone"
 			],
 			"additionalProperties": false
 		}
