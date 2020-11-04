@@ -157,12 +157,12 @@ export class WikiEditCacher {
 	}
 
 	private getStartOfDayAsPlainDate(revision: Revision) {
-		return moment.tz(
+		return moment(
 			moment.tz(revision.timestamp, "UTC")
 				.tz(this.wiki.timeZone, false)
 				.startOf("day")
 				.format("YYYY-MM-DDTHH:mm:ss"),
-			"YYYY-MM-DDTHH:mm:ss", "UTC"
+			"YYYY-MM-DDTHH:mm:ss"
 		).toDate();
 	}
 
@@ -343,7 +343,7 @@ export class WikiEditCacher {
 	}
 
 	private async saveWikiProcessedRevisionInfo(em: EntityManager): Promise<void> {
-		const currentWikiProcessEntry = await this.toolsConnection.getRepository(WikiProcessedRevisions)
+		const currentWikiProcessEntry = await em.getRepository(WikiProcessedRevisions)
 			.findOne({ where: { wiki: this.wiki.id } });
 		if (!currentWikiProcessEntry) {
 			await em.createQueryBuilder()
