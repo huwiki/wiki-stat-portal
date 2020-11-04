@@ -2,7 +2,7 @@ import { compareAsc, isSameDay } from "date-fns";
 import * as _ from "lodash";
 import moment from "moment";
 import "moment-timezone";
-import { Connection, EntityManager, getManager } from "typeorm";
+import { Connection, EntityManager, getManager, LessThan } from "typeorm";
 import { Logger } from "winston";
 import { ApplicationConfiguration } from "../../server/configuration/applicationConfiguration";
 import { createConnectionToMediaWikiReplica } from "../../server/database/connectionManager";
@@ -240,10 +240,31 @@ export class WikiEditCacher {
 					.update(this.wikiStatisticsEntities.actorStatistics)
 					.set({ dailyEdits: existingStat.dailyEdits + editByDate.edits })
 					.where("actorId = :actorId", { actorId: actorStat.actorId })
-					.where("date = :date", { date: editByDate.date })
+					.andWhere("date = :date", { date: editByDate.date })
 					.execute();
-				// TODO: update later days
+
+				await em
+					.createQueryBuilder()
+					.update(this.wikiStatisticsEntities.actorStatistics)
+					.set({
+						dailyEdits: () => `daily_edits + ${editByDate.edits}`,
+						editsToDate: () => `edits_to_date + ${editByDate.edits}`,
+					})
+					.where("actorId = :actorId", { actorId: actorStat.actorId })
+					.andWhere("date > :date", { date: editByDate.date })
+					.execute();
 			} else {
+				const previousDay = await em.getRepository(this.wikiStatisticsEntities.actorStatistics)
+					.findOne({
+						where: {
+							actorId: actorStat.actorId,
+							date: LessThan(editByDate.date)
+						},
+						order: {
+							date: "DESC"
+						}
+					});
+
 				await em.createQueryBuilder()
 					.insert()
 					.into(this.wikiStatisticsEntities.actorStatistics)
@@ -251,8 +272,9 @@ export class WikiEditCacher {
 						actorId: actorStat.actorId,
 						date: editByDate.date,
 						dailyEdits: editByDate.edits,
-						// TODO: get proper value
-						editsToDate: 0
+						editsToDate: previousDay
+							? previousDay.editsToDate + previousDay.dailyEdits
+							: 0
 					})
 					.execute();
 			}
@@ -262,10 +284,10 @@ export class WikiEditCacher {
 		const nsItemCount = _.sumBy(actorStat.editsByDateAndNs, x => x.editsByDate.length);
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating edits by date by namespace for ${actorName} (${nsItemCount} items)...`);
 
-		for (const editByNs of actorStat.editsByDateAndNs) {
-			for (const editByDateAndNs of editByNs.editsByDate) {
+		for (const editsByNs of actorStat.editsByDateAndNs) {
+			for (const editByDateAndNs of editsByNs.editsByDate) {
 				const existingStat = await em.getRepository(this.wikiStatisticsEntities.actorStatisticsByNamespace)
-					.findOne({ where: { actorId: actorStat.actorId, namespace: editByNs.namespace, date: editByDateAndNs.date } });
+					.findOne({ where: { actorId: actorStat.actorId, namespace: editsByNs.namespace, date: editByDateAndNs.date } });
 
 				if (existingStat) {
 					await em
@@ -273,20 +295,44 @@ export class WikiEditCacher {
 						.update(this.wikiStatisticsEntities.actorStatisticsByNamespace)
 						.set({ dailyEdits: existingStat.dailyEdits + editByDateAndNs.edits })
 						.where("actorId = :actorId", { actorId: actorStat.actorId })
-						.where("date = :date", { date: editByDateAndNs.date })
-						.andWhere("namespace = :namespace", { namespace: editByNs.namespace })
+						.andWhere("date = :date", { date: editByDateAndNs.date })
+						.andWhere("namespace = :namespace", { namespace: editsByNs.namespace })
+						.execute();
+
+					await em
+						.createQueryBuilder()
+						.update(this.wikiStatisticsEntities.actorStatistics)
+						.set({
+							dailyEdits: () => `daily_edits + ${editByDateAndNs.edits}`,
+							editsToDate: () => `edits_to_date + ${editByDateAndNs.edits}`,
+						})
+						.where("actorId = :actorId", { actorId: actorStat.actorId })
+						.andWhere("date > :date", { date: editByDateAndNs.date })
 						.execute();
 				} else {
+					const previousDay = await em.getRepository(this.wikiStatisticsEntities.actorStatisticsByNamespace)
+						.findOne({
+							where: {
+								actorId: actorStat.actorId,
+								namespace: editsByNs.namespace,
+								date: LessThan(editByDateAndNs.date)
+							},
+							order: {
+								date: "DESC"
+							}
+						});
+
 					await em.createQueryBuilder()
 						.insert()
 						.into(this.wikiStatisticsEntities.actorStatisticsByNamespace)
 						.values({
 							actorId: actorStat.actorId,
 							date: editByDateAndNs.date,
-							namespace: editByNs.namespace,
+							namespace: editsByNs.namespace,
 							dailyEdits: editByDateAndNs.edits,
-							// TODO: get proper value
-							editsToDate: 0
+							editsToDate: previousDay
+								? previousDay.editsToDate + previousDay.dailyEdits
+								: 0
 						})
 						.execute();
 				}
