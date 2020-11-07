@@ -114,6 +114,16 @@ export class WikiEditCacher {
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Starting processing ${REVISIONS_PROCESSED_AT_ONCE} revisions.`);
 
 		for (const revision of revisions) {
+			if (revision.actor == null) {
+				this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Revision ${revision.id} does not have a valid actor reference.`);
+				continue;
+			}
+
+			if (revision.page == null) {
+				this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Revision ${revision.id} does not have a valid page reference.`);
+				continue;
+			}
+
 			const actor = revision.actor;
 
 			const editDate = this.getStartOfDayAsPlainDate(revision);
