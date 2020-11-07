@@ -1,0 +1,94 @@
+.titleBar {
+	display: flex;
+	align-items: center;
+	margin-top: 20px;
+	margin-bottom: 5px;
+}
+
+.pyramidTitle {
+	font-size: 20px;
+	font-weight: bold;
+	flex: 1 1 auto;
+}
+
+.seriesDescription {
+	margin: 0 5px;
+	display: flex;
+	align-items: center;
+}
+
+.seriesDescriptionBox {
+	width: 20px;
+	height: 20px;
+	display: inline-block;
+	margin-right: 5px;
+}
+
+.table {
+	background-color: rgba(0, 0, 0, 0.4);
+	border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.tableHeaderRow {
+	display: flex;
+	align-items: center;
+	background-color: rgba(0, 0, 0, 0.4);
+
+	>div {
+		padding: 5px;
+		font-weight: bold;
+	}
+
+	.groupLabel {
+		flex: 0 0 300px;
+	}
+
+	.bars {
+		flex: 0 0 400px;
+	}
+
+	.populationSize,
+	.populationSizePercentage {
+		flex: 0 0 150px;
+		text-align: right;
+	}
+}
+
+.tableRow {
+	display: flex;
+	align-items: center;
+
+	>div {
+		padding: 5px;
+	}
+
+	.groupLabel {
+		flex: 0 0 300px;
+		font-size: 95%;
+		font-weight: bold;
+	}
+
+	.bars {
+		flex: 0 0 400px;
+	}
+
+	.bar {
+		background-color: rgb(151, 87, 194);
+		height: 30px;
+	}
+
+	.populationSize,
+	.populationSizePercentage {
+		flex: 0 0 150px;
+	}
+
+	.populationSizeEntry,
+	.populationSizeEntryPercentageEntry {
+		height: 30px;
+		line-height: 30px;
+		font-size: 18px;
+		color: rgba(255, 255, 255, 0.6);
+		font-weight: bold;
+		text-align: right;
+	}
+}
