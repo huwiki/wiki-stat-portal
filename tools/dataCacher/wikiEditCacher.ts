@@ -12,7 +12,8 @@ import { createActorEntitiesForWiki, WikiStatisticsTypesResult } from "../../ser
 import { WikiProcessedRevisions } from "../../server/database/entities/toolsDatabase/wikiProcessedRevisions";
 import { KnownWiki } from "../../server/interfaces/knownWiki";
 
-const REVISIONS_PROCESSED_AT_ONCE = 1000;
+const REVISIONS_PROCESSED_AT_ONCE: number = 1000;
+const MAXIMUM_PROCESSED_REVISIONS_AT_ONCE: number = 3000;
 
 interface WikiEditCacherOptions {
 	appConfig: ApplicationConfiguration;
@@ -49,6 +50,7 @@ export class WikiEditCacher {
 	private replicatedDatabaseConnection: Connection;
 	private totalProcessedRevisions: number = 0;
 	private statsByActorList: StatsByActor[] = [];
+	private statsByActorDict: { [index: number]: StatsByActor } = {};
 
 	constructor(options: WikiEditCacherOptions) {
 		this.appConfig = options.appConfig;
@@ -68,7 +70,7 @@ export class WikiEditCacher {
 			if (!(await this.tryProcessNextRevisionBatch()))
 				break;
 
-			if (this.totalProcessedRevisions > 2000)
+			if (this.totalProcessedRevisions >= MAXIMUM_PROCESSED_REVISIONS_AT_ONCE)
 				break;
 		}
 		this.replicatedDatabaseConnection.close();
@@ -128,7 +130,7 @@ export class WikiEditCacher {
 
 			const editDate = this.getStartOfDayAsPlainDate(revision);
 
-			let statsByActor = this.statsByActorList.find(x => x.actorId == actor.id);
+			let statsByActor = this.statsByActorDict[actor.id];
 			if (!statsByActor) {
 				statsByActor = {
 					actor: actor,
@@ -140,6 +142,7 @@ export class WikiEditCacher {
 					}]
 				};
 				this.statsByActorList.push(statsByActor);
+				this.statsByActorDict[actor.id] = statsByActor;
 			} else {
 				const dailyBucket = statsByActor.editsByDate.find(x => isSameDay(x.date, editDate));
 				if (!dailyBucket) {

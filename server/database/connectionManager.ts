@@ -38,6 +38,9 @@ export const createConnectionToMediaWikiReplica = async (appConfig: ApplicationC
 		database: databaseName,
 		synchronize: false,
 		logging: false,
+		extra: {
+			connectionLimit: 1
+		},
 		entities: [
 			"server/database/entities/mediawiki/**/*.js"
 		],
