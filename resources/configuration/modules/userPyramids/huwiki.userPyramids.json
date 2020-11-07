@@ -1,7 +1,7 @@
 {
-	"$schema": "../../schemas/funnelConfigurationSchema.json",
-	"funnels": [
+	"userPyramids": [
 		{
+			"id": "first",
 			"name": "I. szerkesztői piramis",
 			"groups": [
 				{
@@ -35,6 +35,7 @@
 			]
 		},
 		{
+			"id": "second",
 			"name": "II. szerkesztői piramis",
 			"groups": [
 				{
@@ -109,6 +110,7 @@
 			]
 		},
 		{
+			"id": "third",
 			"name": "III. szerkesztői piramis",
 			"groups": [
 				{
@@ -204,6 +206,7 @@
 			]
 		},
 		{
+			"id": "fourth",
 			"name": "IV. szerkesztői piramis",
 			"groups": [
 				{
@@ -250,6 +253,7 @@
 			]
 		},
 		{
+			"id": "fifth",
 			"name": "V. szerkesztői piramis",
 			"groups": [
 				{
@@ -302,6 +306,7 @@
 			]
 		},
 		{
+			"id": "tgr",
 			"name": "Tgr szerkesztői piramisa",
 			"groups": [
 				{

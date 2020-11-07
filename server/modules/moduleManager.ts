@@ -4,8 +4,8 @@ import { getResourcesBasePath } from "../helpers/i18nServer";
 import { AnotherModule } from "./anotherModule/anotherModule";
 import { ModuleBase } from "./common/moduleBase";
 import { ModuleJsonConfiguration } from "./common/moduleJsonConfiguration";
-import { FunnelModule } from "./funnelModule/funnelModule";
 import { ThirdModule } from "./thirdModule/thirdModule";
+import { UserPyramidsModule } from "./userPyramidsModule/userPyramidsModule";
 
 class ModuleManager {
 	private allModules: ModuleBase[];
@@ -32,7 +32,7 @@ class ModuleManager {
 
 	public initializeModules(): void {
 		this.allModules = [
-			new FunnelModule(),
+			new UserPyramidsModule(),
 			new AnotherModule(),
 			new ThirdModule()
 		];

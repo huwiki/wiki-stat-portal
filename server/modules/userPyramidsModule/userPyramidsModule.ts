@@ -2,11 +2,11 @@ import { ModuleBase } from "../common/moduleBase";
 import { ModuleJsonConfiguration } from "../common/moduleJsonConfiguration";
 import { IModuleParameter } from "../common/parameters/moduleParameter";
 
-export class FunnelModule extends ModuleBase {
+export class UserPyramidsModule extends ModuleBase {
 	constructor() {
 		super({
-			identifier: "funnel",
-			icon: "filter-list"
+			identifier: "userPryamids",
+			icon: "horizontal-bar-chart-desc"
 		});
 	}
 

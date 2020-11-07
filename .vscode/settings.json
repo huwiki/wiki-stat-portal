@@ -30,15 +30,15 @@
 	"json.schemas": [
 		{
 			"fileMatch": [
-				"/resources/configuration/knownWikis.json",
+				"./resources/configuration/knownWikis.json",
 			],
 			"url": "./resources/schemas/knownWikisConfigurationSchema.json"
 		},
 		{
 			"fileMatch": [
-				"/resources/configuration/modules/funnel/*.funnel.json",
+				"resources/configuration/modules/userPyramids/*.userPyramids.json",
 			],
-			"url": "./resources/schemas/funnelConfigurationSchema.json"
+			"url": "./resources/schemas/userPyramidsConfigurationSchema.json"
 		}
 	]
 }
