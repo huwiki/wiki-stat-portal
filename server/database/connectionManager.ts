@@ -21,7 +21,7 @@ export const createConnectionToUserDatabase = async (appConfig: ApplicationConfi
 		synchronize: false,
 		logging: false,
 		entities: [
-			"server/database/entities/toolsDatabase/**/*.js",
+			"tools-out/server/database/entities/toolsDatabase/**/*.js",
 			...items
 		],
 	});
@@ -42,7 +42,7 @@ export const createConnectionToMediaWikiReplica = async (appConfig: ApplicationC
 			connectionLimit: 1
 		},
 		entities: [
-			"server/database/entities/mediawiki/**/*.js"
+			"tools-out/server/database/entities/mediawiki/**/*.js"
 		],
 	});
 };

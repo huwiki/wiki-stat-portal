@@ -2,18 +2,7 @@
 	"npm.packageManager": "yarn",
 	"files.exclude": {
 		"node_modules/": true,
-		"client/**/*.js": true,
-		"client/**/*.jsx": true,
-		"common/**/*.js": true,
-		"common/**/*.jsx": true,
-		"components/**/*.js": true,
-		"components/**/*.jsx": true,
-		"pages/**/*.js": true,
-		"pages/**/*.jsx": true,
-		"server/**/*.js": true,
-		"server/**/*.jsx": true,
-		"tools/**/*.js": true,
-		"tools/**/*.jsx": true
+		"tools-out/": true,
 	},
 	"editor.formatOnSave": true,
 	"[typescript]": {

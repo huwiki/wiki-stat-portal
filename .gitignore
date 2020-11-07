@@ -39,6 +39,4 @@ wikiStatConfig.production.json
 # vercel
 .vercel
 
-**/*.js
-**/*.jsx
-!next.config.js
+/tools-out

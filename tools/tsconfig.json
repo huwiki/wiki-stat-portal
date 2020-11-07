@@ -16,5 +16,6 @@
 			"ESNext"
 		],
 		"module": "commonjs",
+		"outDir": "../tools-out/"
 	}
 }
