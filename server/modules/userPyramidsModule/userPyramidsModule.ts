@@ -5,7 +5,7 @@ import { IModuleParameter } from "../common/parameters/moduleParameter";
 export class UserPyramidsModule extends ModuleBase {
 	constructor() {
 		super({
-			identifier: "userPryamids",
+			identifier: "userPyramids",
 			icon: "horizontal-bar-chart-desc"
 		});
 	}
