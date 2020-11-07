@@ -1,6 +1,8 @@
 import { Connection, createConnection } from "typeorm";
 import { ApplicationConfiguration } from "../configuration/applicationConfiguration";
+import { Actor, Comment, Page, Revision, User, UserGroup } from "./entities/mediawiki";
 import { createActorEntitiesForWiki } from "./entities/toolsDatabase/actorByWiki";
+import { WikiProcessedRevisions } from "./entities/toolsDatabase/wikiProcessedRevisions";
 
 export const createConnectionToUserDatabase = async (appConfig: ApplicationConfiguration, databaseName: string, wikis: string[]): Promise<Connection> => {
 	// eslint-disable-next-line @typescript-eslint/ban-types
@@ -21,7 +23,7 @@ export const createConnectionToUserDatabase = async (appConfig: ApplicationConfi
 		synchronize: false,
 		logging: false,
 		entities: [
-			"tools-out/server/database/entities/toolsDatabase/**/*.js",
+			WikiProcessedRevisions,
 			...items
 		],
 	});
@@ -42,7 +44,12 @@ export const createConnectionToMediaWikiReplica = async (appConfig: ApplicationC
 			connectionLimit: 1
 		},
 		entities: [
-			"tools-out/server/database/entities/mediawiki/**/*.js"
+			Actor,
+			Comment,
+			Page,
+			Revision,
+			User,
+			UserGroup
 		],
 	});
 };
