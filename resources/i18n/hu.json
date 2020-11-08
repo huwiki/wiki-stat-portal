@@ -15,7 +15,6 @@
 	"module.third.description": "Harmadik modul leírása.",
 	"changeLanguage": "Nyelv változtatása",
 
-	"toogleAppBaseStyle": "Váltás sötés és világos mód között",
 	"input.noSearchResults": "Nincs a keresési feltételeknek megfelelő elem.",
 	"input.noSelectedItem": "Nincs kiválasztva elem",
 	"indexPage.title": "Kezdőlap",
@@ -25,6 +24,7 @@
 	"indexPage.moduleNotAvailableOnSelectedWiki": "Ez a modul még nem érhető el a kiválasztott wikihez.",
 	"indexPage.moduleNotAvailableOnAnyWikis": "Ez a modul jelenleg egyetlen wikihez sem érhető el.",
 
+	"userPyramids.seriesLabels": "Sorozat:",
 	"userPyramids.header.group": "Csoport",
 	"userPyramids.header.numberOfEditors": "Szerkesztők száma",
 	"userPyramids.header.percentage": "Százalékos arány",

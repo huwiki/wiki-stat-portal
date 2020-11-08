@@ -65,6 +65,7 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 		let counter: number = 0;
 
 		return <>
+			{this.t("userPyramids.seriesLabels")}
 			{this.props.seriesDescriptions.map(x => {
 				counter++;
 				const key = `group-${counter}`;
