@@ -6,6 +6,7 @@ import { PageFrame } from "../../client/components/pageFrame";
 import { NextBasePage } from "../../client/helpers/nextBasePage";
 import { CommonPageProps } from "../../common/interfaces/commonPageProps";
 import { withCommonServerSideProps } from "../../server/helpers/serverSidePageHelpers";
+import { GetServerSidePropsResult } from "../../server/interfaces/getServerSidePropsResult";
 import { IModuleParameter } from "../../server/modules/common/parameters/moduleParameter";
 import { moduleManager } from "../../server/modules/moduleManager";
 
@@ -32,7 +33,7 @@ class ModulePage extends NextBasePage<ModuleParameterPageProps> {
 	}
 }
 
-export const getServerSideProps = async (ctx: NextPageContext) => {
+export const getServerSideProps = async (ctx: NextPageContext): Promise<GetServerSidePropsResult<ModuleParameterPageProps>> => {
 	let { moduleId } = ctx.query;
 	moduleId = moduleId || "";
 	const matchingModule = moduleManager.getModuleById(Array.isArray(moduleId) ? moduleId[0] : moduleId);

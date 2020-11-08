@@ -187,10 +187,3 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 		}
 	}
 }
-
-// 	"rgb(87, 194, 110)", // green
-// 	"rgb(192, 194, 87)", // yellow
-// 	"rgb(194, 87, 87)", // red
-// 	"rgb(87, 121, 194)", // blue
-// 	"rgb(194, 157, 87)", // orange
-// 	"rgb(151, 87, 194)", // purple
