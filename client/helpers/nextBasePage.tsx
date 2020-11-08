@@ -16,15 +16,6 @@ export abstract class NextBasePage<T extends CommonPageProps> extends React.Comp
 		this.i18nProvider = new I18nProvider(this.props.i18nData);
 	}
 
-	public componentDidMount(): void {
-		const { appBaseStyle } = this.props;
-		if (appBaseStyle === "dark") {
-			document.querySelector("body")?.classList.add("bp3-dark");
-		} else {
-			document.querySelector("body")?.classList.remove("bp3-dark");
-		}
-	}
-
 	protected render404Page(): JSX.Element {
 		return <>
 			<Head>

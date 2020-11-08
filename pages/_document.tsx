@@ -1,11 +1,9 @@
-import { Classes } from "@blueprintjs/core";
 import Document, { DocumentInitialProps, Head, Html, Main, NextScript } from "next/document";
 import { parseCookies } from "nookies";
 import * as React from "react";
 
 interface WikiStatDocumentProps extends DocumentInitialProps {
 	languageCode: string;
-	appBaseStyle: string;
 }
 
 class WikiStatDocument extends Document<WikiStatDocumentProps> {
@@ -15,16 +13,13 @@ class WikiStatDocument extends Document<WikiStatDocumentProps> {
 		return {
 			...initialProps,
 			languageCode: cookies["languageCode"] || "en",
-			appBaseStyle: cookies["appBaseStyle"] || "dark",
 		};
 	}
 
 	render(): JSX.Element {
-		const bodyClassName = this.props.appBaseStyle !== "light" ? Classes.DARK : undefined;
-
 		return <Html>
 			<Head />
-			<body className={bodyClassName}>
+			<body className="bp3-dark">
 				<Main />
 				<NextScript />
 			</body>

@@ -37,7 +37,6 @@ export class PageFrame extends React.Component<PageFrameProps> {
 
 	private renderNavbar() {
 		const cookies = parseCookies();
-		const isDark = cookies["appBaseStyle"] !== "light";
 
 		return <Navbar fixedToTop>
 			<div className={styles.headerMargin}>
@@ -49,9 +48,6 @@ export class PageFrame extends React.Component<PageFrameProps> {
 				</NavbarGroup>
 
 				<NavbarGroup align="right">
-					<Tooltip content={this.t("toogleAppBaseStyle")}>
-						<Button icon={isDark ? "flash" : "moon"} minimal onClick={this.toggleAppBaseStyle} />
-					</Tooltip>
 					<Popover content={this.renderLanguageSelectorMenu()}>
 						<Tooltip content={this.t("changeLanguage")}>
 							<Button icon="translate" minimal />
@@ -60,24 +56,6 @@ export class PageFrame extends React.Component<PageFrameProps> {
 				</NavbarGroup>
 			</div>
 		</Navbar>;
-	}
-
-	private toggleAppBaseStyle = () => {
-		const cookies = parseCookies();
-		const newBaseStyle = cookies["appBaseStyle"] !== "light" ? "light" : "dark";
-
-		setCookie(null, "appBaseStyle", newBaseStyle, {
-			maxAge: 30 * 24 * 60 * 60,
-			path: "/",
-		});
-
-		if (newBaseStyle === "dark") {
-			document.querySelector("body")?.classList.add("bp3-dark");
-		} else {
-			document.querySelector("body")?.classList.remove("bp3-dark");
-		}
-
-		this.props.router.push(this.props.router.pathname);
 	}
 
 	private renderLanguageSelectorMenu(): JSX.Element {
