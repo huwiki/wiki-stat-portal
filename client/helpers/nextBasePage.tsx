@@ -7,7 +7,7 @@ import { I18nProvider } from "./i18nClient";
 export abstract class NextBasePage<T extends CommonPageProps> extends React.Component<T> {
 	protected i18nProvider: I18nProvider;
 
-	protected t(key: string): string {
+	protected t = (key: string): string => {
 		return this.i18nProvider.t(key);
 	}
 

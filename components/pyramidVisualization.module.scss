@@ -1,3 +1,15 @@
+$barColors: (green: rgb(87, 194, 110),
+	yellow: rgb(192, 194, 87),
+	red: rgb(194, 87, 87),
+	blue: rgb(87, 121, 194),
+	orange: rgb(194, 157, 87),
+	purple: rgb(151, 87, 194),
+);
+
+$barHeight: 20px;
+$groupLabelFontSize: 12px;
+$valueFontSize: 12px;
+
 .titleBar {
 	display: flex;
 	align-items: center;
@@ -22,6 +34,13 @@
 	height: 20px;
 	display: inline-block;
 	margin-right: 5px;
+
+	@each $colorName,
+	$colorValue in $barColors {
+		&.#{$colorName} {
+			background-color: $colorValue;
+		}
+	}
 }
 
 .table {
@@ -40,7 +59,7 @@
 	}
 
 	.groupLabel {
-		flex: 0 0 300px;
+		flex: 0 0 250px;
 	}
 
 	.bars {
@@ -48,8 +67,8 @@
 	}
 
 	.populationSize,
-	.populationSizePercentage {
-		flex: 0 0 150px;
+	.populationSizePrev {
+		flex: 0 0 100px;
 		text-align: right;
 	}
 }
@@ -57,38 +76,97 @@
 .tableRow {
 	display: flex;
 	align-items: center;
-
-	>div {
-		padding: 5px;
-	}
+	padding: 5px;
 
 	.groupLabel {
-		flex: 0 0 300px;
-		font-size: 95%;
+		flex: 0 0 250px;
+		font-size: $groupLabelFontSize;
 		font-weight: bold;
 	}
 
-	.bars {
-		flex: 0 0 400px;
+	&:nth-child(2n+1) {
+		background-color: rgba(255, 255, 255, 0.05);
+	}
+}
+
+.bars {
+	flex: 0 0 400px;
+}
+
+.barWrapper,
+.populationSizeEntry,
+.populationSizePrevEntry {
+	box-sizing: content-box;
+
+	@each $colorName,
+	$colorValue in $barColors {
+		&.#{$colorName} {
+			border-bottom: 1px dotted $colorValue;
+		}
 	}
 
-	.bar {
-		background-color: rgb(151, 87, 194);
-		height: 30px;
-	}
+	margin-right: 2px;
+}
 
-	.populationSize,
-	.populationSizePercentage {
-		flex: 0 0 150px;
-	}
+.bar {
+	position: relative;
+	height: $barHeight;
 
-	.populationSizeEntry,
-	.populationSizeEntryPercentageEntry {
-		height: 30px;
-		line-height: 30px;
-		font-size: 18px;
-		color: rgba(255, 255, 255, 0.6);
-		font-weight: bold;
-		text-align: right;
+	@each $colorName,
+	$colorValue in $barColors {
+		.#{$colorName}>& {
+			background-color: $colorValue;
+		}
+	}
+}
+
+.commonPartBar {
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	display: block;
+	height: $barHeight;
+
+	background: repeating-linear-gradient(-45deg,
+			rgba(0, 0, 0, 0.15),
+			rgba(0, 0, 0, 0.15) 10px,
+			rgba(0, 0, 0, 0.3) 10px,
+			rgba(0, 0, 0, 0.3) 20px);
+}
+
+.populationSize,
+.populationSizePrev {
+	flex: 0 0 100px;
+}
+
+.populationSizeEntry,
+.populationSizePrevEntry {
+	height: $barHeight;
+	line-height: $barHeight;
+	font-size: $valueFontSize;
+	color: white;
+	font-weight: bold;
+	text-align: right;
+	padding-right: 5px;
+
+}
+
+.populationSizeEntry {
+
+	@each $colorName,
+	$colorValue in $barColors {
+		&.#{$colorName} {
+			background-color: transparentize($colorValue, $amount: 0.5);
+		}
+	}
+}
+
+.populationSizePrevEntry {
+
+	@each $colorName,
+	$colorValue in $barColors {
+		&.#{$colorName} {
+			background-color: transparentize($colorValue, $amount: 0.7);
+		}
 	}
 }

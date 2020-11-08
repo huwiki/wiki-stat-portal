@@ -25,5 +25,11 @@
 	"indexPage.filterByWiki": "Filter by wiki:",
 	"indexPage.noFilterByWiki": "< Not filtered >",
 	"indexPage.moduleNotAvailableOnSelectedWiki": "This module is not yet available for the selected wiki.",
-	"indexPage.moduleNotAvailableOnAnyWikis": "This module is not yet available on any wikis."
+	"indexPage.moduleNotAvailableOnAnyWikis": "This module is not yet available on any wikis.",
+
+	"userPyramids.header.group": "Group",
+	"userPyramids.header.numberOfEditors": "Number of editors",
+	"userPyramids.header.percentage": "Percentage",
+	"userPyramids.header.intersectionWithPreviousGroup": "Intersection with previous group",
+	"userPyramids.header.intersectionPercentage": "Intersection in pct. of group"
 }

@@ -1,39 +1,41 @@
-import * as _ from "lodash";
+import * as classnames from "classnames";
 import * as React from "react";
 import pyramidVisualizationStyles from "./pyramidVisualization.module.scss";
 
+interface IPyramidSeriesValue {
+	value: number;
+	commonWithPreviousGroup: number;
+}
+
 interface IPyramidGroup {
 	description: string;
-	seriesValues: number[];
+	seriesValues: IPyramidSeriesValue[];
+}
+
+interface ISeriesVisualizationInfo {
+	uniqueId: string;
+	colorClass: string;
+	populationSize: number;
+	populationPercentage: number;
+	populationDisplayPercentage: number
+	commonWithPreviousGroup: number;
+	commonWithPreviousPercentage: number;
 }
 
 interface IPyramidVisualizationProps {
 	title: string;
 	seriesDescriptions: string[];
 	groups: IPyramidGroup[];
+	translatorFunction: (string: string) => string;
 }
 
-const seriesColors: string[] = [
-	"rgb(87, 194, 110)", // green
-	"rgb(192, 194, 87)", // yellow
-	"rgb(194, 87, 87)", // red
-	"rgb(87, 121, 194)", // blue
-	"rgb(194, 157, 87)", // orange
-	"rgb(151, 87, 194)", // purple
-];
-
-interface ISeriesVisualizationInfo {
-	uniqueId: string;
-	color: string;
-	populationSize: number;
-	populationPercentage: number;
-}
 
 export class PyramidVisualization extends React.Component<IPyramidVisualizationProps> {
+	private t = (key: string) => this.props.translatorFunction(key);
+
 	public render(): JSX.Element {
-		const groupWithLargestPopulation = _.maxBy(this.props.groups, ele => _.maxBy(ele.seriesValues, seriesValue => seriesValue));
-		const maxGroupSize = _.maxBy(groupWithLargestPopulation?.seriesValues ?? [])
-			?? 0;
+		const maxGroupSize = this.getMaxGroupSize();
+		const firstGroupValues = this.props.groups[0].seriesValues;
 
 		return <>
 			<div className={pyramidVisualizationStyles.titleBar}>
@@ -42,9 +44,21 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 			</div>
 			<div className={pyramidVisualizationStyles.table}>
 				{this.renderHeaderRow()}
-				{this.props.groups.map(group => this.renderPyramidGroup(group, maxGroupSize))}
+				{this.props.groups.map((group, index) => this.renderPyramidGroup(group, maxGroupSize, firstGroupValues, index === 0))}
 			</div>
 		</>;
+	}
+
+	private getMaxGroupSize(): number {
+		let maxGroupSize = 0;
+		for (const group of this.props.groups) {
+			for (const seriesValue of group.seriesValues) {
+				if (seriesValue.value > maxGroupSize)
+					maxGroupSize = seriesValue.value;
+			}
+		}
+
+		return maxGroupSize;
 	}
 
 	private renderSeriesDescriptions(): JSX.Element {
@@ -53,12 +67,11 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 		return <>
 			{this.props.seriesDescriptions.map(x => {
 				counter++;
-				const color = seriesColors[counter % seriesColors.length];
+				const key = `group-${counter}`;
+				const colorClass = classnames(pyramidVisualizationStyles.seriesDescriptionBox, this.getColorClass(counter));
 
-				return <div key={`group-${counter}`} className={pyramidVisualizationStyles.seriesDescription}>
-					<div className={pyramidVisualizationStyles.seriesDescriptionBox} style={{
-						backgroundColor: color
-					}}></div>
+				return <div key={key} className={pyramidVisualizationStyles.seriesDescription}>
+					<div className={colorClass} />
 					{x}
 				</div>;
 			})}
@@ -68,57 +81,116 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 	private renderHeaderRow() {
 		return <div className={pyramidVisualizationStyles.tableHeaderRow}>
 			<div className={pyramidVisualizationStyles.groupLabel}>
-				Csoport
+				{this.t("userPyramids.header.group")}
 			</div>
-			<div className={pyramidVisualizationStyles.bars}>
-				Csoport
+			<div className={pyramidVisualizationStyles.bars} />
+			<div className={pyramidVisualizationStyles.populationSize}>
+				{this.t("userPyramids.header.numberOfEditors")}
 			</div>
 			<div className={pyramidVisualizationStyles.populationSize}>
-				Szerkesztők száma
+				{this.t("userPyramids.header.percentage")}
 			</div>
 			<div className={pyramidVisualizationStyles.populationSize}>
-				Százalékos arány
+				{this.t("userPyramids.header.intersectionWithPreviousGroup")}
+			</div>
+			<div className={pyramidVisualizationStyles.populationSize}>
+				{this.t("userPyramids.header.intersectionPercentage")}
 			</div>
 		</div>;
 	}
 
-	private renderPyramidGroup(group: IPyramidGroup, maxGroupSize: number) {
+	private renderPyramidGroup(group: IPyramidGroup, maxGroupSize: number, firstGroupValues: IPyramidSeriesValue[], isFirst: boolean) {
 		let counter: number = 0;
 		const seriesValues: ISeriesVisualizationInfo[] = group.seriesValues.map(sv => ({
 			uniqueId: `value-${counter++}`,
-			color: seriesColors[counter % seriesColors.length],
-			populationSize: sv,
-			populationPercentage: (sv / maxGroupSize) * 100
+			colorClass: this.getColorClass(counter),
+			populationSize: sv.value,
+			populationPercentage: (sv.value / firstGroupValues[0].value) * 100,
+			populationDisplayPercentage: (sv.value / maxGroupSize) * 100,
+			commonWithPreviousGroup: sv.commonWithPreviousGroup,
+			commonWithPreviousPercentage: (sv.commonWithPreviousGroup / sv.value) * 100
 		}));
 
 		return <div className={pyramidVisualizationStyles.tableRow}>
 			<div className={pyramidVisualizationStyles.groupLabel}>{group.description}</div>
 			<div className={pyramidVisualizationStyles.bars}>
-				{seriesValues.map(seriesValue => <div
-					key={seriesValue.uniqueId}
-					className={pyramidVisualizationStyles.bar}
-					style={{
-						backgroundColor: seriesValue.color,
-						width: `${seriesValue.populationPercentage.toFixed(2)}%`
-					}}
-				></div>)}
+				{seriesValues.map(seriesValue =>
+					<div key={seriesValue.uniqueId}
+						className={classnames(pyramidVisualizationStyles.barWrapper, seriesValue.colorClass)}>
+						<div className={pyramidVisualizationStyles.bar}
+							style={{ width: `${seriesValue.populationDisplayPercentage.toFixed(2)}%` }}>
+							{seriesValue.commonWithPreviousGroup > 0 &&
+								<div className={pyramidVisualizationStyles.commonPartBar}
+									style={{ width: `${seriesValue.commonWithPreviousPercentage.toFixed(2)}%` }} />}
+						</div>
+					</div>)}
 			</div>
 			<div className={pyramidVisualizationStyles.populationSize}>
 				{seriesValues.map(seriesValue => <div
 					key={seriesValue[0]}
-					className={pyramidVisualizationStyles.populationSizeEntry}
+					className={classnames(pyramidVisualizationStyles.populationSizeEntry, seriesValue.colorClass)}
 				>
 					{seriesValue.populationSize}
 				</div>)}
 			</div>
-			<div className={pyramidVisualizationStyles.populationSizePercentage}>
+			<div className={pyramidVisualizationStyles.populationSize}>
 				{seriesValues.map(seriesValue => <div
 					key={seriesValue[0]}
-					className={pyramidVisualizationStyles.populationSizeEntry}
+					className={classnames(pyramidVisualizationStyles.populationSizeEntry, seriesValue.colorClass)}
 				>
 					{seriesValue.populationPercentage.toFixed(2)}%
 				</div>)}
 			</div>
+			<div className={pyramidVisualizationStyles.populationSizePrev}>
+				{seriesValues.map(seriesValue => <div
+					key={seriesValue[0]}
+					className={classnames(pyramidVisualizationStyles.populationSizePrevEntry, seriesValue.colorClass)}
+				>
+					{isFirst
+						? "–"
+						: seriesValue.commonWithPreviousGroup}
+				</div>)}
+			</div>
+			<div className={pyramidVisualizationStyles.populationSizePrev}>
+				{seriesValues.map(seriesValue => <div
+					key={seriesValue[0]}
+					className={classnames(pyramidVisualizationStyles.populationSizePrevEntry, seriesValue.colorClass)}
+				>
+					{isFirst
+						? "–"
+						: seriesValue.commonWithPreviousPercentage.toFixed(2) + "%"}
+				</div>)}
+			</div>
 		</div >;
 	}
+
+	private getColorClass(index: number) {
+		switch (index % 6) {
+			case 0: {
+				return pyramidVisualizationStyles.yellow;
+			}
+			case 1: {
+				return pyramidVisualizationStyles.green;
+			}
+			case 2: {
+				return pyramidVisualizationStyles.blue;
+			}
+			case 3: {
+				return pyramidVisualizationStyles.red;
+			}
+			case 4: {
+				return pyramidVisualizationStyles.orange;
+			}
+			default: {
+				return pyramidVisualizationStyles.purple;
+			}
+		}
+	}
 }
+
+// 	"rgb(87, 194, 110)", // green
+// 	"rgb(192, 194, 87)", // yellow
+// 	"rgb(194, 87, 87)", // red
+// 	"rgb(87, 121, 194)", // blue
+// 	"rgb(194, 157, 87)", // orange
+// 	"rgb(151, 87, 194)", // purple
