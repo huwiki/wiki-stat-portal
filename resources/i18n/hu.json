@@ -17,6 +17,10 @@
 
 	"input.noSearchResults": "Nincs a keresési feltételeknek megfelelő elem.",
 	"input.noSelectedItem": "Nincs kiválasztva elem",
+	"input.wiki.label": "Wiki:",
+	"input.wiki.noSelectedItem": "< Válassz wikit! >",
+	"input.wiki.filterPlaceholder": "Szűrés a wiki nevére...",
+
 	"indexPage.title": "Kezdőlap",
 	"indexPage.description": "Üdvözlünk a Wikipédia Statisztikai Portálon! Válassz egy modult a folytatáshoz!",
 	"indexPage.filterByWiki": "Szűrés wiki alapján:",

@@ -13,8 +13,6 @@ export const withCommonServerSideProps = async <T extends CommonPageProps>(
 	const languageCode: string = cookies["languageCode"] || "en";
 	await initializeI18nData();
 
-	const appBaseStyle = cookies["appBaseStyle"] === "light" ? "light" : "dark";
-
 	const pageRequiredLanguageGroups = requiredLanguageGroups
 		? [...requiredLanguageGroups]
 		: [];
@@ -26,7 +24,6 @@ export const withCommonServerSideProps = async <T extends CommonPageProps>(
 			...props,
 			i18nData: getLocalizations(languageCode),
 			languageCode: languageCode,
-			appBaseStyle: appBaseStyle,
 			availableModules: Array.from(moduleManager.getModules()).map(module => ({
 				id: module.identifier,
 				icon: module.icon,

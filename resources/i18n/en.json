@@ -16,8 +16,12 @@
 	"module.third": "Third module",
 	"module.third.description": "Description of the third module.",
 	"changeLanguage": "Change language",
+
 	"input.noSearchResults": "No items match the search criteria.",
 	"input.noSelectedItem": "No item selected",
+	"input.wiki.label": "Wiki:",
+	"input.wiki.noSelectedItem": "< Seelct a wiki >",
+	"input.wiki.filterPlaceholder": "Filter wikis by name...",
 	
 	"indexPage.title": "Main Page",
 	"indexPage.description": "Welcome to the Wikipedia Statistics Portal. Select a module to continue.",

@@ -1,8 +1,10 @@
 {
 	"type": "object",
-	"$schema": "http://json-schema.org/draft-04/schema#",
 	"title": "User pyramids configuration for a wiki",
 	"properties": {
+		"use": {
+			"type": "string"
+		},
 		"userPyramids": {
 			"type": "array",
 			"items": {
@@ -12,7 +14,14 @@
 		}
 	},
 	"additionalProperties": false,
-	"required": ["userPyramids"],
+	"oneOf": [
+		{
+			"required": ["use"]
+		},
+		{
+			"required": ["userPyramids"]
+		}
+	],
 	"definitions": {
 		"userPyramid": {
 			"type": "object",

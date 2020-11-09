@@ -8,6 +8,7 @@ import * as React from "react";
 import { SelectInput } from "../client/components/inputs/selectInput";
 import { PageFrame } from "../client/components/pageFrame";
 import { NextBasePage } from "../client/helpers/nextBasePage";
+import { SelectableValue } from "../client/models/selectableValue";
 import { CommonPageProps } from "../common/interfaces/commonPageProps";
 import { ModuleDescriptor } from "../common/interfaces/moduleDescriptor";
 import { withCommonServerSideProps } from "../server/helpers/serverSidePageHelpers";
@@ -19,32 +20,17 @@ const REQUIRED_LANGUAGE_GROUPS = [
 	"indexPage"
 ];
 
-class SelectableWiki {
-	id: string = "";
-	label: string = "";
-
-	constructor(id: string, label: string) {
-		this.id = id;
-		this.label = label;
-
-		makeObservable(this, {
-			id: observable,
-			label: observable
-		});
-	}
-}
-
 interface IndexPageProps extends CommonPageProps {
 }
 
 @observer
 class IndexPage extends NextBasePage<IndexPageProps> {
 	selectableWikis = [
-		new SelectableWiki("", "No items selected"),
-		new SelectableWiki("huwiki", "huwiki label"),
-		new SelectableWiki("skwiki", "skwiki label"),
+		new SelectableValue("", "No items selected"),
+		new SelectableValue("huwiki", "huwiki label"),
+		new SelectableValue("skwiki", "skwiki label"),
 	]
-	selectedWiki: SelectableWiki | null = null;
+	selectedWiki: SelectableValue | null = null;
 
 	constructor(props: IndexPageProps) {
 		super(props);
@@ -75,7 +61,7 @@ class IndexPage extends NextBasePage<IndexPageProps> {
 			<div className={indexPageStyles.introText}>{this.t("indexPage.description")}</div>
 			<div className={indexPageStyles.wikiSelector}>
 				{this.t("indexPage.filterByWiki")}&nbsp;
-				<SelectInput<SelectableWiki | null>
+				<SelectInput<SelectableValue | null>
 					value={this.selectedWiki}
 					setValue={this.updateSelectedWiki}
 					itemKeySelector={ele => ele?.id ?? ""}
@@ -88,7 +74,7 @@ class IndexPage extends NextBasePage<IndexPageProps> {
 		</div>;
 	}
 
-	private updateSelectedWiki = (selectedWiki: SelectableWiki) => {
+	private updateSelectedWiki = (selectedWiki: SelectableValue) => {
 		this.selectedWiki = selectedWiki;
 	}
 

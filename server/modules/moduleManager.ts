@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
+import { Logger } from "winston";
 import { getResourcesBasePath } from "../helpers/i18nServer";
+import { createWikiStatLogger } from "../loggingHelper";
 import { AnotherModule } from "./anotherModule/anotherModule";
 import { ModuleBase } from "./common/moduleBase";
 import { ModuleJsonConfiguration } from "./common/moduleJsonConfiguration";
@@ -9,11 +11,13 @@ import { UserPyramidsModule } from "./userPyramidsModule/userPyramidsModule";
 
 class ModuleManager {
 	private allModules: ModuleBase[];
+	private logger: Logger;
 
 	public knownModules: ModuleBase[] = [];
 	private moduleDictionary: { [index: string]: ModuleBase } = {};
 
 	constructor() {
+		this.logger = createWikiStatLogger("modules");
 		this.initializeModules();
 	}
 
@@ -23,18 +27,18 @@ class ModuleManager {
 		}
 	}
 
-	public getModuleById(identifier: string): ModuleBase | null {
+	public getModuleById<T extends ModuleBase>(identifier: string): T | null {
 		if (this.moduleDictionary[identifier])
-			return this.moduleDictionary[identifier];
+			return this.moduleDictionary[identifier] as T;
 
 		return null;
 	}
 
 	public initializeModules(): void {
 		this.allModules = [
-			new UserPyramidsModule(),
-			new AnotherModule(),
-			new ThirdModule()
+			new UserPyramidsModule(this.logger),
+			new AnotherModule(this.logger),
+			new ThirdModule(this.logger)
 		];
 
 		for (const module of this.allModules) {

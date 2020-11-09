@@ -1,10 +1,11 @@
+import { Logger } from "winston";
 import { ModuleBase } from "../common/moduleBase";
 import { ModuleJsonConfiguration } from "../common/moduleJsonConfiguration";
-import { IModuleParameter } from "../common/parameters/moduleParameter";
 
 export class AnotherModule extends ModuleBase {
-	constructor() {
+	constructor(logger: Logger) {
 		super({
+			logger: logger,
 			identifier: "another",
 			icon: "step-chart"
 		});
@@ -13,9 +14,5 @@ export class AnotherModule extends ModuleBase {
 	protected initializeModuleSpecificSettingsFromConfiguration(configuration: ModuleJsonConfiguration): boolean {
 		// TODO: what to do
 		return true;
-	}
-
-	getParameters(): IModuleParameter[] {
-		return [];
 	}
 }

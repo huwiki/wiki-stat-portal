@@ -7,21 +7,21 @@ import { fileExists } from "../helpers/pathUtils";
 import { KnownWiki } from "../interfaces/knownWiki";
 import { ApplicationConfiguration } from "./applicationConfiguration";
 
-export const readJsonSchema = async <T>(schemaFileName: string): Promise<JSONSchemaType<T>> => {
+export const readJsonSchema = <T>(schemaFileName: string): JSONSchemaType<T> => {
 	const schemaPath = path.join(getResourcesBasePath(), "schemas", schemaFileName);
-	const schemaContent = await fs.readFileSync(schemaPath, { encoding: "utf-8" });
+	const schemaContent = fs.readFileSync(schemaPath, { encoding: "utf-8" });
 	const schema: JSONSchemaType<T> = JSON.parse(schemaContent);
 	return schema;
 };
 
-export const readApplicationConfiguration = async (): Promise<ApplicationConfiguration | string> => {
+export const readApplicationConfiguration = (): ApplicationConfiguration | string => {
 	const configPath = path.join(process.cwd(), "wikiStatConfig.json");
 	console.log(`[readApplicationConfiguration] wikiStatConfig.json path: ${configPath}`);
 	if (fileExists(configPath) === false)
 		return `[readApplicationConfiguration] wikiStatConfig.json does not exist at ${configPath}`;
 
 	try {
-		const fileContent = await fs.readFileSync(configPath, { encoding: "utf-8" });
+		const fileContent = fs.readFileSync(configPath, { encoding: "utf-8" });
 		const fileData = JSON.parse(fileContent) as ApplicationConfiguration;
 
 		const configValidationResult = isApplicationConfigurationValid(fileData);
@@ -63,15 +63,15 @@ const isApplicationConfigurationValid = (config: ApplicationConfiguration): Appl
 	return { valid: true };
 };
 
-export const readKnownWikisConfiguration = async (): Promise<KnownWiki[] | string> => {
-	const schema: JSONSchemaType<KnownWiki[]> = await readJsonSchema("knownWikisConfigurationSchema.json");
+export const readKnownWikisConfiguration = (): KnownWiki[] | string => {
+	const schema: JSONSchemaType<KnownWiki[]> = readJsonSchema("knownWikisConfigurationSchema.json");
 
 	const configPath = path.join(getResourcesBasePath(), "configuration", "knownWikis.json");
 	if (fileExists(configPath) === false)
 		return `[readKnownWikisConfiguration] knownWikis.json does not exist at ${configPath}`;
 
 	try {
-		const fileContent = await fs.readFileSync(configPath, { encoding: "utf-8" });
+		const fileContent = fs.readFileSync(configPath, { encoding: "utf-8" });
 		const fileData = JSON.parse(fileContent);
 
 		const ajv = new Ajv();

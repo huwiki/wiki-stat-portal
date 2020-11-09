@@ -8,7 +8,5 @@ export interface CommonPageProps {
 	i18nData: I18nDictionary;
 	languageCode: string;
 
-	appBaseStyle: string;
-
 	router: NextRouter;
 }

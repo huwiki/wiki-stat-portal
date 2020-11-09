@@ -10,8 +10,10 @@ export interface SelectInputProps<T> extends InputProps {
 	setValue: (newValue: T) => void;
 	itemKeySelector: (element: T) => string;
 	itemRenderer: (element: T) => React.ReactNode;
+	itemPredicate?: (query: string, element: T) => boolean;
 	noSelectedItemsLabel?: string;
 	noSearchResultsLabel?: string;
+	filterLabel?: string;
 }
 
 export class SelectInput<T> extends Input<SelectInputProps<T>> {
@@ -26,8 +28,11 @@ export class SelectInput<T> extends Input<SelectInputProps<T>> {
 			onItemSelect={this.onItemSelect}
 			noResults={<MenuItem disabled={true} text={this.props.noSearchResultsLabel} />}
 			scrollToActiveItem
-			filterable={false}
+			filterable={typeof this.props.itemPredicate !== "undefined"}
+			itemPredicate={this.props.itemPredicate}
+			inputProps={{ placeholder: this.props.filterLabel }}
 			popoverProps={{ minimal: true }}
+
 		>
 			<div className={classnames(Classes.INPUT_GROUP, Classes.FILL)}>
 				<div className={classnames(Classes.INPUT, Classes.FILL)}>

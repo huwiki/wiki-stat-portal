@@ -1,14 +1,16 @@
 import { IconName } from "@blueprintjs/core";
 import { isArray } from "util";
+import { Logger } from "winston";
 import { ModuleJsonConfiguration } from "./moduleJsonConfiguration";
-import { IModuleParameter } from "./parameters/moduleParameter";
 
 interface ModuleInitializationSettings {
+	logger: Logger;
 	identifier: string;
 	icon: IconName;
 }
 
 export abstract class ModuleBase {
+	protected logger: Logger;
 	private _isInitialized = false;
 	private _availableAt: string[] = [];
 
@@ -27,6 +29,7 @@ export abstract class ModuleBase {
 	}
 
 	constructor(private settings: ModuleInitializationSettings) {
+		this.logger = settings.logger;
 	}
 
 	public initialize(configuration: ModuleJsonConfiguration): void {
@@ -41,5 +44,4 @@ export abstract class ModuleBase {
 	}
 
 	protected abstract initializeModuleSpecificSettingsFromConfiguration(configuration: ModuleJsonConfiguration): boolean;
-	abstract getParameters(): IModuleParameter[];
 }

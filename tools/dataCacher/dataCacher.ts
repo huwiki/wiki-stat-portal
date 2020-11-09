@@ -6,13 +6,13 @@ import { WikiEditCacher } from "./wikiEditCacher";
 const runTool = async (): Promise<void> => {
 	const logger = createWikiStatLogger("dataCacher");
 
-	const appConfig = await readApplicationConfiguration();
+	const appConfig = readApplicationConfiguration();
 	if (typeof appConfig === "string") {
 		logger.error(`[runTool] Failed to start due to invalid application configuration: ${appConfig}`);
 		return;
 	}
 
-	const knownWikisConfiguration = await readKnownWikisConfiguration();
+	const knownWikisConfiguration = readKnownWikisConfiguration();
 	if (typeof knownWikisConfiguration === "string" || knownWikisConfiguration.length === 0) {
 		logger.error(`[runTool] Failed to start tool due to invalid knownWikis.json: ${knownWikisConfiguration}`);
 		return;

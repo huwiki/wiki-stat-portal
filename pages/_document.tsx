@@ -1,4 +1,4 @@
-import Document, { DocumentInitialProps, Head, Html, Main, NextScript } from "next/document";
+import Document, { DocumentContext, DocumentInitialProps, Head, Html, Main, NextScript } from "next/document";
 import { parseCookies } from "nookies";
 import * as React from "react";
 
@@ -7,7 +7,7 @@ interface WikiStatDocumentProps extends DocumentInitialProps {
 }
 
 class WikiStatDocument extends Document<WikiStatDocumentProps> {
-	static async getInitialProps(ctx): Promise<WikiStatDocumentProps> {
+	static async getInitialProps(ctx: DocumentContext): Promise<WikiStatDocumentProps> {
 		const initialProps = await Document.getInitialProps(ctx);
 		const cookies = parseCookies(ctx);
 		return {

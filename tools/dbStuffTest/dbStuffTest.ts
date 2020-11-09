@@ -14,7 +14,7 @@ for (const module of mm.getModules()) {
 const fun = async () => {
 	const logger = createWikiStatLogger("dbStuffTest");
 
-	const appConfig = await readApplicationConfiguration();
+	const appConfig = readApplicationConfiguration();
 	if (typeof appConfig === "string") {
 		logger.error(`[runTool] Failed to start due to invalid application configuration: ${appConfig}`);
 		return;
