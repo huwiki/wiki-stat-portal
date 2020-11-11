@@ -9,6 +9,7 @@
 	"siteTitle": "WikiStatPortal",
 	"pageNotFound": "Page Not Found",
 	"button.go": "Go",
+	"button.add": "Add",
 	"module.userPyramids": "User pyramids",
 	"module.userPyramids.description": "Visualizing changes in number of members between predefined groups of users",
 	"module.another": "Another",
@@ -22,6 +23,10 @@
 	"input.wiki.label": "Wiki:",
 	"input.wiki.noSelectedItem": "< Seelct a wiki >",
 	"input.wiki.filterPlaceholder": "Filter wikis by name...",
+	"input.userPyramid.label": "Pyramid:",
+	"input.userPyramid.noSelectedItem": "< Select a pyramid >",
+	"input.userPyramid.filterPlaceholder": "Filter pyramids by name...",
+	"input.date.label": "Date:",
 	
 	"indexPage.title": "Main Page",
 	"indexPage.description": "Welcome to the Wikipedia Statistics Portal. Select a module to continue.",
@@ -35,5 +40,8 @@
 	"userPyramids.header.numberOfEditors": "Number of editors",
 	"userPyramids.header.percentage": "Percentage",
 	"userPyramids.header.intersectionWithPreviousGroup": "Intersection with previous group",
-	"userPyramids.header.intersectionPercentage": "Intersection in pct. of group"
+	"userPyramids.header.intersectionPercentage": "Intersection in pct. of group",
+	"userPyramids.basicParameters": "Basic parameters",
+	"userPyramids.addNewSeries": "Add new series",
+	"userPyramids.maxNumberOfSeriesReached": "Legfeljebb 5 sorozat tekinthető meg egyszerre"
 }

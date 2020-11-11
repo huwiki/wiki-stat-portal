@@ -1,9 +1,11 @@
-import { IconName } from "@blueprintjs/core";
+import { Button, IconName, Intent } from "@blueprintjs/core";
 import { makeObservable, observable } from "mobx";
 import { observer } from "mobx-react";
+import moment from "moment";
 import { NextPageContext } from "next";
 import { withRouter } from "next/router";
 import * as React from "react";
+import { DateInput } from "../../client/components/inputs/dateInput";
 import { SelectInput } from "../../client/components/inputs/selectInput";
 import { PageFrame } from "../../client/components/pageFrame";
 import { NextBasePage } from "../../client/helpers/nextBasePage";
@@ -15,6 +17,7 @@ import { withCommonServerSideProps } from "../../server/helpers/serverSidePageHe
 import { GetServerSidePropsResult } from "../../server/interfaces/getServerSidePropsResult";
 import { moduleManager } from "../../server/modules/moduleManager";
 import { UserPyramidsModule } from "../../server/modules/userPyramidsModule/userPyramidsModule";
+import userPyramidsStyles from "./userPyramids.module.scss";
 
 interface UserPyramidModulePageProps extends CommonPageProps {
 	supportedWikis: string[];
@@ -24,10 +27,28 @@ interface UserPyramidModulePageProps extends CommonPageProps {
 	userPyramids: WikiUserPyramidConfigurations[];
 }
 
+const today = moment().startOf("day").toDate();
+
+class UserPyramidSeries {
+	public date: Date = today;
+
+	constructor() {
+		makeObservable(this, {
+
+			date: observable
+		});
+	}
+}
+
 @observer
 class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
-	selectableWikis: SelectableValue[] = [];
 	selectedWiki: SelectableValue;
+	selectableWikis: SelectableValue[] = [];
+	selectedUserPyramid: SelectableValue;
+	selectableUserPyramids: SelectableValue[] = [];
+
+	newUserPyramidSeries: UserPyramidSeries = new UserPyramidSeries();
+	userPyramidSeries: UserPyramidSeries[] = [];
 
 	constructor(props: UserPyramidModulePageProps) {
 		super(props);
@@ -42,11 +63,11 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			this.selectableWikis.push(new SelectableValue(supportedwiki, supportedwiki));
 		}
 
-		this.selectedWiki = this.selectableWikis[0];
-
 		makeObservable(this, {
+			selectedWiki: observable,
 			selectableWikis: observable,
-			selectedWiki: observable
+			selectedUserPyramid: observable,
+			userPyramidSeries: observable,
 		});
 	}
 
@@ -62,20 +83,8 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			i18nProvider={this.i18nProvider}>
 
 			<div className="moduleParameters">
-				<SelectInput<SelectableValue>
-					value={this.selectedWiki}
-					setValue={this.updateSelectedWiki}
-					itemKeySelector={ele => ele.id}
-					items={this.selectableWikis}
-					itemRenderer={ele => ele.label}
-					noSearchResultsLabel={this.t("input.noSearchResults")}
-					noSelectedItemsLabel={this.t("input.wiki.noSelectedItem")}
-					filterLabel={this.t("input.wiki.filterPlaceholder")}
-					itemPredicate={(queryString, ele) => ele.label.indexOf(queryString) !== -1}
-				/>
+				{this.renderModuleParameters()}
 			</div>
-
-			{this.selectedWiki.label}
 
 			<PyramidVisualization
 				title="I. szerkesztői piramis"
@@ -152,8 +161,97 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 		</PageFrame>;
 	}
 
+	private renderModuleParameters() {
+		return <>
+			<div className={userPyramidsStyles.addNewSeries}>
+				<div className={userPyramidsStyles.addNewSeriesTitle}>
+					{this.t("userPyramids.basicParameters")}
+				</div>
+				<div className={userPyramidsStyles.addNewSeriesParameters}>
+					<SelectInput<SelectableValue>
+						value={this.selectedWiki}
+						setValue={this.updateSelectedWiki}
+						itemKeySelector={ele => ele.id}
+						items={this.selectableWikis}
+						itemRenderer={ele => ele.label}
+						inputLabel={this.t("input.wiki.label")}
+						noSearchResultsLabel={this.t("input.noSearchResults")}
+						noSelectedItemsLabel={this.t("input.wiki.noSelectedItem")}
+						filterLabel={this.t("input.wiki.filterPlaceholder")}
+						itemPredicate={(queryString, ele) => ele.label.indexOf(queryString) !== -1}
+					/>
+
+					<SelectInput<SelectableValue>
+						value={this.selectedUserPyramid}
+						setValue={this.updateSelectedUserPyramid}
+						itemKeySelector={ele => ele.id}
+						items={this.selectableUserPyramids}
+						itemRenderer={ele => ele.label}
+						inputLabel={this.t("input.userPyramid.label")}
+						noSearchResultsLabel={this.t("input.noSearchResults")}
+						noSelectedItemsLabel={this.t("input.userPyramid.noSelectedItem")}
+						filterLabel={this.t("input.userPyramid.filterPlaceholder")}
+						itemPredicate={(queryString, ele) => ele.label.indexOf(queryString) !== -1}
+					/>
+				</div>
+				<div className={userPyramidsStyles.addNewSeriesTitle}>
+					{this.t("userPyramids.addNewSeries")}
+				</div>
+				<div className={userPyramidsStyles.addNewSeriesParameters}>
+
+					<DateInput
+						value={this.newUserPyramidSeries.date}
+						setValue={this.updateNewPyramidDate}
+						inputLabel={this.t("input.date.label")}
+						maxDate={today}
+					/>
+
+					<Button
+						icon="plus"
+						intent={Intent.PRIMARY}
+						onClick={this.addSeries}
+						disabled={this.userPyramidSeries.length >= 5}
+						text={this.t("button.add")} />
+				</div>
+				{this.userPyramidSeries.length >= 5 && <div className={userPyramidsStyles.maxNumberOfSeriesReached}>
+					{this.t("userPyramids.maxNumberOfSeriesReached")}
+				</div>}
+			</div>
+		</>;
+	}
+
 	private updateSelectedWiki = (selectedWiki: SelectableValue) => {
 		this.selectedWiki = selectedWiki;
+
+		const newSelectableUserPyramids: SelectableValue[] = [];
+		newSelectableUserPyramids.push(new SelectableValue(
+			"",
+			this.t("input.userPyramid.noSelectedItem")
+		));
+		const wikiPyramids = this.props.userPyramids.find(x => x.wiki === selectedWiki.id);
+		if (wikiPyramids && wikiPyramids.valid && wikiPyramids.userPyramids.length) {
+			for (const pyramid of wikiPyramids.userPyramids) {
+				newSelectableUserPyramids.push(new SelectableValue(pyramid.id, pyramid.name));
+			}
+		}
+
+		this.selectedUserPyramid = newSelectableUserPyramids[0];
+		this.selectableUserPyramids = newSelectableUserPyramids;
+	}
+
+	private updateSelectedUserPyramid = (selectedUserPyramid: SelectableValue) => {
+		this.selectedUserPyramid = selectedUserPyramid;
+	}
+
+	private updateNewPyramidDate = (date: Date) => {
+		this.newUserPyramidSeries.date = date;
+	}
+
+	private addSeries = () => {
+		this.userPyramidSeries.push(this.newUserPyramidSeries);
+		this.newUserPyramidSeries = new UserPyramidSeries();
+
+		// TODO: load data
 	}
 }
 

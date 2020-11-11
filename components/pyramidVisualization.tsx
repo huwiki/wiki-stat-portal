@@ -128,7 +128,7 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 			</div>
 			<div className={pyramidVisualizationStyles.populationSize}>
 				{seriesValues.map(seriesValue => <div
-					key={seriesValue[0]}
+					key={seriesValue.uniqueId}
 					className={classnames(pyramidVisualizationStyles.populationSizeEntry, seriesValue.colorClass)}
 				>
 					{seriesValue.populationSize}
@@ -136,7 +136,7 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 			</div>
 			<div className={pyramidVisualizationStyles.populationSize}>
 				{seriesValues.map(seriesValue => <div
-					key={seriesValue[0]}
+					key={seriesValue.uniqueId}
 					className={classnames(pyramidVisualizationStyles.populationSizeEntry, seriesValue.colorClass)}
 				>
 					{seriesValue.populationPercentage.toFixed(2)}%
@@ -144,7 +144,7 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 			</div>
 			<div className={pyramidVisualizationStyles.populationSizePrev}>
 				{seriesValues.map(seriesValue => <div
-					key={seriesValue[0]}
+					key={seriesValue.uniqueId}
 					className={classnames(pyramidVisualizationStyles.populationSizePrevEntry, seriesValue.colorClass)}
 				>
 					{isFirst
@@ -154,7 +154,7 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 			</div>
 			<div className={pyramidVisualizationStyles.populationSizePrev}>
 				{seriesValues.map(seriesValue => <div
-					key={seriesValue[0]}
+					key={seriesValue.uniqueId}
 					className={classnames(pyramidVisualizationStyles.populationSizePrevEntry, seriesValue.colorClass)}
 				>
 					{isFirst

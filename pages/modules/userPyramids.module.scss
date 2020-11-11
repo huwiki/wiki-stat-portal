@@ -1,0 +1,19 @@
+.addNewSeries {
+	background-color: rgba(0, 0, 0, 0.1);
+	border: 1px solid rgba(0, 0, 0, 0.2);
+	padding: 10px;
+}
+
+.addNewSeriesTitle {
+	font-size: 11px;
+	text-transform: uppercase;
+	margin-top: 5px;
+}
+
+.addNewSeriesParameters {
+	display: flex;
+}
+
+.maxNumberOfSeriesReached {
+	color: rgb(241, 115, 115);
+}

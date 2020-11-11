@@ -13,6 +13,7 @@
 		"@babel/plugin-proposal-class-properties": "^7.12.1",
 		"@babel/plugin-proposal-decorators": "^7.12.1",
 		"@blueprintjs/core": "^3.34.1",
+		"@blueprintjs/datetime": "^3.19.3",
 		"@blueprintjs/select": "^3.14.3",
 		"ajv": "^7.0.0-beta.2",
 		"classnames": "^2.2.6",

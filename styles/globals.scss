@@ -2,15 +2,19 @@ body {
 	background-color: #263038;
 }
 
+.wspInput {
+	margin-right: 15px;
+}
+
 .wspInput-selectInput {
-	min-width: 200px;
-	max-width: 200px;
+	display: flex;
+	align-items: center;
 
 	.bp3-popover-wrapper {
-		display: block;
+		display: inline-block;
 
 		.bp3-popover-target {
-			display: block;
+			display: inline-block;
 		}
 	}
 }

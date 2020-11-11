@@ -7,6 +7,7 @@
 	"siteTitle": "WikiStatPortál",
 	"pageNotFound": "A keresett oldal nem található",
 	"button.go": "Tovább",
+	"button.add": "Hozzáadás",
 	"module.userPyramids": "Felhasználói piramisok",
 	"module.userPyramids.description": "Előre definiált felhasználói csoportok mérete közötti változások vizualizációja",
 	"module.another": "Másik",
@@ -20,6 +21,10 @@
 	"input.wiki.label": "Wiki:",
 	"input.wiki.noSelectedItem": "< Válassz wikit! >",
 	"input.wiki.filterPlaceholder": "Szűrés a wiki nevére...",
+	"input.userPyramid.label": "Piramis:",
+	"input.userPyramid.noSelectedItem": "< Válassz piramist! >",
+	"input.userPyramid.filterPlaceholder": "Szűrés a piramis nevére...",
+	"input.date.label": "Dátum:",
 
 	"indexPage.title": "Kezdőlap",
 	"indexPage.description": "Üdvözlünk a Wikipédia Statisztikai Portálon! Válassz egy modult a folytatáshoz!",
@@ -33,5 +38,8 @@
 	"userPyramids.header.numberOfEditors": "Szerkesztők száma",
 	"userPyramids.header.percentage": "Százalékos arány",
 	"userPyramids.header.intersectionWithPreviousGroup": "Metszet az előző csoporttal",
-	"userPyramids.header.intersectionPercentage": "Metszet a csoport százalékában"
+	"userPyramids.header.intersectionPercentage": "Metszet a csoport százalékában",
+	"userPyramids.basicParameters": "Alapparaméterek",
+	"userPyramids.addNewSeries": "Sorozat hozzáadása",
+	"userPyramids.maxNumberOfSeriesReached": "At most 5 series can be displayed"
 }
