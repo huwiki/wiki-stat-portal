@@ -45,5 +45,6 @@
 	"userPyramids.basicParameters": "Basic parameters",
 	"userPyramids.series": "Data series",
 	"userPyramids.noSeriesAdded": "No series added",
-	"userPyramids.maxNumberOfSeriesReached": "At most 5 series can be displayed"
+	"userPyramids.maxNumberOfSeriesReached": "At most 5 series can be displayed",
+	"userPyramids.seriesFailedToLoad": "Failed to load"
 }

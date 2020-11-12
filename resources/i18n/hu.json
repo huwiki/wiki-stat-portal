@@ -43,5 +43,6 @@
 	"userPyramids.basicParameters": "Alapparaméterek",
 	"userPyramids.series": "Adatsorok",
 	"userPyramids.noSeriesAdded": "Nincs adatsor felvéve",
-	"userPyramids.maxNumberOfSeriesReached": "Legfeljebb 5 adatsor tekinthető meg egyszerre"
+	"userPyramids.maxNumberOfSeriesReached": "Legfeljebb 5 adatsor tekinthető meg egyszerre",
+	"userPyramids.seriesFailedToLoad": "Nem sikerült betölteni"
 }

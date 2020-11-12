@@ -16,6 +16,7 @@
 		"@blueprintjs/datetime": "^3.19.3",
 		"@blueprintjs/select": "^3.14.3",
 		"ajv": "^7.0.0-beta.2",
+		"axios": "^0.21.0",
 		"classnames": "^2.2.6",
 		"date-fns": "^2.16.1",
 		"lodash": "^4.17.20",

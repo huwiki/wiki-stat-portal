@@ -1,4 +1,5 @@
-import { AnchorButton, Button, IconName, Intent } from "@blueprintjs/core";
+import { AnchorButton, Button, IconName, Intent, Spinner } from "@blueprintjs/core";
+import Axios from "axios";
 import { format, isSameDay } from "date-fns";
 import { computed, makeObservable, observable } from "mobx";
 import { observer } from "mobx-react";
@@ -35,10 +36,14 @@ const today = moment().startOf("day").toDate();
 class UserPyramidSeries {
 	public date: Date = today;
 
+	public isLoading: boolean = true;
+	public failedToLoad: boolean = false;
+
 	constructor() {
 		makeObservable(this, {
-
-			date: observable
+			date: observable,
+			isLoading: observable,
+			failedToLoad: observable,
 		});
 	}
 }
@@ -232,6 +237,12 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 		return this.userPyramidSeries.map(series => <div key={format(series.date, "yyyy-MM-dd")}
 			className={userPyramidsStyles.visibleSeries}>
 			{format(series.date, "yyyy-MM-dd")}
+			{series.isLoading
+				&& <Spinner size={16} />}
+			{series.failedToLoad
+				&& <span className={userPyramidsStyles.seriesFailedToLoad}>
+					{this.t("userPyramids.seriesFailedToLoad")}
+				</span>}
 			<AnchorButton
 				icon="cross"
 				small
@@ -289,11 +300,33 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 		this.newUserPyramidSeries.date = date;
 	}
 
-	private addSeries = () => {
-		this.userPyramidSeries.push(this.newUserPyramidSeries);
+	private addSeries = async (): Promise<void> => {
+		const newlyAddedSeries = this.newUserPyramidSeries;
+		this.userPyramidSeries.push(newlyAddedSeries);
 		this.newUserPyramidSeries = new UserPyramidSeries();
 
-		// TODO: load data
+		try {
+			const resp = await Axios.get(
+				"/api/userPyramids/seriesData?"
+				+ `wikiId=${this.selectedWiki.id}`
+				+ `&pyramidId=${this.selectedUserPyramid.id}`
+				+ `&date=${format(newlyAddedSeries.date, "yyyy-MM-dd")}`,
+				{ timeout: 30000 }
+			);
+
+			if (resp.status === 200) {
+				// TODO: load data
+				console.log(resp.data);
+			} else {
+				newlyAddedSeries.failedToLoad = true;
+			}
+			newlyAddedSeries.isLoading = false;
+		}
+		catch (err) {
+			newlyAddedSeries.failedToLoad = true;
+			newlyAddedSeries.isLoading = false;
+		}
+
 	}
 
 	private deleteSeries = (series: UserPyramidSeries) => {
