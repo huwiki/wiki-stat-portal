@@ -8,6 +8,7 @@
 	"pageNotFound": "A keresett oldal nem található",
 	"button.go": "Tovább",
 	"button.add": "Hozzáadás",
+	"button.reset": "Alapállapot visszaállítása",
 	"module.userPyramids": "Felhasználói piramisok",
 	"module.userPyramids.description": "Előre definiált felhasználói csoportok mérete közötti változások vizualizációja",
 	"module.another": "Másik",
@@ -40,6 +41,7 @@
 	"userPyramids.header.intersectionWithPreviousGroup": "Metszet az előző csoporttal",
 	"userPyramids.header.intersectionPercentage": "Metszet a csoport százalékában",
 	"userPyramids.basicParameters": "Alapparaméterek",
-	"userPyramids.addNewSeries": "Sorozat hozzáadása",
-	"userPyramids.maxNumberOfSeriesReached": "At most 5 series can be displayed"
+	"userPyramids.series": "Adatsorok",
+	"userPyramids.noSeriesAdded": "Nincs adatsor felvéve",
+	"userPyramids.maxNumberOfSeriesReached": "Legfeljebb 5 adatsor tekinthető meg egyszerre"
 }

@@ -10,6 +10,7 @@
 	"pageNotFound": "Page Not Found",
 	"button.go": "Go",
 	"button.add": "Add",
+	"button.reset": "Reset",
 	"module.userPyramids": "User pyramids",
 	"module.userPyramids.description": "Visualizing changes in number of members between predefined groups of users",
 	"module.another": "Another",
@@ -42,6 +43,7 @@
 	"userPyramids.header.intersectionWithPreviousGroup": "Intersection with previous group",
 	"userPyramids.header.intersectionPercentage": "Intersection in pct. of group",
 	"userPyramids.basicParameters": "Basic parameters",
-	"userPyramids.addNewSeries": "Add new series",
-	"userPyramids.maxNumberOfSeriesReached": "Legfeljebb 5 sorozat tekinthető meg egyszerre"
+	"userPyramids.series": "Data series",
+	"userPyramids.noSeriesAdded": "No series added",
+	"userPyramids.maxNumberOfSeriesReached": "At most 5 series can be displayed"
 }

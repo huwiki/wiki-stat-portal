@@ -1,5 +1,6 @@
-import { Button, IconName, Intent } from "@blueprintjs/core";
-import { makeObservable, observable } from "mobx";
+import { AnchorButton, Button, IconName, Intent } from "@blueprintjs/core";
+import { format, isSameDay } from "date-fns";
+import { computed, makeObservable, observable } from "mobx";
 import { observer } from "mobx-react";
 import moment from "moment";
 import { NextPageContext } from "next";
@@ -12,6 +13,8 @@ import { NextBasePage } from "../../client/helpers/nextBasePage";
 import { SelectableValue } from "../../client/models/selectableValue";
 import { CommonPageProps } from "../../common/interfaces/commonPageProps";
 import { WikiUserPyramidConfigurations } from "../../common/modules/userPyramids/userPyramidConfiguration";
+import { ParameterBox } from "../../components/parameterBox";
+import { ParameterGroup } from "../../components/parameterGroup";
 import { PyramidVisualization } from "../../components/pyramidVisualization";
 import { withCommonServerSideProps } from "../../server/helpers/serverSidePageHelpers";
 import { GetServerSidePropsResult } from "../../server/interfaces/getServerSidePropsResult";
@@ -50,10 +53,17 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 	newUserPyramidSeries: UserPyramidSeries = new UserPyramidSeries();
 	userPyramidSeries: UserPyramidSeries[] = [];
 
+	get isAddPyramidSeriesDisabled(): boolean {
+		return this.userPyramidSeries.length >= 5
+			|| !this.selectedWiki
+			|| this.selectedWiki.id === ""
+			|| !this.selectedUserPyramid
+			|| this.selectedUserPyramid.id === ""
+			|| !!this.userPyramidSeries.find(x => isSameDay(x.date, this.newUserPyramidSeries.date));
+	}
+
 	constructor(props: UserPyramidModulePageProps) {
 		super(props);
-
-		console.log(this.props.userPyramids);
 
 		this.selectableWikis.push(new SelectableValue(
 			"",
@@ -68,6 +78,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			selectableWikis: observable,
 			selectedUserPyramid: observable,
 			userPyramidSeries: observable,
+			isAddPyramidSeriesDisabled: computed,
 		});
 	}
 
@@ -162,61 +173,86 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 	}
 
 	private renderModuleParameters() {
-		return <>
-			<div className={userPyramidsStyles.addNewSeries}>
-				<div className={userPyramidsStyles.addNewSeriesTitle}>
-					{this.t("userPyramids.basicParameters")}
-				</div>
-				<div className={userPyramidsStyles.addNewSeriesParameters}>
-					<SelectInput<SelectableValue>
-						value={this.selectedWiki}
-						setValue={this.updateSelectedWiki}
-						itemKeySelector={ele => ele.id}
-						items={this.selectableWikis}
-						itemRenderer={ele => ele.label}
-						inputLabel={this.t("input.wiki.label")}
-						noSearchResultsLabel={this.t("input.noSearchResults")}
-						noSelectedItemsLabel={this.t("input.wiki.noSelectedItem")}
-						filterLabel={this.t("input.wiki.filterPlaceholder")}
-						itemPredicate={(queryString, ele) => ele.label.indexOf(queryString) !== -1}
-					/>
+		return <ParameterBox>
+			<div className={userPyramidsStyles.resetButton}>
+				<Button
+					icon="reset"
+					intent={Intent.DANGER}
+					minimal
+					outlined
+					onClick={this.resetAll}
+					text={this.t("button.reset")} />
+			</div>
+			<ParameterGroup title={this.t("userPyramids.basicParameters")}>
+				<SelectInput<SelectableValue>
+					value={this.selectedWiki}
+					setValue={this.updateSelectedWiki}
+					itemKeySelector={ele => ele.id}
+					items={this.selectableWikis}
+					itemRenderer={ele => ele.label}
+					inputLabel={this.t("input.wiki.label")}
+					noSearchResultsLabel={this.t("input.noSearchResults")}
+					noSelectedItemsLabel={this.t("input.wiki.noSelectedItem")}
+					filterLabel={this.t("input.wiki.filterPlaceholder")}
+					itemPredicate={(queryString, ele) => ele.label.indexOf(queryString) !== -1}
+					disabled={this.userPyramidSeries.length > 0}
+				/>
 
-					<SelectInput<SelectableValue>
-						value={this.selectedUserPyramid}
-						setValue={this.updateSelectedUserPyramid}
-						itemKeySelector={ele => ele.id}
-						items={this.selectableUserPyramids}
-						itemRenderer={ele => ele.label}
-						inputLabel={this.t("input.userPyramid.label")}
-						noSearchResultsLabel={this.t("input.noSearchResults")}
-						noSelectedItemsLabel={this.t("input.userPyramid.noSelectedItem")}
-						filterLabel={this.t("input.userPyramid.filterPlaceholder")}
-						itemPredicate={(queryString, ele) => ele.label.indexOf(queryString) !== -1}
-					/>
-				</div>
-				<div className={userPyramidsStyles.addNewSeriesTitle}>
-					{this.t("userPyramids.addNewSeries")}
-				</div>
-				<div className={userPyramidsStyles.addNewSeriesParameters}>
-
-					<DateInput
-						value={this.newUserPyramidSeries.date}
-						setValue={this.updateNewPyramidDate}
-						inputLabel={this.t("input.date.label")}
-						maxDate={today}
-					/>
-
-					<Button
-						icon="plus"
-						intent={Intent.PRIMARY}
-						onClick={this.addSeries}
-						disabled={this.userPyramidSeries.length >= 5}
-						text={this.t("button.add")} />
-				</div>
+				<SelectInput<SelectableValue>
+					value={this.selectedUserPyramid}
+					setValue={this.setSelectedUserPyramid}
+					itemKeySelector={ele => ele.id}
+					items={this.selectableUserPyramids}
+					itemRenderer={ele => ele.label}
+					inputLabel={this.t("input.userPyramid.label")}
+					noSearchResultsLabel={this.t("input.noSearchResults")}
+					noSelectedItemsLabel={this.t("input.userPyramid.noSelectedItem")}
+					filterLabel={this.t("input.userPyramid.filterPlaceholder")}
+					itemPredicate={(queryString, ele) => ele.label.indexOf(queryString) !== -1}
+					disabled={this.userPyramidSeries.length > 0}
+				/>
+			</ParameterGroup>
+			<ParameterGroup title={this.t("userPyramids.series")}>
+				{this.renderExistingSeries()}
+				{this.renderAddSeriesControls()}
 				{this.userPyramidSeries.length >= 5 && <div className={userPyramidsStyles.maxNumberOfSeriesReached}>
 					{this.t("userPyramids.maxNumberOfSeriesReached")}
 				</div>}
-			</div>
+			</ParameterGroup>
+		</ParameterBox>;
+	}
+
+	private renderExistingSeries(): React.ReactNode {
+		if (this.userPyramidSeries.length === 0) {
+			return <div key="noSeries" className={userPyramidsStyles.visibleSeries}>
+				{this.t("userPyramids.noSeriesAdded")}
+			</div>;
+		}
+
+		return this.userPyramidSeries.map(series => <div key={format(series.date, "yyyy-MM-dd")}
+			className={userPyramidsStyles.visibleSeries}>
+			{format(series.date, "yyyy-MM-dd")}
+			<AnchorButton
+				icon="cross"
+				small
+				intent={Intent.DANGER}
+				minimal
+				onClick={this.deleteSeries(series)} />
+		</div>);
+	}
+
+	private renderAddSeriesControls(): React.ReactNode {
+		return <>
+			<DateInput
+				value={this.newUserPyramidSeries.date}
+				setValue={this.setNewPyramidDate}
+				maxDate={today}
+			/>
+
+			<Button icon="plus" intent={Intent.PRIMARY} minimal outlined
+				onClick={this.addSeries}
+				disabled={this.isAddPyramidSeriesDisabled}
+				text={this.t("button.add")} />
 		</>;
 	}
 
@@ -239,11 +275,17 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 		this.selectableUserPyramids = newSelectableUserPyramids;
 	}
 
-	private updateSelectedUserPyramid = (selectedUserPyramid: SelectableValue) => {
+	private resetAll = () => {
+		this.userPyramidSeries = [];
+		this.newUserPyramidSeries = new UserPyramidSeries();
+		this.updateSelectedWiki(this.selectableWikis[0]);
+	}
+
+	private setSelectedUserPyramid = (selectedUserPyramid: SelectableValue) => {
 		this.selectedUserPyramid = selectedUserPyramid;
 	}
 
-	private updateNewPyramidDate = (date: Date) => {
+	private setNewPyramidDate = (date: Date) => {
 		this.newUserPyramidSeries.date = date;
 	}
 
@@ -252,6 +294,15 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 		this.newUserPyramidSeries = new UserPyramidSeries();
 
 		// TODO: load data
+	}
+
+	private deleteSeries = (series: UserPyramidSeries) => {
+		return () => {
+			const seriesIndex = this.userPyramidSeries.indexOf(series);
+			if (seriesIndex !== -1) {
+				this.userPyramidSeries.splice(seriesIndex, 1);
+			}
+		};
 	}
 }
 

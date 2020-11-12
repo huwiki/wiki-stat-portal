@@ -14,6 +14,7 @@ export interface SelectInputProps<T> extends InputProps {
 	noSelectedItemsLabel?: string;
 	noSearchResultsLabel?: string;
 	filterLabel?: string;
+	disabled?: boolean;
 }
 
 export class SelectInput<T> extends Input<SelectInputProps<T>> {
@@ -22,6 +23,13 @@ export class SelectInput<T> extends Input<SelectInputProps<T>> {
 	}
 
 	public renderInput(): JSX.Element {
+		const inputGroupClasses = [Classes.INPUT_GROUP, Classes.FILL];
+		const inputClasses = [Classes.INPUT, Classes.FILL];
+		if (this.props.disabled) {
+			inputGroupClasses.push(Classes.DISABLED);
+			inputClasses.push(Classes.DISABLED);
+		}
+
 		return <Select
 			itemRenderer={this.renderSelectItem}
 			items={this.props.items}
@@ -32,10 +40,10 @@ export class SelectInput<T> extends Input<SelectInputProps<T>> {
 			itemPredicate={this.props.itemPredicate}
 			inputProps={{ placeholder: this.props.filterLabel }}
 			popoverProps={{ minimal: true }}
-
+			disabled={this.props.disabled}
 		>
-			<div className={classnames(Classes.INPUT_GROUP, Classes.FILL)}>
-				<div className={classnames(Classes.INPUT, Classes.FILL)}>
+			<div className={classnames(inputGroupClasses)}>
+				<div className={classnames(inputClasses)}>
 					{this.props.value
 						? this.props.itemRenderer(this.props.value)
 						: this.props.noSelectedItemsLabel}
