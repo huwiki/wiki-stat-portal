@@ -11,7 +11,19 @@ export class AppRunningContext {
 	public readonly isValid: boolean = false;
 	public readonly logger: Logger;
 	public readonly appConfig: ApplicationConfiguration;
-	public readonly knownWikisConfiguration: KnownWiki[];
+	private readonly knownWikisConfiguration: KnownWiki[];
+
+	public getKnownWikis(): KnownWiki[] {
+		return this.knownWikisConfiguration.map(knownWiki => ({ ...knownWiki }));
+	}
+
+	public getKnownWikiById(wikiId: string): KnownWiki | null {
+		const knownWiki = this.knownWikisConfiguration.find(x => x.id === wikiId);
+		if (!knownWiki)
+			return null;
+
+		return { ...knownWiki };
+	}
 
 	private constructor(appName: string) {
 		this.logger = createWikiStatLogger(appName);

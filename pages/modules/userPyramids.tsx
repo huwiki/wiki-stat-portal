@@ -106,15 +106,19 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 				title="I. szerkesztői piramis"
 				seriesDescriptions={["2020. 10. 01."]}
 				groups={[{
+					id: "1",
 					description: "anon szerkesztők",
 					seriesValues: [{ value: 734, commonWithPreviousGroup: 0 }]
 				}, {
+					id: "2",
 					description: "1+ regisztrált szerkesztők",
 					seriesValues: [{ value: 324, commonWithPreviousGroup: 40 }]
 				}, {
+					id: "3",
 					description: "5+ regisztrált szerkesztők",
 					seriesValues: [{ value: 134, commonWithPreviousGroup: 134 }]
 				}, {
+					id: "3",
 					description: "100+ regisztrált szerkesztők",
 					seriesValues: [{ value: 12, commonWithPreviousGroup: 1 }]
 				}]}
@@ -125,15 +129,19 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 				title="I. szerkesztői piramis"
 				seriesDescriptions={["2020. 10. 01."]}
 				groups={[{
+					id: "1",
 					description: "anon szerkesztők",
 					seriesValues: [{ value: 734, commonWithPreviousGroup: 0 }]
 				}, {
+					id: "2",
 					description: "1+ regisztrált szerkesztők",
 					seriesValues: [{ value: 1111, commonWithPreviousGroup: 40 }]
 				}, {
+					id: "3",
 					description: "5+ regisztrált szerkesztők",
 					seriesValues: [{ value: 134, commonWithPreviousGroup: 134 }]
 				}, {
+					id: "4",
 					description: "100+ regisztrált szerkesztők",
 					seriesValues: [{ value: 12, commonWithPreviousGroup: 1 }]
 				}]}
@@ -147,24 +155,28 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 					"2020. 10. 01."
 				]}
 				groups={[{
+					id: "1",
 					description: "anon szerkesztők",
 					seriesValues: [
 						{ value: 734, commonWithPreviousGroup: 0 },
 						{ value: 525, commonWithPreviousGroup: 0 }
 					]
 				}, {
+					id: "2",
 					description: "1+ regisztrált szerkesztők",
 					seriesValues: [
 						{ value: 324, commonWithPreviousGroup: 140 },
 						{ value: 235, commonWithPreviousGroup: 222 }
 					]
 				}, {
+					id: "3",
 					description: "5+ regisztrált szerkesztők",
 					seriesValues: [
 						{ value: 134, commonWithPreviousGroup: 100 },
 						{ value: 111, commonWithPreviousGroup: 23 }
 					]
 				}, {
+					id: "4",
 					description: "100+ regisztrált szerkesztők",
 					seriesValues: [
 						{ value: 12, commonWithPreviousGroup: 10 },

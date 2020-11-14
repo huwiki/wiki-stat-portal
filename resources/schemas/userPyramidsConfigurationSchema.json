@@ -65,13 +65,8 @@
 			"properties": {
 				"registrationStatus": {
 					"description": "If specified, only users whose registration status is registered or anon will be counted to the group.",
-					"type": "array",
-					"items": {
-						"type": "string",
-						"enum": ["registered", "anon"]
-					},
-					"minItems": 1,
-					"uniqueItems": true
+					"type": "string",
+					"enum": ["registered", "anon"]
 				},
 				"registrationAgeAtLeast": {
 					"description": "If specified, only users whose registration age is at least the specified days at the requested data will be counted to the group.",

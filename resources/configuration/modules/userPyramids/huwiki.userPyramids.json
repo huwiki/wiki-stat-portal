@@ -7,28 +7,28 @@
 				{
 					"name": "anon szerkesztők",
 					"requirements": {
-						"registrationStatus": ["anon"],
+						"registrationStatus": "anon",
 						"inPeriodEditsAtLeast": { "edits": 1, "period": 30 }
 					}
 				},
 				{
 					"name": "1+ regisztrált szerkesztők",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"inPeriodEditsAtLeast": { "edits": 1, "period": 30 }
 					}
 				},
 				{
 					"name": "5+ regisztrált szerkesztők",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"inPeriodEditsAtLeast": { "edits": 5, "period": 30 }
 					}
 				},
 				{
 					"name": "100+ regisztrált szerkesztők",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"inPeriodEditsAtLeast": { "edits": 100, "period": 30 }
 					}
 				}
@@ -41,69 +41,69 @@
 				{
 					"name": "regisztráltak száma",
 					"requirements": {
-						"registrationStatus": ["registered"]
+						"registrationStatus": "registered"
 					}
 				},
 				{
 					"name": "regisztrált és 1+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"inPeriodEditsAtLeast": { "edits": 1, "period": 30 }
 					}
 				},
 				{
 					"name": "regisztrált és 5+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"inPeriodEditsAtLeast": { "edits": 5, "period": 30 }
 					}
 				},
 				{
 					"name": "regisztrált és 10+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"inPeriodEditsAtLeast": { "edits": 10, "period": 30 }
 					}
 				},
 				{
 					"name": "regisztrált és 100+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"inPeriodEditsAtLeast": { "edits": 100, "period": 30 }
 					}
 				},
 				{
 					"name": "regisztrált és 250+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"inPeriodEditsAtLeast": { "edits": 250, "period": 30 }
 					}
 				},
 				{
 					"name": "regisztrált és 1000+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"inPeriodEditsAtLeast": { "edits": 1000, "period": 30 }
 					}
 				},
 				{
 					"name": "regisztrált és 2500+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"inPeriodEditsAtLeast": { "edits": 2500, "period": 30 }
 					}
 				},
 				{
 					"name": "regisztrált és 10000+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"inPeriodEditsAtLeast": { "edits": 10000, "period": 30 }
 					}
 				},
 				{
 					"name": "regisztrált és 25000+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"inPeriodEditsAtLeast": { "edits": 25000, "period": 30 }
 					}
 				}
@@ -116,90 +116,90 @@
 				{
 					"name": "regisztráltak száma",
 					"requirements": {
-						"registrationStatus": ["registered"]
+						"registrationStatus": "registered"
 					}
 				},
 				{
 					"name": "regisztrált és 1+ szerkesztése van",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"totalEditsAtLeast": 1
 					}
 				},
 				{
 					"name": "regisztrált és 5+ szerkesztése van",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"totalEditsAtLeast": 5
 					}
 				},
 				{
 					"name": "regisztrált és 10+ szerkesztése van",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"totalEditsAtLeast": 10
 					}
 				},
 				{
 					"name": "regisztrált és 100+ szerkesztése van",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"totalEditsAtLeast": 100
 					}
 				},
 				{
 					"name": "regisztrált és 250+ szerkesztése van",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"totalEditsAtLeast": 250
 					}
 				},
 				{
 					"name": "regisztrált és 1000+ szerkesztése van",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"totalEditsAtLeast": 1000
 					}
 				},
 				{
 					"name": "regisztrált és 2500+ szerkesztése van",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"totalEditsAtLeast": 2500
 					}
 				},
 				{
 					"name": "regisztrált és 10 000+ szerkesztése van",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"totalEditsAtLeast": 10000
 					}
 				},
 				{
 					"name": "regisztrált és 25 000+ szerkesztése van",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"totalEditsAtLeast": 25000
 					}
 				},
 				{
 					"name": "regisztrált és 100 000+ szerkesztése van",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"totalEditsAtLeast": 100000
 					}
 				},
 				{
 					"name": "regisztrált és 250 000+ szerkesztése van",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"totalEditsAtLeast": 250000
 					}
 				},
 				{
 					"name": "regisztrált és 1 000 000+ szerkesztése van",
 					"requirements": {
-						"registrationStatus": ["registered"],
+						"registrationStatus": "registered",
 						"totalEditsAtLeast": 1000000
 					}
 				}

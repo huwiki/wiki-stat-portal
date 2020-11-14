@@ -8,7 +8,7 @@ import { bufferToStringTransformer, intToBooleanTransformer } from "../../transf
  * to use proper typing for these classes.
  */
 
-class ActorTypeModel {
+export class ActorTypeModel {
 	public actorId: number;
 	public actorName: string;
 	public isRegistered: boolean;
@@ -17,14 +17,14 @@ class ActorTypeModel {
 	public userGroups: string;
 }
 
-class ActorStatisticsTypeModel {
+export class ActorStatisticsTypeModel {
 	public actorId: number;
 	public date: Date;
 	public dailyEdits: number;
 	public editsToDate: number;
 }
 
-class ActorStatisticsByNamespaceTypeModel {
+export class ActorStatisticsByNamespaceTypeModel {
 	public actorId: number;
 	public namespace: number;
 	public date: Date;

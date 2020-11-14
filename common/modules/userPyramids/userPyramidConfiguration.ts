@@ -22,21 +22,26 @@ export interface UserPyramidConfiguration {
 
 export interface UserPyramidGroup {
 	name: string;
-	requirements: UserPyramidRequirement[];
+	requirements: UserPyramidRequirements;
 }
 
-export interface UserPyramidRequirement {
-	registrationStatus?: ("registered" | "anon")[],
+export interface UserPyramidRequirements {
+	registrationStatus?: "registered" | "anon",
 	registrationAgeAtLeast?: number;
 	registrationAgeAtMost?: number;
 	userGroups?: ("bot" | "bureaucrat" | "checkuser"
 		| "editor" | "flow-bot" | "interface-admin"
 		| "interface-editor" | "sysop"
 		| "templateeditor" | "trusted")[];
-	totalEditsAtLeast?: number;
-	totalEditsAtMost?: number;
+	totalEditsAtLeast?: number | UserEditsInTime;
+	totalEditsAtMost?: number | UserEditsInTime;
 	inPeriodEditsAtLeast?: UserEditsInPeriod;
 	inPeriodEditsAtMost?: UserEditsInPeriod;
+}
+
+export interface UserEditsInTime {
+	edits: number;
+	epoch: number;
 }
 
 export interface UserEditsInPeriod {
