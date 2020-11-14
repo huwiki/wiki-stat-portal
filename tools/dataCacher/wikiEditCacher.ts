@@ -4,6 +4,7 @@ import moment from "moment";
 import "moment-timezone";
 import { Connection, EntityManager, getManager, LessThan } from "typeorm";
 import { Logger } from "winston";
+import { AppRunningContext } from "../../server/appRunningContext";
 import { ApplicationConfiguration } from "../../server/configuration/applicationConfiguration";
 import { createConnectionToMediaWikiReplica } from "../../server/database/connectionManager";
 import { Actor } from "../../server/database/entities/mediawiki/actor";
@@ -16,10 +17,9 @@ const REVISIONS_PROCESSED_AT_ONCE: number = 1000;
 const MAXIMUM_PROCESSED_REVISIONS_AT_ONCE: number = 3000;
 
 interface WikiEditCacherOptions {
-	appConfig: ApplicationConfiguration;
+	appCtx: AppRunningContext;
 	wiki: KnownWiki;
 	toolsConnection: Connection;
-	logger: Logger;
 }
 
 interface EditsByDate {
@@ -53,10 +53,10 @@ export class WikiEditCacher {
 	private statsByActorDict: { [index: number]: StatsByActor } = {};
 
 	constructor(options: WikiEditCacherOptions) {
-		this.appConfig = options.appConfig;
+		this.appConfig = options.appCtx.appConfig;
+		this.logger = options.appCtx.logger;
 		this.wiki = options.wiki;
 		this.toolsConnection = options.toolsConnection;
-		this.logger = options.logger;
 
 		this.wikiStatisticsEntities = createActorEntitiesForWiki(this.wiki.id);
 	}
