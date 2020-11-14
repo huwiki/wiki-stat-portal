@@ -2,7 +2,7 @@ import { AppRunningContext } from "../../server/appRunningContext";
 import { WikiEditCacher } from "./wikiEditCacher";
 
 const runTool = async (): Promise<void> => {
-	const appCtx = new AppRunningContext("dataCacher");
+	const appCtx = AppRunningContext.getInstance("dataCacher");
 
 	const toolsConnection = await appCtx.getToolsDbConnection();
 

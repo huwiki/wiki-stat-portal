@@ -13,7 +13,7 @@ export class AppRunningContext {
 	public readonly appConfig: ApplicationConfiguration;
 	public readonly knownWikisConfiguration: KnownWiki[];
 
-	constructor(appName: string) {
+	private constructor(appName: string) {
 		this.logger = createWikiStatLogger(appName);
 
 		const appConfig = readApplicationConfiguration();
@@ -39,5 +39,15 @@ export class AppRunningContext {
 			`${this.appConfig.toolForgeUserName}__userstatistics`,
 			this.knownWikisConfiguration.map(x => x.id)
 		);
+	}
+
+
+	private static instances: { [index: string]: AppRunningContext } = {};
+	public static getInstance(appName: string): AppRunningContext {
+		if (!this.instances[appName]) {
+			this.instances[appName] = new AppRunningContext(appName);
+		}
+
+		return this.instances[appName];
 	}
 }
