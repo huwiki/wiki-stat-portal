@@ -33,8 +33,14 @@ interface UserPyramidModulePageProps extends CommonPageProps {
 
 const today = moment().startOf("day").toDate();
 
+interface SeriesData {
+	population: number;
+	matchingWithPreviousGroup: number;
+}
+
 class UserPyramidSeries {
 	public date: Date = today;
+	public data: SeriesData[] = [];
 
 	public isLoading: boolean = true;
 	public failedToLoad: boolean = false;
@@ -102,91 +108,43 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 				{this.renderModuleParameters()}
 			</div>
 
-			<PyramidVisualization
-				title="I. szerkesztői piramis"
-				seriesDescriptions={["2020. 10. 01."]}
-				groups={[{
-					id: "1",
-					description: "anon szerkesztők",
-					seriesValues: [{ value: 734, commonWithPreviousGroup: 0 }]
-				}, {
-					id: "2",
-					description: "1+ regisztrált szerkesztők",
-					seriesValues: [{ value: 324, commonWithPreviousGroup: 40 }]
-				}, {
-					id: "3",
-					description: "5+ regisztrált szerkesztők",
-					seriesValues: [{ value: 134, commonWithPreviousGroup: 134 }]
-				}, {
-					id: "3",
-					description: "100+ regisztrált szerkesztők",
-					seriesValues: [{ value: 12, commonWithPreviousGroup: 1 }]
-				}]}
-				translatorFunction={this.t}
-			/>
-
-			<PyramidVisualization
-				title="I. szerkesztői piramis"
-				seriesDescriptions={["2020. 10. 01."]}
-				groups={[{
-					id: "1",
-					description: "anon szerkesztők",
-					seriesValues: [{ value: 734, commonWithPreviousGroup: 0 }]
-				}, {
-					id: "2",
-					description: "1+ regisztrált szerkesztők",
-					seriesValues: [{ value: 1111, commonWithPreviousGroup: 40 }]
-				}, {
-					id: "3",
-					description: "5+ regisztrált szerkesztők",
-					seriesValues: [{ value: 134, commonWithPreviousGroup: 134 }]
-				}, {
-					id: "4",
-					description: "100+ regisztrált szerkesztők",
-					seriesValues: [{ value: 12, commonWithPreviousGroup: 1 }]
-				}]}
-				translatorFunction={this.t}
-			/>
-
-			<PyramidVisualization
-				title="I. szerkesztői piramis"
-				seriesDescriptions={[
-					"2020. 09. 01.",
-					"2020. 10. 01."
-				]}
-				groups={[{
-					id: "1",
-					description: "anon szerkesztők",
-					seriesValues: [
-						{ value: 734, commonWithPreviousGroup: 0 },
-						{ value: 525, commonWithPreviousGroup: 0 }
-					]
-				}, {
-					id: "2",
-					description: "1+ regisztrált szerkesztők",
-					seriesValues: [
-						{ value: 324, commonWithPreviousGroup: 140 },
-						{ value: 235, commonWithPreviousGroup: 222 }
-					]
-				}, {
-					id: "3",
-					description: "5+ regisztrált szerkesztők",
-					seriesValues: [
-						{ value: 134, commonWithPreviousGroup: 100 },
-						{ value: 111, commonWithPreviousGroup: 23 }
-					]
-				}, {
-					id: "4",
-					description: "100+ regisztrált szerkesztők",
-					seriesValues: [
-						{ value: 12, commonWithPreviousGroup: 10 },
-						{ value: 53, commonWithPreviousGroup: 20 }
-					]
-				}]}
-				translatorFunction={this.t}
-			/>
-
+			{this.renderPyramidVisualization()}
 		</PageFrame>;
+	}
+
+	private renderPyramidVisualization() {
+		if (this.userPyramidSeries.length === 0
+			|| this.userPyramidSeries.findIndex(x => x.isLoading === false && x.failedToLoad === false) === -1) {
+			return "Nothing to visualize";
+		}
+
+		const wikiPyramids = this.props.userPyramids.find(x => x.wiki === this.selectedWiki.id);
+		if (!wikiPyramids || wikiPyramids.valid === false)
+			return "¯\\_(ツ)_/¯";
+
+		const pyramid = wikiPyramids.userPyramids.find(x => x.id === this.selectedUserPyramid.id);
+		if (!pyramid)
+			return "¯\\_(ツ)_/¯";
+
+		return <PyramidVisualization
+			title={this.selectedUserPyramid.label}
+			seriesDescriptions={
+				this.userPyramidSeries
+					.filter(x => x.isLoading === false && x.failedToLoad === false)
+					.map(x => format(x.date, "yyyy. MMMM d."))
+			}
+			groups={pyramid.groups.map((group, index) => ({
+				id: index.toString(),
+				description: group.name,
+				seriesValues: this.userPyramidSeries
+					.filter(x => x.isLoading === false && x.failedToLoad === false)
+					.map(x => ({
+						value: x.data[index].population,
+						commonWithPreviousGroup: x.data[index].matchingWithPreviousGroup
+					}))
+			}))}
+			translatorFunction={this.t}
+		/>;
 	}
 
 	private renderModuleParameters() {
@@ -323,11 +281,11 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 				+ `wikiId=${this.selectedWiki.id}`
 				+ `&pyramidId=${this.selectedUserPyramid.id}`
 				+ `&date=${format(newlyAddedSeries.date, "yyyy-MM-dd")}`,
-				{ timeout: 30000 }
+				{ timeout: 100000 }
 			);
 
 			if (resp.status === 200) {
-				// TODO: load data
+				newlyAddedSeries.data = resp.data;
 				console.log(resp.data);
 			} else {
 				newlyAddedSeries.failedToLoad = true;

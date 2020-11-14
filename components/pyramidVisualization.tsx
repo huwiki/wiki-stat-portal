@@ -8,6 +8,7 @@ interface IPyramidSeriesValue {
 }
 
 interface IPyramidGroup {
+	id: string;
 	description: string;
 	seriesValues: IPyramidSeriesValue[];
 }
@@ -112,7 +113,7 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 			commonWithPreviousPercentage: (sv.commonWithPreviousGroup / sv.value) * 100
 		}));
 
-		return <div className={pyramidVisualizationStyles.tableRow}>
+		return <div key={group.id} className={pyramidVisualizationStyles.tableRow}>
 			<div className={pyramidVisualizationStyles.groupLabel}>{group.description}</div>
 			<div className={pyramidVisualizationStyles.bars}>
 				{seriesValues.map(seriesValue =>
