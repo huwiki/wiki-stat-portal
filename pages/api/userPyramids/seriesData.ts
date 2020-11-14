@@ -1,4 +1,4 @@
-import { startOfDay, subDays } from "date-fns";
+import { addDays, parse, startOfDay, subDays } from "date-fns";
 import { isArray } from "lodash";
 import { NextApiRequest, NextApiResponse } from "next";
 import { UserPyramidConfiguration } from "../../../common/modules/userPyramids/userPyramidConfiguration";
@@ -29,8 +29,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		return;
 	}
 
-	const { isValid, wiki, pyramid } = processParameters(appCtx, res, rawWikiId, rawPyramidId, rawDate);
-	if (!isValid || !pyramid || !wiki)
+	const { isValid, wiki, pyramid, epochDate } = processParameters(appCtx, res, rawWikiId, rawPyramidId, rawDate);
+	if (!isValid || !pyramid || !wiki || !epochDate)
 		return;
 
 	const conn = await appCtx.getToolsDbConnection();
@@ -44,6 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				.createQueryBuilder("actor");
 
 			const reqs = userGroup.requirements;
+			let needsRegDateFilter = false;
 
 			// Manage required joins
 			if (typeof reqs.totalEditsAtLeast !== "undefined") {
@@ -55,12 +56,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			}
 
 			if (typeof reqs.inPeriodEditsAtLeast !== "undefined") {
-				const startDate = typeof reqs.inPeriodEditsAtLeast.epoch === "number"
-					? subDays(startOfDay(new Date()), reqs.inPeriodEditsAtLeast.period + reqs.inPeriodEditsAtLeast.epoch)
-					: subDays(startOfDay(new Date()), reqs.inPeriodEditsAtLeast.period);
-				const endDate = typeof reqs.inPeriodEditsAtLeast.epoch === "number"
-					? subDays(startOfDay(new Date()), reqs.inPeriodEditsAtLeast.epoch)
-					: startOfDay(new Date());
+				const periodEditsCalculationStartDate = typeof reqs.inPeriodEditsAtLeast.epoch === "number"
+					? subDays(epochDate, reqs.inPeriodEditsAtLeast.period + reqs.inPeriodEditsAtLeast.epoch)
+					: subDays(epochDate, reqs.inPeriodEditsAtLeast.period);
+				const periodEditsCalculationEndDate = typeof reqs.inPeriodEditsAtLeast.epoch === "number"
+					? subDays(epochDate, reqs.inPeriodEditsAtLeast.epoch)
+					: epochDate;
 
 				query = query.leftJoin(qb => {
 					return qb.subQuery()
@@ -69,19 +70,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 						.from(wikiEntities.actorStatistics, "peal")
 						.where(
 							"peal.date >= :startDate AND peal.date <= :endDate",
-							{ startDate: startDate, endDate: endDate }
+							{ startDate: periodEditsCalculationStartDate, endDate: periodEditsCalculationEndDate }
 						)
 						.groupBy("peal.actorId");
 				}, "periodEditsAtLeast", "periodEditsAtLeast.actorId = actor.actorId");
 			}
 
 			if (typeof reqs.inPeriodEditsAtMost !== "undefined") {
-				const startDate = typeof reqs.inPeriodEditsAtMost.epoch === "number"
-					? subDays(startOfDay(new Date()), reqs.inPeriodEditsAtMost.period + reqs.inPeriodEditsAtMost.epoch)
-					: subDays(startOfDay(new Date()), reqs.inPeriodEditsAtMost.period);
-				const endDate = typeof reqs.inPeriodEditsAtMost.epoch === "number"
-					? subDays(startOfDay(new Date()), reqs.inPeriodEditsAtMost.epoch)
-					: startOfDay(new Date());
+				const periodEditsCalculationStartDate = typeof reqs.inPeriodEditsAtMost.epoch === "number"
+					? subDays(epochDate, reqs.inPeriodEditsAtMost.period + reqs.inPeriodEditsAtMost.epoch)
+					: subDays(epochDate, reqs.inPeriodEditsAtMost.period);
+				const periodEditsCalculationEndDate = typeof reqs.inPeriodEditsAtMost.epoch === "number"
+					? subDays(epochDate, reqs.inPeriodEditsAtMost.epoch)
+					: epochDate;
 
 				query = query.leftJoin(qb => {
 					return qb.subQuery()
@@ -90,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 						.from(wikiEntities.actorStatistics, "peam")
 						.where(
 							"peam.date >= :startDate AND peam.date <= :endDate",
-							{ startDate: startDate, endDate: endDate }
+							{ startDate: periodEditsCalculationStartDate, endDate: periodEditsCalculationEndDate }
 						)
 						.groupBy("peam.actorId");
 				}, "periodEditsAtMost", "periodEditsAtMost.actorId = actor.actorId");
@@ -101,35 +102,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				query = query.andWhere("actor.isRegistered = :isRegistered", { isRegistered: 0 });
 			} else if (reqs.registrationStatus === "registered") {
 				query = query.andWhere("actor.isRegistered = :isRegistered", { isRegistered: 1 });
+				needsRegDateFilter = true;
 			}
 
 			// Registration age at least
 			if (typeof reqs.registrationAgeAtLeast === "number") {
 				query = query.andWhere(
-					"DATEDIFF(NOW(), actor.registrationTimestamp) >= registrationAgeAtLeast",
-					{ registrationAgeAtLeast: true }
+					"DATEDIFF(:epoch, actor.registrationTimestamp) >= :registrationAgeAtLeast",
+					{ epoch: epochDate, registrationAgeAtLeast: true }
 				);
+				needsRegDateFilter = true;
 			}
 
 			// Registration age at most
 			if (typeof reqs.registrationAgeAtMost === "number") {
 				query = query.andWhere(
-					"DATEDIFF(NOW(), actor.registrationTimestamp) <= registrationAgeAtMost",
-					{ registrationAgeAtMost: true }
+					"DATEDIFF(:epoch, actor.registrationTimestamp) <= :registrationAgeAtMost",
+					{ epoch: epochDate, registrationAgeAtMost: true }
 				);
+				needsRegDateFilter = true;
+			}
+
+			if (needsRegDateFilter) {
+				query = query.andWhere("actor.registrationTimestamp < :nextDate", { nextDate: addDays(epochDate, 1) });
 			}
 
 			// Total edits at least
 			if (typeof reqs.totalEditsAtLeast !== "undefined") {
-				const date = typeof reqs.totalEditsAtLeast === "number"
-					? new Date()
-					: subDays(new Date(), reqs.totalEditsAtLeast.epoch);
+				const totalEditsEpochDate = typeof reqs.totalEditsAtLeast === "number"
+					? epochDate
+					: subDays(epochDate, reqs.totalEditsAtLeast.epoch);
 
 				query = query.andWhere(qb => {
 					const subQuery = qb.subQuery()
 						.select("MAX(iats.date)")
 						.from(wikiEntities.actorStatistics, "iats")
-						.where("iats.date <= :date", { date: date })
+						.where("iats.date <= :date", { date: totalEditsEpochDate })
 						.getQuery();
 
 					return "totalEditsAtLeast.date = " + subQuery;
@@ -144,15 +152,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 			// Total edits at most
 			if (typeof reqs.totalEditsAtMost !== "undefined") {
-				const date = typeof reqs.totalEditsAtMost === "number"
-					? new Date()
-					: subDays(new Date(), reqs.totalEditsAtMost.epoch);
+				const totalEditsEpochDate = typeof reqs.totalEditsAtMost === "number"
+					? epochDate
+					: subDays(epochDate, reqs.totalEditsAtMost.epoch);
 
 				query = query.andWhere(qb => {
 					const subQuery = qb.subQuery()
 						.select("MAX(iats.date)")
 						.from(wikiEntities.actorStatistics, "iats")
-						.where("iats.date <= :date", { date: date })
+						.where("iats.date <= :date", { date: totalEditsEpochDate })
 						.getQuery();
 
 					return "totalEditsAtMost.date = " + subQuery;
@@ -200,7 +208,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 	}
 	finally {
 		conn.close();
-
 	}
 
 }
@@ -208,13 +215,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 const processParameters = (
 	appCtx: AppRunningContext,
 	res: NextApiResponse,
-	wikiId: string | string[],
-	pyramidId: string | string[],
-	date: string | string[]
+	rawWikiId: string | string[],
+	rawPyramidId: string | string[],
+	rawDate: string | string[]
 ): {
 	isValid: boolean;
 	wiki?: KnownWiki;
 	pyramid?: UserPyramidConfiguration;
+	epochDate?: Date;
 } => {
 	const userPyramidModule = moduleManager.getModuleById<UserPyramidsModule>("userPyramids");
 	if (!userPyramidModule) {
@@ -222,44 +230,58 @@ const processParameters = (
 		return { isValid: false };
 	}
 
-	if (!wikiId || isArray(wikiId)) {
+	if (!rawWikiId || isArray(rawWikiId)) {
 		res.status(400).json({ errorMessage: "Invalid or missing wikiId parameter" });
 		return { isValid: false };
 	}
 
-	const wiki = appCtx.getKnownWikiById(wikiId);
+	const wiki = appCtx.getKnownWikiById(rawWikiId);
 
 	if (!wiki) {
 		res.status(400).json({ errorMessage: "Wiki is not supported on this portal" });
 		return { isValid: false };
 	}
 
-	if (!pyramidId || isArray(pyramidId)) {
+	if (!rawPyramidId || isArray(rawPyramidId)) {
 		res.status(400).json({ errorMessage: "Invalid or missing pyramidId parameter" });
 		return { isValid: false };
 	}
 
-	if (!date || isArray(date)) {
+	if (!rawDate || isArray(rawDate)) {
 		res.status(400).json({ errorMessage: "Invalid or missing date parameter" });
 		return { isValid: false };
 	}
 
-	const wikiPyramids = userPyramidModule.userPyramids.find(x => x.wiki === wikiId);
+	let date: Date;
+	try {
+		date = parse(rawDate, "yyyy-MM-dd", startOfDay(new Date()));
+	}
+	catch (err) {
+		res.status(400).json({ errorMessage: "Invalid or missing date parameter" });
+		return { isValid: false };
+	}
 
-	if (userPyramidModule.availableAt.indexOf(wikiId) === -1
+	const wikiPyramids = userPyramidModule.userPyramids.find(x => x.wiki === rawWikiId);
+
+	if (userPyramidModule.availableAt.indexOf(rawWikiId) === -1
 		|| !wikiPyramids
 		|| wikiPyramids.valid === false) {
 		res.status(400).json({ errorMessage: "This wiki is not supported or not configured properly for this module" });
 		return { isValid: false };
 	}
 
-	const pyramidDefinition = wikiPyramids.userPyramids.find(x => x.id === pyramidId);
+	const pyramidDefinition = wikiPyramids.userPyramids.find(x => x.id === rawPyramidId);
 	if (!pyramidDefinition) {
 		res.status(400).json({ errorMessage: "Invalid wiki pyramid id" });
 		return { isValid: false };
 	}
 
-	return { isValid: true, wiki: wiki, pyramid: pyramidDefinition };
+	return {
+		isValid: true,
+		wiki: wiki,
+		pyramid: pyramidDefinition,
+		epochDate: date
+	};
 };
 
 
