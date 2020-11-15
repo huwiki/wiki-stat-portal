@@ -9,4 +9,8 @@ export class WikiProcessedRevisions {
 	// last_processed_revision_id int(8)
 	@Column({ name: "last_processed_revision_id", type: "int", unsigned: true })
 	public lastProcessedRevisionId: number;
+
+	// last_actor_update datetime
+	@Column({ name: "last_actor_update", type: "datetime" })
+	public lastActorUpdate: Date;
 }

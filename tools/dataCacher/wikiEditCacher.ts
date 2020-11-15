@@ -236,7 +236,6 @@ export class WikiEditCacher {
 							? firstEditDate
 							: actorStat.actor.user.registrationTimestamp)
 						: null,
-					userGroups: "TEST"
 				})
 				.execute();
 		}

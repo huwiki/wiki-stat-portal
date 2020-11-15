@@ -14,7 +14,11 @@ export class ActorTypeModel {
 	public isRegistered: boolean;
 	public registrationTimestamp: Date | null;
 	public isRegistrationTimestampFromFirstEdit: boolean | null;
-	public userGroups: string;
+}
+
+export class ActorGroupTypeModel {
+	public actorId: number;
+	public groupName: string;
 }
 
 export class ActorStatisticsTypeModel {
@@ -38,6 +42,10 @@ export interface WikiStatisticsTypesResult {
 	 */
 	actor: typeof ActorTypeModel,
 	/**
+	 * 
+	 */
+	actorGroup: typeof ActorGroupTypeModel,
+	/**
 	 * Entity representing a daily edit statistics of an actor on a wiki.
 	 */
 	actorStatistics: typeof ActorStatisticsTypeModel,
@@ -60,6 +68,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		return ENTITY_CACHE_BY_WIKI[wikiId];
 
 	const actorTableName = `${wikiId}_actor`;
+	const actorGroupTableName = `${wikiId}_actor_group`;
 	const actorStatisticsTableName = `${wikiId}_actor_stats`;
 	const actorStatisticsByNamespaceTableName = `${wikiId}_actor_stats_by_ns`;
 
@@ -79,9 +88,15 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 		@Column({ name: "is_registration_timestamp_from_first_edit", type: "boolean", transformer: intToBooleanTransformer })
 		public isRegistrationTimestampFromFirstEdit: boolean | null;
+	}
 
-		@Column({ name: "user_groups", type: "varbinary", length: 255, transformer: bufferToStringTransformer })
-		public userGroups: string;
+	@Entity({ name: actorGroupTableName })
+	class ActorGroup {
+		@PrimaryColumn({ name: "actor_id", type: "bigint" })
+		public actorId: number;
+
+		@PrimaryColumn({ name: "group_name", type: "varbinary", length: 255, transformer: bufferToStringTransformer })
+		public groupName: string;
 	}
 
 	@Entity({ name: actorStatisticsTableName })
@@ -119,6 +134,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 	const ret: WikiStatisticsTypesResult = {
 		actor: Actor,
+		actorGroup: ActorGroup,
 		actorStatistics: ActorStatistics,
 		actorStatisticsByNamespace: ActorStatisticsByNamespace,
 	};
