@@ -6,7 +6,7 @@ const runTool = async (): Promise<void> => {
 
 	const toolsConnection = await appCtx.getToolsDbConnection();
 
-	for (const wiki of appCtx.knownWikisConfiguration) {
+	for (const wiki of appCtx.getKnownWikis()) {
 		// TODO: remove after stabilization
 		if (wiki.id !== "huwiki")
 			continue;
