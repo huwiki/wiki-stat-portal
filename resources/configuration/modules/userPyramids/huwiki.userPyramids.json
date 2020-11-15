@@ -310,17 +310,24 @@
 			"name": "Tgr szerkesztői piramisa",
 			"groups": [
 				{
-					"name": "61..90 napja regisztrált szerkesztők, akik 61..90 napja legalább 10 szerkesztést végeztek",
+					"name": "61-90 napja regisztrált szerkesztők",
 					"requirements": {
-						"registrationAgeAtLeast": 60,
+						"registrationAgeAtLeast": 61,
+						"registrationAgeAtMost": 90
+					}
+				},
+				{
+					"name": "61-90 napja regisztrált szerkesztők, akik 61..90 napja legalább 10 szerkesztést végeztek",
+					"requirements": {
+						"registrationAgeAtLeast": 61,
 						"registrationAgeAtMost": 90,
 						"inPeriodEditsAtLeast": { "edits": 10, "period": 30, "epoch": -60 }
 					}
 				},
 				{
-					"name": "61..90 napja regisztrált szerkesztők, akik 61..90 napja legalább 10 szerkesztést végeztek",
+					"name": "61-90 napja regisztrált szerkesztők, akik 31..60 napja legalább 10 szerkesztést végeztek",
 					"requirements": {
-						"registrationAgeAtLeast": 60,
+						"registrationAgeAtLeast": 61,
 						"registrationAgeAtMost": 90,
 						"inPeriodEditsAtLeast": { "edits": 10, "period": 30, "epoch": -30 }
 					}
@@ -328,7 +335,7 @@
 				{
 					"name": "61..90 napja regisztrált szerkesztők, akik az elmúlt 30 napban legalább 10 szerkesztést végeztek",
 					"requirements": {
-						"registrationAgeAtLeast": 60,
+						"registrationAgeAtLeast": 61,
 						"registrationAgeAtMost": 90,
 						"inPeriodEditsAtLeast": { "edits": 10, "period": 30 }
 					}
