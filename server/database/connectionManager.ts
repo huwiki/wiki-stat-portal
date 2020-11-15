@@ -4,17 +4,23 @@ import { Actor, Comment, Page, Revision, User, UserGroup } from "./entities/medi
 import { createActorEntitiesForWiki } from "./entities/toolsDatabase/actorByWiki";
 import { WikiProcessedRevisions } from "./entities/toolsDatabase/wikiProcessedRevisions";
 
+const TOOLS_DB_CONNECTION_NAME: string = "toolsDb";
+const MW_REPLICAS_DB_CONNECTION_NAME: string = "toolsDb";
+let connectionCounter = 0;
+
 export const createConnectionToUserDatabase = async (appConfig: ApplicationConfiguration, databaseName: string, wikis: string[]): Promise<Connection> => {
+	connectionCounter++;
+
 	// eslint-disable-next-line @typescript-eslint/ban-types
 	const items: Function[] = [];
 	for (const wikiId of wikis) {
 		const entities = createActorEntitiesForWiki(wikiId);
-		items.push(entities.actor, entities.actorStatistics, entities.actorStatisticsByNamespace);
+		items.push(entities.actor, entities.actorGroup, entities.actorStatistics, entities.actorStatisticsByNamespace);
 	}
 
 	return await createConnection({
 		type: "mysql",
-		name: "toolsDb",
+		name: TOOLS_DB_CONNECTION_NAME + connectionCounter.toString(),
 		host: appConfig.toolsDbHost,
 		port: appConfig.toolsDbPort,
 		username: appConfig.toolForgeUserName,
@@ -30,8 +36,10 @@ export const createConnectionToUserDatabase = async (appConfig: ApplicationConfi
 };
 
 export const createConnectionToMediaWikiReplica = async (appConfig: ApplicationConfiguration, databaseName: string): Promise<Connection> => {
+	connectionCounter++;
+
 	return await createConnection({
-		name: "mwReplicas",
+		name: MW_REPLICAS_DB_CONNECTION_NAME + connectionCounter.toString(),
 		type: "mysql",
 		host: appConfig.replicaDbHost,
 		port: appConfig.replicaDbPort,
