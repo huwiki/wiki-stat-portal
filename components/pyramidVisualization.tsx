@@ -107,10 +107,16 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 			uniqueId: `value-${counter++}`,
 			colorClass: this.getColorClass(counter),
 			populationSize: sv.value,
-			populationPercentage: (sv.value / firstGroupValues[0].value) * 100,
-			populationDisplayPercentage: (sv.value / maxGroupSize) * 100,
+			populationPercentage: firstGroupValues[0].value > 0
+				? (sv.value / firstGroupValues[0].value) * 100
+				: 0,
+			populationDisplayPercentage: maxGroupSize > 0
+				? (sv.value / maxGroupSize) * 100
+				: 0,
 			commonWithPreviousGroup: sv.commonWithPreviousGroup,
-			commonWithPreviousPercentage: (sv.commonWithPreviousGroup / sv.value) * 100
+			commonWithPreviousPercentage: sv.value > 0
+				? (sv.commonWithPreviousGroup / sv.value) * 100
+				: 0
 		}));
 
 		return <div key={group.id} className={pyramidVisualizationStyles.tableRow}>
