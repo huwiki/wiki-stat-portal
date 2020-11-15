@@ -15,10 +15,6 @@ interface GroupResult {
 	sql: string;
 }
 
-interface SeriesResult {
-	groups: GroupResult[];
-}
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
 	const { query: { wikiId: rawWikiId, pyramidId: rawPyramidId, date: rawDate } } = req;
 
@@ -62,10 +58,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 			if (typeof reqs.inPeriodEditsAtLeast !== "undefined") {
 				const periodEditsCalculationStartDate = typeof reqs.inPeriodEditsAtLeast.epoch === "number"
-					? subDays(epochDate, reqs.inPeriodEditsAtLeast.period + reqs.inPeriodEditsAtLeast.epoch)
+					? subDays(epochDate, reqs.inPeriodEditsAtLeast.period + reqs.inPeriodEditsAtLeast.epoch * -1)
 					: subDays(epochDate, reqs.inPeriodEditsAtLeast.period);
 				const periodEditsCalculationEndDate = typeof reqs.inPeriodEditsAtLeast.epoch === "number"
-					? subDays(epochDate, reqs.inPeriodEditsAtLeast.epoch)
+					? subDays(epochDate, reqs.inPeriodEditsAtLeast.epoch * -1)
 					: epochDate;
 
 				query = query.leftJoin(qb => {
@@ -83,10 +79,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 			if (typeof reqs.inPeriodEditsAtMost !== "undefined") {
 				const periodEditsCalculationStartDate = typeof reqs.inPeriodEditsAtMost.epoch === "number"
-					? subDays(epochDate, reqs.inPeriodEditsAtMost.period + reqs.inPeriodEditsAtMost.epoch)
+					? subDays(epochDate, reqs.inPeriodEditsAtMost.period + reqs.inPeriodEditsAtMost.epoch * -1)
 					: subDays(epochDate, reqs.inPeriodEditsAtMost.period);
 				const periodEditsCalculationEndDate = typeof reqs.inPeriodEditsAtMost.epoch === "number"
-					? subDays(epochDate, reqs.inPeriodEditsAtMost.epoch)
+					? subDays(epochDate, reqs.inPeriodEditsAtMost.epoch * -1)
 					: epochDate;
 
 				query = query.leftJoin(qb => {
@@ -136,7 +132,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			if (typeof reqs.totalEditsAtLeast !== "undefined") {
 				const totalEditsEpochDate = typeof reqs.totalEditsAtLeast === "number"
 					? epochDate
-					: subDays(epochDate, reqs.totalEditsAtLeast.epoch);
+					: subDays(epochDate, reqs.totalEditsAtLeast.epoch * -1);
 
 				query = query.andWhere(qb => {
 					const subQuery = qb.subQuery()
@@ -160,7 +156,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			if (typeof reqs.totalEditsAtMost !== "undefined") {
 				const totalEditsEpochDate = typeof reqs.totalEditsAtMost === "number"
 					? epochDate
-					: subDays(epochDate, reqs.totalEditsAtMost.epoch);
+					: subDays(epochDate, reqs.totalEditsAtMost.epoch * -1);
 
 				query = query.andWhere(qb => {
 					const subQuery = qb.subQuery()
