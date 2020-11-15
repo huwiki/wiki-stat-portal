@@ -38,8 +38,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		const wikiEntities = createActorEntitiesForWiki(wiki.id);
 
 		const results: GroupResult[] = [];
+		let groupIndex = 0;
 		let previousGroupUsers: ActorTypeModel[] = [];
 		for (const userGroup of pyramid.groups) {
+			groupIndex++;
+
+			appCtx.logger.info(`[api/userPyramids/seriesData] running query for '${pyramid.id}', group #${groupIndex}`);
+
 			let query = conn.getRepository(wikiEntities.actor)
 				.createQueryBuilder("actor");
 
@@ -109,7 +114,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			if (typeof reqs.registrationAgeAtLeast === "number") {
 				query = query.andWhere(
 					"DATEDIFF(:epoch, actor.registrationTimestamp) >= :registrationAgeAtLeast",
-					{ epoch: epochDate, registrationAgeAtLeast: true }
+					{ epoch: epochDate, registrationAgeAtLeast: reqs.registrationAgeAtLeast }
 				);
 				needsRegDateFilter = true;
 			}
@@ -118,7 +123,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			if (typeof reqs.registrationAgeAtMost === "number") {
 				query = query.andWhere(
 					"DATEDIFF(:epoch, actor.registrationTimestamp) <= :registrationAgeAtMost",
-					{ epoch: epochDate, registrationAgeAtMost: true }
+					{ epoch: epochDate, registrationAgeAtMost: reqs.registrationAgeAtMost }
 				);
 				needsRegDateFilter = true;
 			}
@@ -138,6 +143,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 						.select("MAX(iats.date)")
 						.from(wikiEntities.actorStatistics, "iats")
 						.where("iats.date <= :date", { date: totalEditsEpochDate })
+						.andWhere("iats.actorId = actor.actorId")
 						.getQuery();
 
 					return "totalEditsAtLeast.date = " + subQuery;
@@ -161,6 +167,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 						.select("MAX(iats.date)")
 						.from(wikiEntities.actorStatistics, "iats")
 						.where("iats.date <= :date", { date: totalEditsEpochDate })
+						.andWhere("iats.actorId = actor.actorId")
 						.getQuery();
 
 					return "totalEditsAtMost.date = " + subQuery;
@@ -183,15 +190,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				query = query.andWhere("periodEditsAtMost.periodEdits >= :editsAtMost", { editsAtMost: reqs.inPeriodEditsAtMost.edits });
 			}
 
+			appCtx.logger.info(`[api/userPyramids/seriesData] SQL: ${query.getSql()}`);
+
 			const users = await query.getMany();
+
+			const usersInThisGroup = new Set<number>(users.map(x => x.actorId));
+			const usersInPreviousGroup = new Set<number>(previousGroupUsers != null
+				? previousGroupUsers.map(x => x.actorId)
+				: []);
 
 			results.push({
 				title: userGroup.name,
 				population: users.length,
 				matchingWithPreviousGroup: previousGroupUsers != null
-					? users.filter(cur =>
-						previousGroupUsers.findIndex(prev => cur.actorId === prev.actorId) !== -1
-					).length
+					? new Set([...usersInThisGroup].filter(x => usersInPreviousGroup.has(x))).size
 					: 0,
 				sql: query.getSql()
 			});
