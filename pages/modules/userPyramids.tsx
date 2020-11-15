@@ -13,7 +13,7 @@ import { PageFrame } from "../../client/components/pageFrame";
 import { NextBasePage } from "../../client/helpers/nextBasePage";
 import { SelectableValue } from "../../client/models/selectableValue";
 import { CommonPageProps } from "../../common/interfaces/commonPageProps";
-import { WikiUserPyramidConfigurations } from "../../common/modules/userPyramids/userPyramidConfiguration";
+import { UserPyramidGroup, WikiUserPyramidConfigurations } from "../../common/modules/userPyramids/userPyramidConfiguration";
 import { ParameterBox } from "../../components/parameterBox";
 import { ParameterGroup } from "../../components/parameterGroup";
 import { PyramidVisualization } from "../../components/pyramidVisualization";
@@ -136,6 +136,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			groups={pyramid.groups.map((group, index) => ({
 				id: index.toString(),
 				description: group.name,
+				tooltip: this.renderGroupDescriptionTooltip(group),
 				seriesValues: this.userPyramidSeries
 					.filter(x => x.isLoading === false && x.failedToLoad === false)
 					.map(x => ({
@@ -145,6 +146,101 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			}))}
 			translatorFunction={this.t}
 		/>;
+	}
+
+	private renderGroupDescriptionTooltip(group: UserPyramidGroup) {
+		return <>
+			<b>{this.t("userPyramids.groupRequirements")}</b>
+			<ul>
+				{group.requirements.registrationStatus === "anon"
+					&& <li key="anonUser">{this.t("userPyramids.groupRequirements.registrationStatus.anon")}</li>}
+
+				{group.requirements.registrationStatus === "registered"
+					&& <li key="registeredUser">{
+						this.t("userPyramids.groupRequirements.registrationStatus.registered")
+					}</li>}
+
+				{typeof group.requirements.registrationAgeAtLeast !== "undefined"
+					&& <li key="regAgeAtLeast">{
+						this.t("userPyramids.groupRequirements.registrationAgeAtLeast")
+							.replace("{0}", group.requirements.registrationAgeAtLeast.toString())
+					}</li>}
+
+				{typeof group.requirements.registrationAgeAtMost !== "undefined"
+					&& <li key="regAgeAtMost">{
+						this.t("userPyramids.groupRequirements.registrationAgeAtMost")
+							.replace("{0}", group.requirements.registrationAgeAtMost.toString())
+					}</li>}
+
+				{typeof group.requirements.userGroups !== "undefined"
+					&& <li key="userGroups">{
+						this.t("userPyramids.groupRequirements.memberOfUsergroups")
+							.replace("{0}", group.requirements.userGroups.join(", "))
+					}</li>}
+
+				{typeof group.requirements.totalEditsAtLeast === "number"
+					&& <li key="totalEditsAtLeast.simple">{
+						this.t("userPyramids.groupRequirements.totalEditsAtLeast.simple")
+							.replace("{0}", group.requirements.totalEditsAtLeast.toString())
+					}</li>}
+
+				{typeof group.requirements.totalEditsAtLeast !== "undefined"
+					&& typeof group.requirements.totalEditsAtLeast !== "number"
+					&& <li key="totalEditsAtLeast.withEpoch">{
+						this.t("userPyramids.groupRequirements.totalEditsAtLeast.withEpock")
+							.replace("{0}", group.requirements.totalEditsAtLeast.epoch.toString())
+							.replace("{1}", group.requirements.totalEditsAtLeast.edits.toString())
+					}</li>}
+
+				{typeof group.requirements.totalEditsAtMost === "number"
+					&& <li key="totalEditsAtMost.simple">{
+						this.t("userPyramids.groupRequirements.totalEditsAtLeast.simple")
+							.replace("{0}", group.requirements.totalEditsAtMost.toString())
+					}</li>}
+
+				{typeof group.requirements.totalEditsAtMost !== "undefined"
+					&& typeof group.requirements.totalEditsAtMost !== "number"
+					&& <li key="totalEditsAtMost.withEpoch">{
+						this.t("userPyramids.groupRequirements.totalEditsAtMost.withEpock")
+							.replace("{0}", group.requirements.totalEditsAtMost.epoch.toString())
+							.replace("{1}", group.requirements.totalEditsAtMost.edits.toString())
+					}</li>}
+
+				{typeof group.requirements.inPeriodEditsAtLeast !== "undefined"
+					&& typeof group.requirements.inPeriodEditsAtLeast.epoch === "undefined"
+					&& <li key="inPeriodEditsAtLeast.simple">{
+						this.t("userPyramids.groupRequirements.inPeriodEditsAtLeast.simple")
+							.replace("{0}", group.requirements.inPeriodEditsAtLeast.period.toString())
+							.replace("{1}", group.requirements.inPeriodEditsAtLeast.edits.toString())
+					}</li>}
+
+				{typeof group.requirements.inPeriodEditsAtLeast !== "undefined"
+					&& typeof group.requirements.inPeriodEditsAtLeast.epoch === "number"
+					&& <li key="inPeriodEditsAtLeast.withEpoch">{
+						this.t("userPyramids.groupRequirements.inPeriodEditsAtLeast.withEpoch")
+							.replace("{0}", group.requirements.inPeriodEditsAtLeast.epoch.toString())
+							.replace("{1}", group.requirements.inPeriodEditsAtLeast.period.toString())
+							.replace("{2}", group.requirements.inPeriodEditsAtLeast.edits.toString())
+					}</li>}
+
+				{typeof group.requirements.inPeriodEditsAtMost !== "undefined"
+					&& typeof group.requirements.inPeriodEditsAtMost.epoch === "undefined"
+					&& <li key="inPeriodEditsAtMost.simple">{
+						this.t("userPyramids.groupRequirements.inPeriodEditsAtMost.simple")
+							.replace("{0}", group.requirements.inPeriodEditsAtMost.period.toString())
+							.replace("{1}", group.requirements.inPeriodEditsAtMost.edits.toString())
+					}</li>}
+
+				{typeof group.requirements.inPeriodEditsAtMost !== "undefined"
+					&& typeof group.requirements.inPeriodEditsAtMost.epoch === "number"
+					&& <li key="inPeriodEditsAtMost.withEpoch">{
+						this.t("userPyramids.groupRequirements.inPeriodEditsAtMost.withEpoch")
+							.replace("{0}", group.requirements.inPeriodEditsAtMost.epoch.toString())
+							.replace("{1}", group.requirements.inPeriodEditsAtMost.period.toString())
+							.replace("{2}", group.requirements.inPeriodEditsAtMost.edits.toString())
+					}</li>}
+			</ul>
+		</>;
 	}
 
 	private renderModuleParameters() {

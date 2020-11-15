@@ -44,5 +44,19 @@
 	"userPyramids.series": "Adatsorok",
 	"userPyramids.noSeriesAdded": "Nincs adatsor felvéve",
 	"userPyramids.maxNumberOfSeriesReached": "Legfeljebb 5 adatsor tekinthető meg egyszerre",
-	"userPyramids.seriesFailedToLoad": "Nem sikerült betölteni"
+	"userPyramids.seriesFailedToLoad": "Nem sikerült betölteni",
+	"userPyramids.groupRequirements": "Feltételek a csoportba kerüléshez:",
+	"userPyramids.groupRequirements.registrationStatus.anon": "Anonim szerkesztő",
+	"userPyramids.groupRequirements.registrationStatus.registered": "Regisztrált szerkesztő",
+	"userPyramids.groupRequirements.registrationAgeAtLeast": "Legalább {0} napja regisztrált",
+	"userPyramids.groupRequirements.registrationAgeAtMost": "Legfeljebb {0} napja regisztrált",
+	"userPyramids.groupRequirements.memberOfUserGroups": "A következő szerkesztői csoportok egyikének tagja: {0}",
+	"userPyramids.groupRequirements.totalEditsAtLeast.simple": "A lekérdezett időpontban legalább {0} szerkesztése volt",
+	"userPyramids.groupRequirements.totalEditsAtLeast.withEpoch": "A lekérdezett időpont előtt {0} nappal legalább {1} szerkesztése volt",
+	"userPyramids.groupRequirements.totalEditsAtMost.simple": "A lekérdezett időpontban legfeljebb {0} szerkesztése volt",
+	"userPyramids.groupRequirements.totalEditsAtMost.withEpoch": "A lekérdezett időpont előtt {0} nappal legfeljebb {1} szerkesztése volt",
+	"userPyramids.groupRequirements.inPeriodEditsAtLeast.simple": "A lekérdezett időpontot megelőző {0} napban legalább {1} szerkesztése volt",
+	"userPyramids.groupRequirements.inPeriodEditsAtLeast.withEpoch": "A lekérdezett időpont előtt {0} nappal, az azt megelőző {1} napban legalább {2} szerkesztése volt",
+	"userPyramids.groupRequirements.inPeriodEditsAtMost.simple": "A lekérdezett időpontot megelőző {0} napban legfeljebb {1} szerkesztése volt",
+	"userPyramids.groupRequirements.inPeriodEditsAtMost.withEpoch": "A lekérdezett időpont előtt {0} nappal, az azt megelőző {1} napban legfeljebb {2} szerkesztése volt"
 }

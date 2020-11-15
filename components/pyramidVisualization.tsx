@@ -1,3 +1,4 @@
+import { Position, Tooltip } from "@blueprintjs/core";
 import * as classnames from "classnames";
 import * as React from "react";
 import pyramidVisualizationStyles from "./pyramidVisualization.module.scss";
@@ -10,6 +11,7 @@ interface IPyramidSeriesValue {
 interface IPyramidGroup {
 	id: string;
 	description: string;
+	tooltip: JSX.Element | string;
 	seriesValues: IPyramidSeriesValue[];
 }
 
@@ -120,7 +122,11 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 		}));
 
 		return <div key={group.id} className={pyramidVisualizationStyles.tableRow}>
-			<div className={pyramidVisualizationStyles.groupLabel}>{group.description}</div>
+			<div className={pyramidVisualizationStyles.groupLabel}>
+				{group.tooltip
+					? <Tooltip position={Position.BOTTOM_LEFT} content={group.tooltip}>{group.description}</Tooltip>
+					: group.description}
+			</div>
 			<div className={pyramidVisualizationStyles.bars}>
 				{seriesValues.map(seriesValue =>
 					<div key={seriesValue.uniqueId}

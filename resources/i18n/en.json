@@ -46,5 +46,19 @@
 	"userPyramids.series": "Data series",
 	"userPyramids.noSeriesAdded": "No series added",
 	"userPyramids.maxNumberOfSeriesReached": "At most 5 series can be displayed",
-	"userPyramids.seriesFailedToLoad": "Failed to load"
+	"userPyramids.seriesFailedToLoad": "Failed to load",
+	"userPyramids.groupRequirements": "Requirements for members of this group:",
+	"userPyramids.groupRequirements.registrationStatus.anon": "Anonymous user",
+	"userPyramids.groupRequirements.registrationStatus.registered": "Registered user",
+	"userPyramids.groupRequirements.registrationAgeAtLeast": "Registered for at least {0} day(s)",
+	"userPyramids.groupRequirements.registrationAgeAtMost": "Registered for at most {0} day(s)",
+	"userPyramids.groupRequirements.memberOfUserGroups": "Member of one of these editor groups: {0}",
+	"userPyramids.groupRequirements.totalEditsAtLeast.simple": "Had at least {0} edit(s) on the requested date",
+	"userPyramids.groupRequirements.totalEditsAtLeast.withEpoch": "Had at least {1} edit(s) on {0} day(s) before the requested date",
+	"userPyramids.groupRequirements.totalEditsAtMost.simple": "Had at most {0} edit(s) on the requested date",
+	"userPyramids.groupRequirements.totalEditsAtMost.withEpoch": "Had at most {1} edit(s) on {0} day(s) before the requested date",
+	"userPyramids.groupRequirements.inPeriodEditsAtLeast.simple": "Had at least {1} edit(s) in the period of {0} day(s) before the requested date",
+	"userPyramids.groupRequirements.inPeriodEditsAtLeast.withEpoch": "Had at least {2} edit(s) in the period of {1} day(s) {0} day(s) before the requested date",
+	"userPyramids.groupRequirements.inPeriodEditsAtMost.simple": "Had at most {1} edit(s) in the period of {0} day(s) before the requested date",
+	"userPyramids.groupRequirements.inPeriodEditsAtMost.withEpoch": "Had at most {2} edit(s) in the period of {1} day(s) {0} day(s) before the requested date"
 }

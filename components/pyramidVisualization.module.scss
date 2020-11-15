@@ -80,6 +80,10 @@ $valueFontSize: 12px;
 	.groupLabel {
 		font-size: $groupLabelFontSize;
 		padding-left: 5px;
+
+		span {
+			text-decoration: underline dotted rgba(255, 255, 0, 0.6);
+		}
 	}
 
 	&:nth-child(2n+1) {
