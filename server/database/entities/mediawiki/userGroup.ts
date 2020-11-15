@@ -8,7 +8,7 @@ export class UserGroup {
 	@PrimaryColumn({ name: "ug_user", type: "int", unsigned: true })
 	public userId: number;
 
-	// actor_user int(10) UN
+	// ug_user int(5) UN
 	@ManyToOne(() => User, user => user.userGroups)
 	@JoinColumn({ name: "ug_user" })
 	public user: User;

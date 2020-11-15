@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn } from "typeorm";
 import { bufferToStringTransformer, intToBooleanTransformer } from "../../transformers";
 
 /**
@@ -14,10 +14,12 @@ export class ActorTypeModel {
 	public isRegistered: boolean;
 	public registrationTimestamp: Date | null;
 	public isRegistrationTimestampFromFirstEdit: boolean | null;
+	public actorGroups: ActorGroupTypeModel[];
 }
 
 export class ActorGroupTypeModel {
 	public actorId: number;
+	public actor: ActorTypeModel;
 	public groupName: string;
 }
 
@@ -68,7 +70,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		return ENTITY_CACHE_BY_WIKI[wikiId];
 
 	const actorTableName = `${wikiId}_actor`;
-	const actorGroupTableName = `${wikiId}_actor_group`;
+	const actorGroupTableName = `${wikiId}_actor_groups`;
 	const actorStatisticsTableName = `${wikiId}_actor_stats`;
 	const actorStatisticsByNamespaceTableName = `${wikiId}_actor_stats_by_ns`;
 
@@ -88,12 +90,19 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 		@Column({ name: "is_registration_timestamp_from_first_edit", type: "boolean", transformer: intToBooleanTransformer })
 		public isRegistrationTimestampFromFirstEdit: boolean | null;
+
+		@OneToMany(() => ActorGroup, actorGroup => actorGroup.actor)
+		public actorGroups: ActorGroup[];
 	}
 
 	@Entity({ name: actorGroupTableName })
 	class ActorGroup {
 		@PrimaryColumn({ name: "actor_id", type: "bigint" })
 		public actorId: number;
+
+		@ManyToOne(() => Actor, actor => actor.actorGroups)
+		@JoinColumn({ name: "actor_id" })
+		public actor: Actor;
 
 		@PrimaryColumn({ name: "group_name", type: "varbinary", length: 255, transformer: bufferToStringTransformer })
 		public groupName: string;

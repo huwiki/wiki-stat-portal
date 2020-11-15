@@ -6,12 +6,6 @@
 		"timeZone": "Europe/Budapest"
 	},
 	{
-		"id": "huwikinews",
-		"domain": "hu.wikinews.org",
-		"replicaDatabaseName": "huwikinews_p",
-		"timeZone": "Europe/Budapest"
-	},
-	{
 		"id": "huwikiquote",
 		"domain": "hu.wikiquote.org",
 		"replicaDatabaseName": "huwikiquote_p",

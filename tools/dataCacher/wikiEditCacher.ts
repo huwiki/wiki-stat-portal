@@ -1,4 +1,4 @@
-import { compareAsc, isSameDay } from "date-fns";
+import { compareAsc, differenceInHours, isSameDay } from "date-fns";
 import * as _ from "lodash";
 import moment from "moment";
 import "moment-timezone";
@@ -9,12 +9,17 @@ import { ApplicationConfiguration } from "../../server/configuration/application
 import { createConnectionToMediaWikiReplica } from "../../server/database/connectionManager";
 import { Actor } from "../../server/database/entities/mediawiki/actor";
 import { Revision } from "../../server/database/entities/mediawiki/revision";
-import { createActorEntitiesForWiki, WikiStatisticsTypesResult } from "../../server/database/entities/toolsDatabase/actorByWiki";
+import { ActorTypeModel, createActorEntitiesForWiki, WikiStatisticsTypesResult } from "../../server/database/entities/toolsDatabase/actorByWiki";
 import { WikiProcessedRevisions } from "../../server/database/entities/toolsDatabase/wikiProcessedRevisions";
 import { KnownWiki } from "../../server/interfaces/knownWiki";
 
-const REVISIONS_PROCESSED_AT_ONCE: number = 1000;
-const MAXIMUM_PROCESSED_REVISIONS_AT_ONCE: number = 3000;
+// const REVISIONS_PROCESSED_AT_ONCE: number = 1000;
+// const MAXIMUM_PROCESSED_REVISIONS_AT_ONCE: number = 3000;
+// const MAXIMUM_PROCESSED_ACTORS_AT_ONCE: number = 1000;
+
+const REVISIONS_PROCESSED_AT_ONCE: number = 1;
+const MAXIMUM_PROCESSED_REVISIONS_AT_ONCE: number = 3;
+const MAXIMUM_PROCESSED_ACTORS_AT_ONCE: number = 1;
 
 interface WikiEditCacherOptions {
 	appCtx: AppRunningContext;
@@ -39,6 +44,11 @@ interface StatsByActor {
 	editsByDateAndNs: EditsByDateAndNs[];
 }
 
+interface ActorToUpdate {
+	mwDbActor: Actor;
+	toolsDbActor: ActorTypeModel | null;
+}
+
 export class WikiEditCacher {
 	private appConfig: ApplicationConfiguration;
 	private wiki: KnownWiki;
@@ -47,10 +57,13 @@ export class WikiEditCacher {
 	private wikiStatisticsEntities: WikiStatisticsTypesResult;
 
 	private lastProcessedRevisionId: number;
+	private lastActorUpdateTimestamp: Date;
 	private replicatedDatabaseConnection: Connection;
 	private totalProcessedRevisions: number = 0;
 	private statsByActorList: StatsByActor[] = [];
 	private statsByActorDict: { [index: number]: StatsByActor } = {};
+
+	private actorsToUpdate: ActorToUpdate[] = [];
 
 	constructor(options: WikiEditCacherOptions) {
 		this.appConfig = options.appCtx.appConfig;
@@ -64,7 +77,7 @@ export class WikiEditCacher {
 	public async run(): Promise<void> {
 		this.replicatedDatabaseConnection = await createConnectionToMediaWikiReplica(this.appConfig, this.wiki.replicaDatabaseName);
 
-		await this.getLastProcessedRevisionId();
+		await this.getLastProcessInfo();
 
 		for (; ;) {
 			if (!(await this.tryProcessNextRevisionBatch()))
@@ -73,6 +86,12 @@ export class WikiEditCacher {
 			if (this.totalProcessedRevisions >= MAXIMUM_PROCESSED_REVISIONS_AT_ONCE)
 				break;
 		}
+
+		const dateDiff = differenceInHours(new Date(), this.lastActorUpdateTimestamp);
+		if (dateDiff > 24) {
+			await this.getActorsToUpdate();
+		}
+
 		this.replicatedDatabaseConnection.close();
 
 		await this.saveCachedDataToToolsDb();
@@ -80,10 +99,15 @@ export class WikiEditCacher {
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Finished processing ${this.totalProcessedRevisions} revisions for ${this.wiki.id}.`);
 	}
 
-	private async getLastProcessedRevisionId(): Promise<void> {
+	private async getLastProcessInfo(): Promise<void> {
 		const wikiProcessEntry = await this.toolsConnection.getRepository(WikiProcessedRevisions)
 			.findOne({ where: { wiki: this.wiki.id } });
 		this.lastProcessedRevisionId = wikiProcessEntry?.lastProcessedRevisionId ?? 0;
+
+		this.lastActorUpdateTimestamp = wikiProcessEntry?.lastActorUpdate ?? new Date(2000, 1, 1);
+		if (isNaN(this.lastActorUpdateTimestamp.getTime())) {
+			this.lastActorUpdateTimestamp = new Date(2000, 1, 1);
+		}
 	}
 
 	private async tryProcessNextRevisionBatch(): Promise<boolean> {
@@ -179,17 +203,151 @@ export class WikiEditCacher {
 		).toDate();
 	}
 
+	private async getActorsToUpdate(): Promise<void> {
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActors: Getting actors from replica db`);
+		const userActors = await this.replicatedDatabaseConnection.getRepository(Actor)
+			.createQueryBuilder("actor")
+			.innerJoinAndSelect("actor.user", "user")
+			.leftJoinAndSelect("user.userGroups", "groups")
+			.getMany();
+
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActors: Getting actors from stat db`);
+		const existingStatActors = await this.toolsConnection.getRepository(this.wikiStatisticsEntities.actor)
+			.createQueryBuilder("toolsActor")
+			.leftJoinAndSelect("toolsActor.actorGroups", "groups")
+			.where("toolsActor.isRegistered = :isRegistered", { isRegistered: 1 })
+			.getMany();
+
+		const toolsActorDict: { [index: string]: ActorTypeModel } = {};
+		for (const toolsActor of existingStatActors) {
+			toolsActorDict[toolsActor.actorId] = toolsActor;
+		}
+
+		for (const userActor of userActors) {
+			if (!toolsActorDict[userActor.id]) {
+				if (!userActor.user.registrationTimestamp)
+					continue;
+
+				this.actorsToUpdate.push({
+					mwDbActor: userActor,
+					toolsDbActor: null
+				});
+			} else {
+				const toolsDbActor = toolsActorDict[userActor.id];
+
+				const toolsDbActorGroups = new Set<string>((toolsDbActor.actorGroups || []).map(x => x.groupName));
+				const userActorGroups = new Set<string>((userActor.user.userGroups || []).map(x => x.groupName));
+
+				if (toolsDbActor.actorName !== userActor.user.name
+					|| [...userActorGroups.values()].findIndex(x => toolsDbActorGroups.has(x)) !== -1
+					|| [...toolsDbActorGroups.values()].findIndex(x => userActorGroups.has(x)) !== -1) {
+					this.actorsToUpdate.push({
+						mwDbActor: userActor,
+						toolsDbActor: toolsDbActor
+					});
+				}
+			}
+		}
+
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] getActorsToUpdate: Needs to update ${this.actorsToUpdate.length} actors`);
+	}
+
 	private async saveCachedDataToToolsDb(): Promise<void> {
 		if (this.statsByActorList.length === 0)
 			return;
 
 		const connMan = getManager(this.toolsConnection.name);
 		await connMan.transaction(async (em: EntityManager) => {
+			const updatedActors = this.actorsToUpdate.length > MAXIMUM_PROCESSED_ACTORS_AT_ONCE
+				? this.actorsToUpdate.slice(0, MAXIMUM_PROCESSED_ACTORS_AT_ONCE)
+				: this.actorsToUpdate;
+
+			for (const actorToUpdate of updatedActors) {
+				await this.updateActor(em, actorToUpdate);
+			}
 			for (const actorStat of this.statsByActorList) {
 				await this.saveActorStatistics(em, actorStat);
 			}
 			await this.saveWikiProcessedRevisionInfo(em);
 		});
+	}
+
+	private async updateActor(em: EntityManager, actorToUpdate: ActorToUpdate): Promise<void> {
+		const { mwDbActor } = actorToUpdate;
+
+		const existingActor = await em.getRepository(this.wikiStatisticsEntities.actor)
+			.createQueryBuilder("toolsActor")
+			.leftJoinAndSelect("toolsActor.actorGroups", "groups")
+			.where("toolsActor.actorId = :actorId", { actorId: mwDbActor.id })
+			.getOne();
+
+		if (existingActor) {
+			if (existingActor.actorName !== mwDbActor.user.name) {
+				this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActor: Updating actor in db for '${mwDbActor.user.name}'...`);
+				await em
+					.createQueryBuilder()
+					.update(this.wikiStatisticsEntities.actor)
+					.set({ actorName: mwDbActor.user.name })
+					.where("actorId = :actorId", { actorId: mwDbActor.id })
+					.execute();
+			}
+
+			const toolsDbUserGroups = (existingActor.actorGroups || []).map(x => x.groupName);
+			const mwUserGroups = (mwDbActor.user.userGroups || []).map(x => x.groupName);
+
+			for (const groupToAdd of mwUserGroups.filter(groupName => toolsDbUserGroups.indexOf(groupName) === -1)) {
+				this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActor: Adding groups for '${mwDbActor.user.name}'...`);
+
+				await em.createQueryBuilder()
+					.insert()
+					.into(this.wikiStatisticsEntities.actorGroup)
+					.values({
+						actorId: mwDbActor.id,
+						groupName: groupToAdd
+					})
+					.execute();
+			}
+
+			for (const groupToDelete of toolsDbUserGroups.filter(groupName => mwUserGroups.indexOf(groupName) === -1)) {
+				this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActor: Deleting groups for '${mwDbActor.user.name}'...`);
+				await em.createQueryBuilder()
+					.delete()
+					.from(this.wikiStatisticsEntities.actorGroup)
+					.where("actorId = :actorId", { actorId: mwDbActor.id })
+					.andWhere("groupName = :groupName", { groupName: groupToDelete })
+					.execute();
+			}
+		} else {
+			this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActor: Creating actor for '${mwDbActor.user.name}'`);
+			await em.createQueryBuilder()
+				.insert()
+				.into(this.wikiStatisticsEntities.actor)
+				.values({
+					actorId: mwDbActor.id,
+					actorName: mwDbActor.user.name,
+					isRegistered: true,
+					isRegistrationTimestampFromFirstEdit: mwDbActor.user
+						? mwDbActor.user.registrationTimestamp == null
+						: null,
+					registrationTimestamp: mwDbActor.user
+						? (mwDbActor.user.registrationTimestamp == null
+							? null
+							: mwDbActor.user.registrationTimestamp)
+						: null,
+				})
+				.execute();
+
+			for (const group of (mwDbActor.user.userGroups || [])) {
+				await em.createQueryBuilder()
+					.insert()
+					.into(this.wikiStatisticsEntities.actorGroup)
+					.values({
+						actorId: mwDbActor.id,
+						groupName: group.groupName
+					})
+					.execute();
+			}
+		}
 	}
 
 	private async saveActorStatistics(em: EntityManager, actorStat: StatsByActor): Promise<void> {
@@ -204,23 +362,8 @@ export class WikiEditCacher {
 		const firstEditDate = actorStat.editsByDate[0].date;
 
 		const actorName = actorStat.actor.user ? actorStat.actor.user.name : actorStat.actor.name;
-		if (existingActor) {
-
-			// TODO: manage user groups
-			if (existingActor.actorName !== actorName) {
-				this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating actor in db for '${actorName}'...`);
-				await em
-					.createQueryBuilder()
-					.update(this.wikiStatisticsEntities.actor)
-					.set({ actorName: actorName })
-					.where("id = :actorId", { actorId: actorStat.actorId })
-					.execute();
-			} else {
-				this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Actor '${actorName}' is up to date in cache db`);
-			}
-
-		} else {
-			this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Creating actor for '${actorName}'`);
+		if (!existingActor) {
+			this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] saveActorStatistics: Creating actor for '${actorName}'`);
 			await em.createQueryBuilder()
 				.insert()
 				.into(this.wikiStatisticsEntities.actor)
