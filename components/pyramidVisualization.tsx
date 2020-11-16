@@ -28,6 +28,7 @@ interface ISeriesVisualizationInfo {
 interface IPyramidVisualizationProps {
 	title: string;
 	seriesDescriptions: string[];
+	showIntersectionWithPreviousGroup: boolean;
 	groups: IPyramidGroup[];
 	translatorFunction: (string: string) => string;
 }
@@ -94,12 +95,15 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 			<div className={pyramidVisualizationStyles.populationSize}>
 				{this.t("userPyramids.header.percentage")}
 			</div>
-			<div className={pyramidVisualizationStyles.populationSize}>
-				{this.t("userPyramids.header.intersectionWithPreviousGroup")}
-			</div>
-			<div className={pyramidVisualizationStyles.populationSize}>
-				{this.t("userPyramids.header.intersectionPercentage")}
-			</div>
+			{this.props.showIntersectionWithPreviousGroup
+				&& <>
+					<div className={pyramidVisualizationStyles.populationSize}>
+						{this.t("userPyramids.header.intersectionWithPreviousGroup")}
+					</div>
+					<div className={pyramidVisualizationStyles.populationSize}>
+						{this.t("userPyramids.header.intersectionPercentage")}
+					</div>
+				</>}
 		</div>;
 	}
 
@@ -155,26 +159,29 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 					{seriesValue.populationPercentage.toFixed(2)}%
 				</div>)}
 			</div>
-			<div className={pyramidVisualizationStyles.populationSizePrev}>
-				{seriesValues.map(seriesValue => <div
-					key={seriesValue.uniqueId}
-					className={classnames(pyramidVisualizationStyles.populationSizePrevEntry, seriesValue.colorClass)}
-				>
-					{isFirst
-						? "–"
-						: seriesValue.commonWithPreviousGroup}
-				</div>)}
-			</div>
-			<div className={pyramidVisualizationStyles.populationSizePrev}>
-				{seriesValues.map(seriesValue => <div
-					key={seriesValue.uniqueId}
-					className={classnames(pyramidVisualizationStyles.populationSizePrevEntry, seriesValue.colorClass)}
-				>
-					{isFirst
-						? "–"
-						: seriesValue.commonWithPreviousPercentage.toFixed(2) + "%"}
-				</div>)}
-			</div>
+			{this.props.showIntersectionWithPreviousGroup
+				&& <>
+					<div className={pyramidVisualizationStyles.populationSizePrev}>
+						{seriesValues.map(seriesValue => <div
+							key={seriesValue.uniqueId}
+							className={classnames(pyramidVisualizationStyles.populationSizePrevEntry, seriesValue.colorClass)}
+						>
+							{isFirst
+								? "–"
+								: seriesValue.commonWithPreviousGroup}
+						</div>)}
+					</div>
+					<div className={pyramidVisualizationStyles.populationSizePrev}>
+						{seriesValues.map(seriesValue => <div
+							key={seriesValue.uniqueId}
+							className={classnames(pyramidVisualizationStyles.populationSizePrevEntry, seriesValue.colorClass)}
+						>
+							{isFirst
+								? "–"
+								: seriesValue.commonWithPreviousPercentage.toFixed(2) + "%"}
+						</div>)}
+					</div>
+				</>}
 		</div >;
 	}
 

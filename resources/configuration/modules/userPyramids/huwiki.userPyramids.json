@@ -308,6 +308,7 @@
 		{
 			"id": "tgr",
 			"name": "Tgr szerkesztői piramisa",
+			"showIntersectionWithPreviousGroup": true,
 			"groups": [
 				{
 					"name": "61-90 napja regisztrált szerkesztők",

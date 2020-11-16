@@ -133,6 +133,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 					.filter(x => x.isLoading === false && x.failedToLoad === false)
 					.map(x => format(x.date, "yyyy. MMMM d."))
 			}
+			showIntersectionWithPreviousGroup={pyramid.showIntersectionWithPreviousGroup === true}
 			groups={pyramid.groups.map((group, index) => ({
 				id: index.toString(),
 				description: group.name,

@@ -17,6 +17,7 @@ export type WikiUserPyramidConfigurations =
 export interface UserPyramidConfiguration {
 	id: string;
 	name: string;
+	showIntersectionWithPreviousGroup?: boolean;
 	groups: UserPyramidGroup[];
 }
 

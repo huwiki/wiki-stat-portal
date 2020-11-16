@@ -32,6 +32,9 @@
 				"name": {
 					"type": "string"
 				},
+				"showIntersectionWithPreviousGroup": {
+					"type": "boolean"
+				},
 				"groups": {
 					"type": "array",
 					"items": {
