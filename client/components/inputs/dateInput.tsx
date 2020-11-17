@@ -55,6 +55,7 @@ export class DateInput extends Input<DateInputProps> {
 			value={this.props.value}
 			onChange={this.onChange}
 			disabled={this.props.disabled}
+			canClearSelection={false}
 		/>;
 	}
 
