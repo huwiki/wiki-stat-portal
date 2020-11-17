@@ -41,6 +41,8 @@
 	"userPyramids.header.intersectionPercentage": "Intersection in pct. of group",
 	"userPyramids.basicParameters": "Basic parameters",
 	"userPyramids.series": "Data series",
+	"userPyramids.series.retry": "Try to load data series again",
+	"userPyramids.series.delete": "Delete data series",
 	"userPyramids.noSeriesAdded": "No series added",
 	"userPyramids.maxNumberOfSeriesReached": "At most 10 series can be displayed",
 	"userPyramids.seriesFailedToLoad": "Failed to load",

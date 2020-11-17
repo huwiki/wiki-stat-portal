@@ -39,6 +39,8 @@
 	"userPyramids.header.intersectionPercentage": "Metszet a csoport százalékában",
 	"userPyramids.basicParameters": "Alapparaméterek",
 	"userPyramids.series": "Adatsorok",
+	"userPyramids.series.retry": "Adatok betöltésének ismételt megpróbálása",
+	"userPyramids.series.delete": "Adatsor törlése",
 	"userPyramids.noSeriesAdded": "Nincs adatsor felvéve",
 	"userPyramids.maxNumberOfSeriesReached": "Legfeljebb 10 adatsor tekinthető meg egyszerre",
 	"userPyramids.seriesFailedToLoad": "Nem sikerült betölteni",
