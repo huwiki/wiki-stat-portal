@@ -131,7 +131,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			seriesDescriptions={
 				this.userPyramidSeries
 					.filter(x => x.isLoading === false && x.failedToLoad === false)
-					.map(x => format(x.date, "yyyy. MMMM d."))
+					.map(x => moment(x.date).format("LL"))
 			}
 			showIntersectionWithPreviousGroup={pyramid.showIntersectionWithPreviousGroup === true}
 			groups={pyramid.groups.map((group, index) => ({
@@ -303,7 +303,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 
 		return this.userPyramidSeries.map(series => <div key={format(series.date, "yyyy-MM-dd")}
 			className={userPyramidsStyles.visibleSeries}>
-			{format(series.date, "yyyy-MM-dd")}
+			{moment(series.date).format("LL")}
 			{series.isLoading
 				&& <Spinner size={16} />}
 			{series.failedToLoad
@@ -324,6 +324,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			<DateInput
 				value={this.newUserPyramidSeries.date}
 				setValue={this.setNewPyramidDate}
+				localizationProvider={this.getDateInputLocalizationProvider()}
 				maxDate={today}
 			/>
 
