@@ -64,12 +64,16 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 	newUserPyramidSeries: UserPyramidSeries = new UserPyramidSeries();
 	userPyramidSeries: UserPyramidSeries[] = [];
 
+	get isProperPyramidSelected(): boolean {
+		return this.selectedWiki
+			&& this.selectedWiki.id !== ""
+			&& this.selectedUserPyramid
+			&& this.selectedUserPyramid.id !== "";
+	}
+
 	get isAddPyramidSeriesDisabled(): boolean {
 		return this.userPyramidSeries.length >= 5
-			|| !this.selectedWiki
-			|| this.selectedWiki.id === ""
-			|| !this.selectedUserPyramid
-			|| this.selectedUserPyramid.id === ""
+			|| !this.isProperPyramidSelected
 			|| !!this.userPyramidSeries.find(x => isSameDay(x.date, this.newUserPyramidSeries.date));
 	}
 
@@ -327,6 +331,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 				setValue={this.setNewPyramidDate}
 				localizationProvider={this.getDateInputLocalizationProvider()}
 				maxDate={today}
+				disabled={!this.isProperPyramidSelected}
 			/>
 
 			<Button icon="plus" intent={Intent.PRIMARY} minimal outlined
@@ -373,6 +378,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 		const newlyAddedSeries = this.newUserPyramidSeries;
 		this.userPyramidSeries.push(newlyAddedSeries);
 		this.newUserPyramidSeries = new UserPyramidSeries();
+		this.newUserPyramidSeries.date = moment(newlyAddedSeries.date).toDate();
 
 		try {
 			const resp = await Axios.get(

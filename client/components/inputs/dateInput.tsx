@@ -31,6 +31,7 @@ export interface DateInputProps extends InputProps {
 	minDate?: Date;
 	maxDate?: Date;
 	localizationProvider?: DateInputLocaliztaionProvider;
+	disabled?: boolean;
 }
 
 export class DateInput extends Input<DateInputProps> {
@@ -53,6 +54,7 @@ export class DateInput extends Input<DateInputProps> {
 				}}
 			value={this.props.value}
 			onChange={this.onChange}
+			disabled={this.props.disabled}
 		/>;
 	}
 
