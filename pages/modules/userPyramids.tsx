@@ -312,9 +312,17 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			{series.isLoading
 				&& <Spinner size={16} />}
 			{series.failedToLoad
-				&& <span className={userPyramidsStyles.seriesFailedToLoad}>
-					{this.t("userPyramids.seriesFailedToLoad")}
-				</span>}
+				&& <>
+					<span className={userPyramidsStyles.seriesFailedToLoad}>
+						{this.t("userPyramids.seriesFailedToLoad")}
+					</span>
+					<AnchorButton
+						icon="refresh"
+						small
+						intent={Intent.WARNING}
+						minimal
+						onClick={() => this.loadSeries(series)} />
+				</>}
 			<AnchorButton
 				icon="cross"
 				small
@@ -380,28 +388,34 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 		this.newUserPyramidSeries = new UserPyramidSeries();
 		this.newUserPyramidSeries.date = moment(newlyAddedSeries.date).toDate();
 
+		this.loadSeries(newlyAddedSeries);
+	}
+
+	private loadSeries = async (series: UserPyramidSeries): Promise<void> => {
+		series.isLoading = true;
+		series.failedToLoad = false;
+
 		try {
 			const resp = await Axios.get(
 				"/api/userPyramids/seriesData?"
 				+ `wikiId=${this.selectedWiki.id}`
 				+ `&pyramidId=${this.selectedUserPyramid.id}`
-				+ `&date=${format(newlyAddedSeries.date, "yyyy-MM-dd")}`,
+				+ `&date=${format(series.date, "yyyy-MM-dd")}`,
 				{ timeout: 100000 }
 			);
 
 			if (resp.status === 200) {
-				newlyAddedSeries.data = resp.data;
+				series.data = resp.data;
 				console.log(resp.data);
 			} else {
-				newlyAddedSeries.failedToLoad = true;
+				series.failedToLoad = true;
 			}
-			newlyAddedSeries.isLoading = false;
+			series.isLoading = false;
 		}
 		catch (err) {
-			newlyAddedSeries.failedToLoad = true;
-			newlyAddedSeries.isLoading = false;
+			series.failedToLoad = true;
+			series.isLoading = false;
 		}
-
 	}
 
 	private deleteSeries = (series: UserPyramidSeries) => {
