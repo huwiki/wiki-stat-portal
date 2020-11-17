@@ -145,6 +145,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 						commonWithPreviousGroup: x.data[index].matchingWithPreviousGroup
 					}))
 			}))}
+			locale={this.props.languageCode}
 			translatorFunction={this.t}
 		/>;
 	}

@@ -31,11 +31,28 @@ interface IPyramidVisualizationProps {
 	showIntersectionWithPreviousGroup: boolean;
 	groups: IPyramidGroup[];
 	translatorFunction: (string: string) => string;
+	locale: string;
 }
 
 
 export class PyramidVisualization extends React.Component<IPyramidVisualizationProps> {
 	private t = (key: string) => this.props.translatorFunction(key);
+	private numberFormatter: Intl.NumberFormat;
+	private percentageFormatter: Intl.NumberFormat;
+
+	constructor(props: IPyramidVisualizationProps) {
+		super(props);
+
+		this.numberFormatter = new Intl.NumberFormat(props.locale, {
+			style: "decimal",
+			maximumFractionDigits: 0
+		});
+		this.percentageFormatter = new Intl.NumberFormat(props.locale, {
+			style: "percent",
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		});
+	}
 
 	public render(): JSX.Element {
 		const maxGroupSize = this.getMaxGroupSize();
@@ -114,14 +131,14 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 			colorClass: this.getColorClass(counter),
 			populationSize: sv.value,
 			populationPercentage: firstGroupValues[0].value > 0
-				? (sv.value / firstGroupValues[0].value) * 100
+				? sv.value / firstGroupValues[0].value
 				: 0,
 			populationDisplayPercentage: maxGroupSize > 0
 				? (sv.value / maxGroupSize) * 100
 				: 0,
 			commonWithPreviousGroup: sv.commonWithPreviousGroup,
 			commonWithPreviousPercentage: sv.value > 0
-				? (sv.commonWithPreviousGroup / sv.value) * 100
+				? sv.commonWithPreviousGroup / sv.value
 				: 0
 		}));
 
@@ -148,7 +165,7 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 					key={seriesValue.uniqueId}
 					className={classnames(pyramidVisualizationStyles.populationSizeEntry, seriesValue.colorClass)}
 				>
-					{seriesValue.populationSize}
+					{this.numberFormatter.format(seriesValue.populationSize)}
 				</div>)}
 			</div>
 			<div className={pyramidVisualizationStyles.populationSize}>
@@ -156,7 +173,7 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 					key={seriesValue.uniqueId}
 					className={classnames(pyramidVisualizationStyles.populationSizeEntry, seriesValue.colorClass)}
 				>
-					{seriesValue.populationPercentage.toFixed(2)}%
+					{this.percentageFormatter.format(seriesValue.populationPercentage)}
 				</div>)}
 			</div>
 			{this.props.showIntersectionWithPreviousGroup
@@ -168,7 +185,7 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 						>
 							{isFirst
 								? "–"
-								: seriesValue.commonWithPreviousGroup}
+								: this.numberFormatter.format(seriesValue.commonWithPreviousGroup)}
 						</div>)}
 					</div>
 					<div className={pyramidVisualizationStyles.populationSizePrev}>
@@ -178,7 +195,7 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 						>
 							{isFirst
 								? "–"
-								: seriesValue.commonWithPreviousPercentage.toFixed(2) + "%"}
+								: this.percentageFormatter.format(seriesValue.commonWithPreviousPercentage)}
 						</div>)}
 					</div>
 				</>}
