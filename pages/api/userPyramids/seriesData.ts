@@ -3,7 +3,7 @@ import { isArray } from "lodash";
 import { NextApiRequest, NextApiResponse } from "next";
 import { UserPyramidConfiguration } from "../../../common/modules/userPyramids/userPyramidConfiguration";
 import { AppRunningContext } from "../../../server/appRunningContext";
-import { ActorTypeModel, createActorEntitiesForWiki } from "../../../server/database/entities/toolsDatabase/actorByWiki";
+import { createActorEntitiesForWiki } from "../../../server/database/entities/toolsDatabase/actorByWiki";
 import { KnownWiki } from "../../../server/interfaces/knownWiki";
 import { moduleManager } from "../../../server/modules/moduleManager";
 import { UserPyramidsModule } from "../../../server/modules/userPyramidsModule/userPyramidsModule";
@@ -35,14 +35,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 		const results: GroupResult[] = [];
 		let groupIndex = 0;
-		let previousGroupUsers: ActorTypeModel[] = [];
+		let usersInPreviousGroup: Set<number> = new Set<number>();
 		for (const userGroup of pyramid.groups) {
 			groupIndex++;
 
 			appCtx.logger.info(`[api/userPyramids/seriesData] running query for '${pyramid.id}', group #${groupIndex}`);
 
 			let query = conn.getRepository(wikiEntities.actor)
-				.createQueryBuilder("actor");
+				.createQueryBuilder("actor")
+				.select(["actor.actorId"]);
 
 			const reqs = userGroup.requirements;
 			let needsRegDateFilter = false;
@@ -188,22 +189,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 			appCtx.logger.info(`[api/userPyramids/seriesData] SQL: ${query.getSql()}`);
 
-			const users = await query.getMany();
+			const users = await query.getRawMany<{ actorId: number }>();
 
 			const usersInThisGroup = new Set<number>(users.map(x => x.actorId));
-			const usersInPreviousGroup = new Set<number>(previousGroupUsers != null
-				? previousGroupUsers.map(x => x.actorId)
-				: []);
 
 			results.push({
 				title: userGroup.name,
 				population: users.length,
-				matchingWithPreviousGroup: previousGroupUsers != null
+				matchingWithPreviousGroup: usersInPreviousGroup.size > 0
 					? new Set([...usersInThisGroup].filter(x => usersInPreviousGroup.has(x))).size
 					: 0,
 				sql: query.getSql()
 			});
-			previousGroupUsers = users;
+			usersInPreviousGroup = usersInThisGroup;
 		}
 
 		res.status(200).json(results);
