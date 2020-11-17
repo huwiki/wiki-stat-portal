@@ -18,7 +18,6 @@
 	"module.third": "Third module",
 	"module.third.description": "Description of the third module.",
 	"changeLanguage": "Change language",
-
 	"input.noSearchResults": "No items match the search criteria.",
 	"input.noSelectedItem": "No item selected",
 	"input.wiki.label": "Wiki:",
@@ -28,14 +27,12 @@
 	"input.userPyramid.noSelectedItem": "< Select a pyramid >",
 	"input.userPyramid.filterPlaceholder": "Filter pyramids by name...",
 	"input.date.label": "Date:",
-	
 	"indexPage.title": "Main Page",
 	"indexPage.description": "Welcome to the Wikipedia Statistics Portal. Select a module to continue.",
 	"indexPage.filterByWiki": "Filter by wiki:",
 	"indexPage.noFilterByWiki": "< Not filtered >",
 	"indexPage.moduleNotAvailableOnSelectedWiki": "This module is not yet available for the selected wiki.",
 	"indexPage.moduleNotAvailableOnAnyWikis": "This module is not yet available on any wikis.",
-
 	"userPyramids.seriesLabels": "Series:",
 	"userPyramids.header.group": "Group",
 	"userPyramids.header.numberOfEditors": "Number of editors",
@@ -45,7 +42,7 @@
 	"userPyramids.basicParameters": "Basic parameters",
 	"userPyramids.series": "Data series",
 	"userPyramids.noSeriesAdded": "No series added",
-	"userPyramids.maxNumberOfSeriesReached": "At most 5 series can be displayed",
+	"userPyramids.maxNumberOfSeriesReached": "At most 10 series can be displayed",
 	"userPyramids.seriesFailedToLoad": "Failed to load",
 	"userPyramids.groupRequirements": "Requirements for members of this group:",
 	"userPyramids.groupRequirements.registrationStatus.anon": "Anonymous user",

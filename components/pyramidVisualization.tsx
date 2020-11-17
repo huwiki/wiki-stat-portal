@@ -203,7 +203,7 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 	}
 
 	private getColorClass(index: number) {
-		switch (index % 6) {
+		switch (index % 10) {
 			case 0: {
 				return pyramidVisualizationStyles.yellow;
 			}
@@ -219,8 +219,20 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 			case 4: {
 				return pyramidVisualizationStyles.orange;
 			}
-			default: {
+			case 5: {
 				return pyramidVisualizationStyles.purple;
+			}
+			case 6: {
+				return pyramidVisualizationStyles.cyan;
+			}
+			case 7: {
+				return pyramidVisualizationStyles.olive;
+			}
+			case 8: {
+				return pyramidVisualizationStyles.slategray;
+			}
+			default: {
+				return pyramidVisualizationStyles.magenta;
 			}
 		}
 	}

@@ -72,7 +72,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 	}
 
 	get isAddPyramidSeriesDisabled(): boolean {
-		return this.userPyramidSeries.length >= 5
+		return this.userPyramidSeries.length >= 10
 			|| !this.isProperPyramidSelected
 			|| !!this.userPyramidSeries.find(x => isSameDay(x.date, this.newUserPyramidSeries.date));
 	}
@@ -292,7 +292,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			<ParameterGroup title={this.t("userPyramids.series")}>
 				{this.renderExistingSeries()}
 				{this.renderAddSeriesControls()}
-				{this.userPyramidSeries.length >= 5 && <div className={userPyramidsStyles.maxNumberOfSeriesReached}>
+				{this.userPyramidSeries.length >= 10 && <div className={userPyramidsStyles.maxNumberOfSeriesReached}>
 					{this.t("userPyramids.maxNumberOfSeriesReached")}
 				</div>}
 			</ParameterGroup>
