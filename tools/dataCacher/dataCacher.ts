@@ -1,22 +1,35 @@
+import { Logger } from "winston";
 import { AppRunningContext } from "../../server/appRunningContext";
 import { WikiEditCacher } from "./wikiEditCacher";
 
 const runTool = async (): Promise<void> => {
-	const appCtx = AppRunningContext.getInstance("dataCacher");
+	let logger: Logger | null = null;
+	try {
+		const appCtx = AppRunningContext.getInstance("dataCacher");
+		logger = appCtx.logger;
 
-	const toolsConnection = await appCtx.getToolsDbConnection();
+		const toolsConnection = await appCtx.getToolsDbConnection();
 
-	for (const wiki of appCtx.getKnownWikis()) {
-		const cachr = new WikiEditCacher({
-			appCtx: appCtx,
-			toolsConnection: toolsConnection,
-			wiki: wiki
-		});
+		for (const wiki of appCtx.getKnownWikis()) {
+			const cachr = new WikiEditCacher({
+				appCtx: appCtx,
+				toolsConnection: toolsConnection,
+				wiki: wiki
+			});
 
-		await cachr.run();
+			await cachr.run();
+		}
+
+		toolsConnection.close();
 	}
-
-	toolsConnection.close();
+	catch (err) {
+		if (logger) {
+			logger.info({ errorMessage: "[dataCacher] Error while processing data", error: err });
+		} else {
+			console.log(err, "error");
+		}
+		process.exit(1);
+	}
 };
 
 runTool();
