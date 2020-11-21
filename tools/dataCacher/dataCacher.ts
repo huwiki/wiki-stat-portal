@@ -24,7 +24,10 @@ const runTool = async (): Promise<void> => {
 	}
 	catch (err) {
 		if (logger) {
-			logger.info({ errorMessage: "[dataCacher] Error while processing data", error: err });
+			logger.error({
+				errorMessage: "[dataCacher] Error while processing data",
+				error: err
+			});
 		} else {
 			console.log(err, "error");
 		}

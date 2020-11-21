@@ -16,7 +16,6 @@ export const readJsonSchema = <T>(schemaFileName: string): JSONSchemaType<T> => 
 
 export const readApplicationConfiguration = (): ApplicationConfiguration | string => {
 	const configPath = path.join(process.cwd(), "wikiStatConfig.json");
-	console.log(`[readApplicationConfiguration] wikiStatConfig.json path: ${configPath}`);
 	if (fileExists(configPath) === false)
 		return `[readApplicationConfiguration] wikiStatConfig.json does not exist at ${configPath}`;
 

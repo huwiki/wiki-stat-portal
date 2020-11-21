@@ -132,7 +132,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			// User groups
 			if (typeof reqs.userGroups !== "undefined") {
 				for (const groupName of reqs.userGroups) {
-					console.log(groupName);
 					query = query.andWhere(qb => {
 						const subQuery = qb.subQuery()
 							.select("1")
@@ -225,9 +224,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		res.status(200).json(results);
 	}
 	catch (err) {
-		console.log(err);
+		appCtx.logger.error({
+			errorMessage: "Error while serving statistics data",
+			query: req.query,
+			error: err
+		});
 		res.status(500).json({
-			errorMessage: "¯\\_(ツ)_/¯"
+			errorMessage: "Internal error while calculating data"
 		});
 	}
 	finally {

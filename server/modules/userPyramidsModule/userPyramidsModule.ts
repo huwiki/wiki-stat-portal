@@ -21,7 +21,6 @@ export class UserPyramidsModule extends ModuleBase {
 	}
 
 	protected initializeModuleSpecificSettingsFromConfiguration(configuration: ModuleJsonConfiguration): boolean {
-		console.log(configuration.supportedWikis);
 		for (const wiki of configuration.supportedWikis) {
 
 			const configOrError = this.tryLoadPyramidConfiguration(`${wiki}.userPyramids.json`);
