@@ -1,4 +1,4 @@
-import { AnchorButton, Button, IconName, Intent, Spinner, Tooltip } from "@blueprintjs/core";
+import { AnchorButton, Button, Callout, IconName, Intent, Spinner, Tooltip } from "@blueprintjs/core";
 import Axios from "axios";
 import { format, isSameDay } from "date-fns";
 import { computed, makeObservable, observable } from "mobx";
@@ -117,18 +117,28 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 	}
 
 	private renderPyramidVisualization() {
-		if (this.userPyramidSeries.length === 0
-			|| this.userPyramidSeries.findIndex(x => x.isLoading === false && x.failedToLoad === false) === -1) {
-			return "Nothing to visualize";
+		if (!this.selectedWiki || this.selectedWiki.id === "") {
+			return this.renderNothingToVisualizeMessage();
 		}
 
 		const wikiPyramids = this.props.userPyramids.find(x => x.wiki === this.selectedWiki.id);
-		if (!wikiPyramids || wikiPyramids.valid === false)
-			return "¯\\_(ツ)_/¯";
+		if (!wikiPyramids || wikiPyramids.valid === false) {
+			return <Callout
+				icon="warning-sign"
+				title={this.t("userPyramids.invalidPyramidConfiguration")}
+				intent={Intent.WARNING}>
+				{this.t("userPyramids.invalidPyramidConfiguration.description")}
+			</Callout>;
+		}
+
+		if (this.userPyramidSeries.length === 0
+			|| this.userPyramidSeries.findIndex(x => x.isLoading === false && x.failedToLoad === false) === -1) {
+			return this.renderNothingToVisualizeMessage();
+		}
 
 		const pyramid = wikiPyramids.userPyramids.find(x => x.id === this.selectedUserPyramid.id);
 		if (!pyramid)
-			return "¯\\_(ツ)_/¯";
+			return "The selected pyramid does not exist";
 
 		return <PyramidVisualization
 			title={this.selectedUserPyramid.label}
@@ -152,6 +162,15 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			locale={this.props.languageCode}
 			translatorFunction={this.t}
 		/>;
+	}
+
+	private renderNothingToVisualizeMessage() {
+		return <Callout
+			icon="info-sign"
+			title={this.t("userPyramids.nothingToVisualize")}
+			intent={Intent.PRIMARY}>
+			{this.t("userPyramids.nothingToVisualize.description")}
+		</Callout>;
 	}
 
 	private renderGroupDescriptionTooltip(group: UserPyramidGroup) {
@@ -424,7 +443,6 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 
 			if (resp.status === 200) {
 				series.data = resp.data;
-				console.log(resp.data);
 			} else {
 				series.failedToLoad = true;
 			}
