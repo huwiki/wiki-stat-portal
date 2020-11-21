@@ -2,10 +2,7 @@ name: Build Package
 
 # Run only on release branches
 on:
-  push:
-    branches: [ "release/**" ]
-  pull_request:
-    branches: [ "release/**" ]
+  push
 
 jobs:
   build:
