@@ -129,6 +129,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				query = query.andWhere("actor.registrationTimestamp < :nextDate", { nextDate: addDays(epochDate, 1) });
 			}
 
+			// User groups
+			if (typeof reqs.userGroups !== "undefined") {
+				for (const groupName of reqs.userGroups) {
+					console.log(groupName);
+					query = query.andWhere(qb => {
+						const subQuery = qb.subQuery()
+							.select("1")
+							.from(wikiEntities.actorGroup, "gr")
+							.where("gr.actor_id = actor.actorId")
+							.andWhere("gr.group_name = :groupName", { groupName: groupName })
+							.getQuery();
+
+						return `EXISTS(${subQuery})`;
+					});
+				}
+			}
+
+
 			// Total edits at least
 			if (typeof reqs.totalEditsAtLeast !== "undefined") {
 				const totalEditsEpochDate = typeof reqs.totalEditsAtLeast === "number"
