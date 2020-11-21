@@ -239,8 +239,8 @@ export class WikiEditCacher {
 				const userActorGroups = new Set<string>((userActor.user.userGroups || []).map(x => x.groupName));
 
 				if (toolsDbActor.actorName !== userActor.user.name
-					|| [...userActorGroups.values()].findIndex(x => toolsDbActorGroups.has(x)) !== -1
-					|| [...toolsDbActorGroups.values()].findIndex(x => userActorGroups.has(x)) !== -1) {
+					|| [...userActorGroups.values()].find(x => !toolsDbActorGroups.has(x))
+					|| [...toolsDbActorGroups.values()].find(x => !userActorGroups.has(x))) {
 					this.actorsToUpdate.push({
 						mwDbActor: userActor,
 						toolsDbActor: toolsDbActor
@@ -279,10 +279,10 @@ export class WikiEditCacher {
 			.createQueryBuilder("toolsActor")
 			.leftJoinAndSelect("toolsActor.actorGroups", "groups")
 			.where("toolsActor.actorId = :actorId", { actorId: mwDbActor.id })
-			.getOne();
+			.getMany();
 
-		if (existingActor) {
-			if (existingActor.actorName !== mwDbActor.user.name) {
+		if (existingActor.length !== 0) {
+			if (existingActor[0].actorName !== mwDbActor.user.name) {
 				this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActor: Updating actor in db for '${mwDbActor.user.name}'...`);
 				await em
 					.createQueryBuilder()
@@ -292,11 +292,11 @@ export class WikiEditCacher {
 					.execute();
 			}
 
-			const toolsDbUserGroups = (existingActor.actorGroups || []).map(x => x.groupName);
+			const toolsDbUserGroups = (existingActor[0].actorGroups || []).map(x => x.groupName);
 			const mwUserGroups = (mwDbActor.user.userGroups || []).map(x => x.groupName);
 
 			for (const groupToAdd of mwUserGroups.filter(groupName => toolsDbUserGroups.indexOf(groupName) === -1)) {
-				this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActor: Adding groups for '${mwDbActor.user.name}'...`);
+				this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActor: Adding group '${groupToAdd}' for '${mwDbActor.user.name}'...`);
 
 				await em.createQueryBuilder()
 					.insert()

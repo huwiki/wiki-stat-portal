@@ -76,10 +76,10 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 	@Entity({ name: actorTableName })
 	class Actor {
-		@PrimaryColumn({ name: "actor_id", type: "bigint" })
+		@PrimaryColumn({ name: "actor_id", type: "bigint", unsigned: true })
 		public actorId: number;
 
-		@PrimaryColumn({ name: "actor_name", type: "varbinary", length: 255, transformer: bufferToStringTransformer })
+		@Column({ name: "actor_name", type: "varbinary", length: 255, transformer: bufferToStringTransformer })
 		public actorName: string;
 
 		@Column({ name: "is_registered", type: "tinyint", transformer: intToBooleanTransformer })
@@ -97,7 +97,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 	@Entity({ name: actorGroupTableName })
 	class ActorGroup {
-		@PrimaryColumn({ name: "actor_id", type: "bigint" })
+		@PrimaryColumn({ name: "actor_id", type: "bigint", unsigned: true })
 		public actorId: number;
 
 		@ManyToOne(() => Actor, actor => actor.actorGroups)

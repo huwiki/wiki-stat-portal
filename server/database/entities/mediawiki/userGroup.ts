@@ -13,7 +13,7 @@ export class UserGroup {
 	@JoinColumn({ name: "ug_user" })
 	public user: User;
 
-	// ug_group varbinary(255)  
+	// ug_group varbinary(255)
 	@PrimaryColumn({ name: "ug_group", type: "varbinary", transformer: bufferToStringTransformer })
 	public groupName: string;
 

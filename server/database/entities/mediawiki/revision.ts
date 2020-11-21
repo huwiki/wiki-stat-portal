@@ -24,7 +24,7 @@ export class Revision {
 	public commentId: number;
 
 	@OneToOne(() => Comment, comment => comment.id)
-	@JoinColumn({ name: "rev_actor" })
+	@JoinColumn({ name: "rev_comment_id" })
 	public comment: Comment;
 
 	// rev_actor decimal(20,0)
