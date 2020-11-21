@@ -22,11 +22,21 @@ jobs:
       - name: Run next.js build
         run: yarn run build
 
-      - name: Archive production artifacts
+      - name: Archive next.js build artifacts
         uses: actions/upload-artifact@v2
         with:
           name: production-build
           path: |
             .next
             resources
-            runWithoutNpm.sh
+
+      - name: Compile tools
+        run: yarn run build:tools
+
+      - name: Archive tools compilation output
+        uses: actions/upload-artifact@v2
+        with:
+          name: tools
+          path: |
+            resources
+            tools-out

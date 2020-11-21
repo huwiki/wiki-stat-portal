@@ -7,7 +7,7 @@
 		"build": "next build",
 		"lint": "eslint . --ext .ts,.tsx",
 		"start": "next start -p $PORT",
-		"tool-dbStuffTest": "node tools/db/dbStuffTest"
+		"build:tools": "cd tools && tsc; cd .."
 	},
 	"dependencies": {
 		"@babel/plugin-proposal-class-properties": "^7.12.1",
