@@ -4,6 +4,7 @@ import { ModuleDescriptor } from "./moduleDescriptor";
 
 export interface CommonPageProps {
 	availableModules: ModuleDescriptor[];
+	availableWikis: string[];
 
 	i18nData: I18nDictionary;
 	languageCode: string;

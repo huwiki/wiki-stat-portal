@@ -27,13 +27,15 @@ interface IndexPageProps extends CommonPageProps {
 class IndexPage extends NextBasePage<IndexPageProps> {
 	selectableWikis = [
 		new SelectableValue("", "No items selected"),
-		new SelectableValue("huwiki", "huwiki label"),
-		new SelectableValue("skwiki", "skwiki label"),
 	]
 	selectedWiki: SelectableValue | null = null;
 
 	constructor(props: IndexPageProps) {
 		super(props);
+
+		for (const wiki of props.availableWikis) {
+			this.selectableWikis.push(new SelectableValue(wiki, wiki));
+		}
 
 		makeObservable(this, {
 			selectedWiki: observable
