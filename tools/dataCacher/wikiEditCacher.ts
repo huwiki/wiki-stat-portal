@@ -13,13 +13,9 @@ import { ActorTypeModel, createActorEntitiesForWiki, WikiStatisticsTypesResult }
 import { WikiProcessedRevisions } from "../../server/database/entities/toolsDatabase/wikiProcessedRevisions";
 import { KnownWiki } from "../../server/interfaces/knownWiki";
 
-// const REVISIONS_PROCESSED_AT_ONCE: number = 1000;
-// const MAXIMUM_PROCESSED_REVISIONS_AT_ONCE: number = 3000;
-// const MAXIMUM_PROCESSED_ACTORS_AT_ONCE: number = 1000;
-
-const REVISIONS_PROCESSED_AT_ONCE: number = 1;
-const MAXIMUM_PROCESSED_REVISIONS_AT_ONCE: number = 3;
-const MAXIMUM_PROCESSED_ACTORS_AT_ONCE: number = 1;
+const REVISIONS_PROCESSED_AT_ONCE: number = 10000;
+const MAXIMUM_PROCESSED_REVISIONS_AT_ONCE: number = 500000;
+const MAXIMUM_PROCESSED_ACTORS_AT_ONCE: number = 100000;
 
 interface WikiEditCacherOptions {
 	appCtx: AppRunningContext;
@@ -507,13 +503,17 @@ export class WikiEditCacher {
 				.values({
 					wiki: this.wiki.id,
 					lastProcessedRevisionId: this.lastProcessedRevisionId,
+					lastActorUpdate: moment.utc().toDate(),
 				})
 				.execute();
 		} else {
 			await em
 				.createQueryBuilder()
 				.update(WikiProcessedRevisions)
-				.set({ lastProcessedRevisionId: this.lastProcessedRevisionId })
+				.set({
+					lastProcessedRevisionId: this.lastProcessedRevisionId,
+					lastActorUpdate: moment.utc().toDate(),
+				})
 				.andWhere("wiki = :wiki", { wiki: this.wiki.id })
 				.execute();
 		}
