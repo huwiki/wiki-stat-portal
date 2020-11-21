@@ -43,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 			let query = conn.getRepository(wikiEntities.actor)
 				.createQueryBuilder("actor")
-				.select(["actor.actorId"]);
+				.select("actor.actorId", "aId");
 
 			const reqs = userGroup.requirements;
 			let needsRegDateFilter = false;
@@ -206,9 +206,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 			appCtx.logger.info(`[api/userPyramids/seriesData] SQL: ${query.getSql()}`);
 
-			const users = await query.getRawMany<{ actorId: number }>();
+			const users = await query.getRawMany<{ aId: number }>();
 
-			const usersInThisGroup = new Set<number>(users.map(x => x.actorId));
+			const usersInThisGroup = new Set<number>(users.map(x => x.aId));
 
 			results.push({
 				title: userGroup.name,

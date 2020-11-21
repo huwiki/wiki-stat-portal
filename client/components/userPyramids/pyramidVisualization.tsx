@@ -23,6 +23,7 @@ interface ISeriesVisualizationInfo {
 	populationDisplayPercentage: number
 	commonWithPreviousGroup: number;
 	commonWithPreviousPercentage: number;
+	commonWithPreviousDisplayPercentage: number;
 }
 
 interface IPyramidVisualizationProps {
@@ -139,6 +140,9 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 			commonWithPreviousGroup: sv.commonWithPreviousGroup,
 			commonWithPreviousPercentage: sv.value > 0
 				? sv.commonWithPreviousGroup / sv.value
+				: 0,
+			commonWithPreviousDisplayPercentage: sv.value > 0
+				? (sv.commonWithPreviousGroup / sv.value) * 100
 				: 0
 		}));
 
@@ -156,7 +160,7 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 							style={{ width: `${seriesValue.populationDisplayPercentage.toFixed(2)}%` }}>
 							{seriesValue.commonWithPreviousGroup > 0 &&
 								<div className={pyramidVisualizationStyles.commonPartBar}
-									style={{ width: `${seriesValue.commonWithPreviousPercentage.toFixed(2)}%` }} />}
+									style={{ width: `${seriesValue.commonWithPreviousDisplayPercentage.toFixed(2)}%` }} />}
 						</div>
 					</div>)}
 			</div>
