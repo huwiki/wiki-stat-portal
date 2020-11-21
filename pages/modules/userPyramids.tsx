@@ -179,9 +179,23 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 					}</li>}
 
 				{typeof group.requirements.userGroups !== "undefined"
+					&& group.requirements.userGroups.length === 1
 					&& <li key="userGroups">{
-						this.t("userPyramids.groupRequirements.memberOfUsergroups")
-							.replace("{0}", group.requirements.userGroups.join(", "))
+						this.t("userPyramids.groupRequirements.memberOfUserGroup")
+							.replace(
+								"{0}",
+								this.t(`userGroup.${group.requirements.userGroups[0]}`)
+							)
+					}</li>}
+
+				{typeof group.requirements.userGroups !== "undefined"
+					&& group.requirements.userGroups.length > 1
+					&& <li key="userGroups">{
+						this.t("userPyramids.groupRequirements.memberOfUserGroups")
+							.replace("{0}",
+								group.requirements.userGroups
+									.map(gn => this.t(`userGroup.${gn}`))
+									.join(", "))
 					}</li>}
 
 				{typeof group.requirements.totalEditsAtLeast === "number"
