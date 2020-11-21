@@ -8,28 +8,40 @@
 					"name": "anon szerkesztők",
 					"requirements": {
 						"registrationStatus": "anon",
-						"inPeriodEditsAtLeast": { "edits": 1, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 1,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "1+ regisztrált szerkesztők",
 					"requirements": {
 						"registrationStatus": "registered",
-						"inPeriodEditsAtLeast": { "edits": 1, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 1,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "5+ regisztrált szerkesztők",
 					"requirements": {
 						"registrationStatus": "registered",
-						"inPeriodEditsAtLeast": { "edits": 5, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 5,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "100+ regisztrált szerkesztők",
 					"requirements": {
 						"registrationStatus": "registered",
-						"inPeriodEditsAtLeast": { "edits": 100, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 100,
+							"period": 30
+						}
 					}
 				}
 			]
@@ -48,63 +60,90 @@
 					"name": "regisztrált és 1+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
 						"registrationStatus": "registered",
-						"inPeriodEditsAtLeast": { "edits": 1, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 1,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "regisztrált és 5+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
 						"registrationStatus": "registered",
-						"inPeriodEditsAtLeast": { "edits": 5, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 5,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "regisztrált és 10+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
 						"registrationStatus": "registered",
-						"inPeriodEditsAtLeast": { "edits": 10, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 10,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "regisztrált és 100+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
 						"registrationStatus": "registered",
-						"inPeriodEditsAtLeast": { "edits": 100, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 100,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "regisztrált és 250+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
 						"registrationStatus": "registered",
-						"inPeriodEditsAtLeast": { "edits": 250, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 250,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "regisztrált és 1000+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
 						"registrationStatus": "registered",
-						"inPeriodEditsAtLeast": { "edits": 1000, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 1000,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "regisztrált és 2500+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
 						"registrationStatus": "registered",
-						"inPeriodEditsAtLeast": { "edits": 2500, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 2500,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "regisztrált és 10000+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
 						"registrationStatus": "registered",
-						"inPeriodEditsAtLeast": { "edits": 10000, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 10000,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "regisztrált és 25000+ szerkesztés az elmúlt 30 napban",
 					"requirements": {
 						"registrationStatus": "registered",
-						"inPeriodEditsAtLeast": { "edits": 25000, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 25000,
+							"period": 30
+						}
 					}
 				}
 			]
@@ -219,35 +258,50 @@
 					"name": "az elmúlt 30 napban regisztrált, és van legalább 1 szerkesztése ebben az időszakban",
 					"requirements": {
 						"registrationAgeAtMost": 30,
-						"inPeriodEditsAtLeast": { "edits": 1, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 1,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "az elmúlt 30 napban regisztrált, és van legalább 5 szerkesztése ebben az időszakban",
 					"requirements": {
 						"registrationAgeAtMost": 30,
-						"inPeriodEditsAtLeast": { "edits": 5, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 5,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "az elmúlt 30 napban regisztrált, és van legalább 10 szerkesztése ebben az időszakban",
 					"requirements": {
 						"registrationAgeAtMost": 30,
-						"inPeriodEditsAtLeast": { "edits": 10, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 10,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "az elmúlt 30 napban regisztrált, és van legalább 50 szerkesztése ebben az időszakban",
 					"requirements": {
 						"registrationAgeAtMost": 30,
-						"inPeriodEditsAtLeast": { "edits": 50, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 50,
+							"period": 30
+						}
 					}
 				},
 				{
 					"name": "az elmúlt 30 napban regisztrált, és van legalább 100 szerkesztése ebben az időszakban",
 					"requirements": {
 						"registrationAgeAtMost": 30,
-						"inPeriodEditsAtLeast": { "edits": 100, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 100,
+							"period": 30
+						}
 					}
 				}
 			]
@@ -268,7 +322,10 @@
 					"requirements": {
 						"registrationAgeAtLeast": 30,
 						"registrationAgeAtMost": 60,
-						"inPeriodEditsAtLeast": { "edits": 1, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 1,
+							"period": 30
+						}
 					}
 				},
 				{
@@ -276,7 +333,10 @@
 					"requirements": {
 						"registrationAgeAtLeast": 30,
 						"registrationAgeAtMost": 60,
-						"inPeriodEditsAtLeast": { "edits": 5, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 5,
+							"period": 30
+						}
 					}
 				},
 				{
@@ -284,7 +344,10 @@
 					"requirements": {
 						"registrationAgeAtLeast": 30,
 						"registrationAgeAtMost": 60,
-						"inPeriodEditsAtLeast": { "edits": 10, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 10,
+							"period": 30
+						}
 					}
 				},
 				{
@@ -292,7 +355,10 @@
 					"requirements": {
 						"registrationAgeAtLeast": 30,
 						"registrationAgeAtMost": 60,
-						"inPeriodEditsAtLeast": { "edits": 50, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 50,
+							"period": 30
+						}
 					}
 				},
 				{
@@ -300,7 +366,10 @@
 					"requirements": {
 						"registrationAgeAtLeast": 30,
 						"registrationAgeAtMost": 60,
-						"inPeriodEditsAtLeast": { "edits": 100, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 100,
+							"period": 30
+						}
 					}
 				}
 			]
@@ -322,7 +391,11 @@
 					"requirements": {
 						"registrationAgeAtLeast": 61,
 						"registrationAgeAtMost": 90,
-						"inPeriodEditsAtLeast": { "edits": 10, "period": 30, "epoch": -60 }
+						"inPeriodEditsAtLeast": {
+							"edits": 10,
+							"period": 30,
+							"epoch": -60
+						}
 					}
 				},
 				{
@@ -330,7 +403,11 @@
 					"requirements": {
 						"registrationAgeAtLeast": 61,
 						"registrationAgeAtMost": 90,
-						"inPeriodEditsAtLeast": { "edits": 10, "period": 30, "epoch": -30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 10,
+							"period": 30,
+							"epoch": -30
+						}
 					}
 				},
 				{
@@ -338,7 +415,73 @@
 					"requirements": {
 						"registrationAgeAtLeast": 61,
 						"registrationAgeAtMost": 90,
-						"inPeriodEditsAtLeast": { "edits": 10, "period": 30 }
+						"inPeriodEditsAtLeast": {
+							"edits": 10,
+							"period": 30
+						}
+					}
+				}
+			]
+		},
+		{
+			"id": "userGroupTest",
+			"name": "Szerkesztői csoportok tesztelése",
+			"showIntersectionWithPreviousGroup": true,
+			"groups": [
+				{
+					"name": "Megerősített szerkesztők",
+					"requirements": {
+						"userGroups": [
+							"trusted"
+						]
+					}
+				},
+				{
+					"name": "Járőrök",
+					"requirements": {
+						"userGroups": [
+							"editor"
+						]
+					}
+				},
+				{
+					"name": "Adminisztrátorok",
+					"requirements": {
+						"userGroups": [
+							"sysop"
+						]
+					}
+				},
+				{
+					"name": "Bürokraták",
+					"requirements": {
+						"userGroups": [
+							"bureaucrat"
+						]
+					}
+				},
+				{
+					"name": "Botok",
+					"requirements": {
+						"userGroups": [
+							"bot"
+						]
+					}
+				},
+				{
+					"name": "Sablonszerkesztők",
+					"requirements": {
+						"userGroups": [
+							"templateeditor"
+						]
+					}
+				},
+				{
+					"name": "IP-ellenőrök",
+					"requirements": {
+						"userGroups": [
+							"checkuser"
+						]
 					}
 				}
 			]
