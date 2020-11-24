@@ -503,7 +503,9 @@ export class WikiEditCacher {
 				.values({
 					wiki: this.wiki.id,
 					lastProcessedRevisionId: this.lastProcessedRevisionId,
-					lastActorUpdate: moment.utc().toDate(),
+					lastActorUpdate: this.actorsToUpdate.length > 0
+						? moment.utc().toDate()
+						: this.lastActorUpdateTimestamp,
 				})
 				.execute();
 		} else {
@@ -512,7 +514,9 @@ export class WikiEditCacher {
 				.update(WikiProcessedRevisions)
 				.set({
 					lastProcessedRevisionId: this.lastProcessedRevisionId,
-					lastActorUpdate: moment.utc().toDate(),
+					lastActorUpdate: this.actorsToUpdate.length > 0
+						? moment.utc().toDate()
+						: this.lastActorUpdateTimestamp,
 				})
 				.andWhere("wiki = :wiki", { wiki: this.wiki.id })
 				.execute();
