@@ -20,12 +20,15 @@ To build a version for hosting, use the `yarn run build` command. To start a ser
 
 # Production Environment
 
-See details in [Documentation/ProductionEnvironment.md](documentation/ProductionEnvironment.md)
+See details in [documentation/ProductionEnvironment.md](documentation/ProductionEnvironment.md)
 
 This web application is meant to run on the Wikimedia Toolserver.
 
+# Modules
+WikiStatPortal is an application with statistics modules. You can read about the current modules in [documentation/Modules.md](documentation/Modules.md).
+
 # Configuration
-For details on configuration, see [Documentation/Configuration.md](documentation/Configuration.md)
+For details on configuration, see [documentation/Configuration.md](documentation/Configuration.md)
 
 # Licence
 
