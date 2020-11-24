@@ -54,24 +54,108 @@ Every module has a configuration file at `resources/configuration/modules/[modul
 		"huwiki",
 		"huwikiquote",
 		"huwikisource",
-		"huwiktionary"
+		"wiktionary"
 	]
 }
 ```
 
 ## UserPyramids module
 
-For the UserPyramids module every wiki has its own pyramid configuration file located at `resources/configuration/modules/userPyramids/[wikiId].userPyramids.json`.
+For the UserPyramids module, in addition to the module configuration, every wiki has its own pyramid configuration file located at `resources/configuration/modules/userPyramids/[wikiId].userPyramids.json`.
 
-Two kinds of pyramid configuration files exist:
+This repository contains a JSON schema file for user pyramid configuration files. The VS Code workspace is preconfigured to use this JSON schema file to validate user pyramid configurations. It is advised to use VS Code or an editor with JSON validation capabilities to edit user pyramid configurations.
 
-1. A configuration file which uses the groups defined in an another configuration file:
+Normal configuration files defines user pyramids for themselves:
+```json5
+{
+	"userPyramids": [
+		// List of user pyramids
+	]
+}
+```
+
+A user pyramid definition looks like this:
+```json5
+{
+	"id": "first",
+	"name": "I. szerkesztői piramis",
+		// Name of the pyramid. Will be displayed on the UI.
+	"groups": [
+		// List of groups belonging to this user pyramid.
+		// A user pyramid can have many groups, however
+		// the more groups a user pyramid has, the longer
+		// it will took to generate statistics for it.
+	]
+}
+```
+
+A user pyramid group definition looks like this:
+```json5
+{
+	"name": "Járőrök",
+		// Name of the group. Will be displayed on the UI.
+	"requirements": {
+		// One or more requirements can be defined
+		"registrationStatus": "userType",
+			// Registration status: registered or anon
+		"registrationAgeAtLeast": 31,
+			// At least how old the registration must be to match
+		"registrationAgeAtMost": 60,
+			// At most how old the registration must be to match
+		"userGroups": ["group1", "group2"],
+			// What user groups must the user belong to match.
+			// Available values:
+			// "bot", "bureaucrat", "checkuser", "editor", "flow-bot",
+			// "interface-admin", "interface-editor", "sysop",
+			// "templateeditor", "trusted"
+		"totalEditsAtLeast": "number or UserEditsInTime object",
+			// How many edits the user must have to match
+			// - if a number, the last known edit count will be checked
+			// - if an UserEditsInTimeObject ({ edits: 4343, epoch: -30 })
+			//   the last known edit count will be checked X days before
+			//   the current day where X comes from the value of `epoch`
+			// Note: 'epoch' is defined using a negative number, so it
+			//   is obvious that the epoch parameter helps looking back in time.
+		"totalEditsAtMost": "number or UserEditsInTime object",
+			// How many edits the user must have to match
+			// - if a number, the last known edit count will be checked
+			// - if an UserEditsInTimeObject ({ edits: 4343, epoch: -30 })
+			//   the last known edit count will be checked X days before
+			//   the current day where X comes from the value of `epoch`
+			// Note: 'epoch' is defined using a negative number, so it
+			//   is obvious that the epoch parameter helps looking back in time.
+		"inPeriodEditsAtLeast": { "edits": 1234, "period": 30, "epoch": -30 },
+			// How many edits the user must have in a given period to match
+			// - if an epoch is not defined, the number of edits made between
+			//   the current day and Y days before today will be checked
+			//   where X comes from the value of 'period'
+			// - if an epoch is defined, the number of edits made between
+			//   the Y days before the current day and Y + X days before 
+			//   today will be checked where X comes from the value of 
+			//   'period' and Y comes from the value of 'epoch'
+			// Note: 'epoch' is defined using a negative number, so it
+			//   is obvious that the epoch parameter helps looking back in time.
+		"inPeriodEditsAtMost": { "edits": 1234, "period": 30, "epoch": -30 },
+			// How many edits the user must have in a given period to match
+			// - if an epoch is not defined, the number of edits made between
+			//   the current day and Y days before today will be checked
+			//   where X comes from the value of 'period'
+			// - if an epoch is defined, the number of edits made between
+			//   the Y days before the current day and Y + X days before 
+			//   today will be checked where X comes from the value of 
+			//   'period' and Y comes from the value of 'epoch'.
+			// Note: 'epoch' is defined using a negative number, so it
+			//   is obvious that the epoch parameter helps looking back in time.
+	}
+},
+```
+
+See `huwiki.userPyramids.json` for examples.
+
+
+You can create a configuration file which uses user pyramids defined for an other wiki. Just name the json file using the `use` property:
 ```json5
 {
 	"use": "huwiki.userPyramids.json" // Name of file to use
 }
 ```
-
-2. All other pyramid configuration files must list all user pyramids for the wiki the file belongs to.
-
-TODO
