@@ -98,13 +98,28 @@
 				},
 				"totalEditsAtLeast": {
 					"description": "If specified, only users with total edits at least this amount at the requested date will be counted to the group.",
-					"type": "number",
-					"minimum": 1
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userEditsInTime"
+						}
+					]
 				},
 				"totalEditsAtMost": {
 					"description": "If specified, only users with total edits at most this amount at the requested date will be counted to the group.",
 					"type": "number",
-					"minimum": 1
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userEditsInTime"
+						}
+					]
 				},
 				"inPeriodEditsAtLeast": {
 					"description": "If specified, only users with edits at least this amount in the specified days before the requested date will be counted to the group.",
@@ -115,6 +130,22 @@
 					"$ref": "#/definitions/editsInPeriod"
 				}
 			},
+			"additionalProperties": false
+		},
+		"userEditsInTime": {
+			"type": "object",
+			"properties": {
+				"edits": {
+					"type": "number",
+					"minimum": 0
+				},
+				"epoch": {
+					"type": "number",
+					"minimum": -365,
+					"maximum": -1
+				}
+			},
+			"required": ["edits", "epoch"],
 			"additionalProperties": false
 		},
 		"editsInPeriod": {
