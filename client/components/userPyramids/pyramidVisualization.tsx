@@ -228,8 +228,9 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 			<div className={pyramidVisualizationStyles.bar}
 				style={{ width: `${normalBarWidth}%` }}>
 			</div>
-			{seriesValue.commonWithPreviousGroup > 0 &&
-				<div className={pyramidVisualizationStyles.commonPartBar}
+			{seriesValue.commonWithPreviousGroup > 0
+				&& this.props.showIntersectionWithPreviousGroup
+				&& <div className={pyramidVisualizationStyles.commonPartBar}
 					style={{ width: `${commonBarWidth}%` }} />}
 		</div>;
 	}
