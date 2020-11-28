@@ -21,15 +21,18 @@ interface ISeriesVisualizationInfo {
 	populationSize: number;
 	populationPercentage: number;
 	populationDisplayPercentage: number
+	populationDisplayPercentageLog10: number
 	commonWithPreviousGroup: number;
 	commonWithPreviousPercentage: number;
 	commonWithPreviousDisplayPercentage: number;
+	commonWithPreviousDisplayPercentageLog10: number;
 }
 
 interface IPyramidVisualizationProps {
 	title: string;
 	seriesDescriptions: string[];
 	showIntersectionWithPreviousGroup: boolean;
+	logScaleGraph: boolean;
 	groups: IPyramidGroup[];
 	translatorFunction: (string: string) => string;
 	locale: string;
@@ -127,6 +130,11 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 
 	private renderPyramidGroup(group: IPyramidGroup, maxGroupSize: number, firstGroupValues: IPyramidSeriesValue[], isFirst: boolean) {
 		let counter: number = 0;
+
+		const maxGroupSizeLog10 = maxGroupSize > 0
+			? Math.log10(maxGroupSize)
+			: 0;
+
 		const seriesValues: ISeriesVisualizationInfo[] = group.seriesValues.map(sv => ({
 			uniqueId: `value-${counter++}`,
 			colorClass: this.getColorClass(counter),
@@ -137,13 +145,19 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 			populationDisplayPercentage: maxGroupSize > 0
 				? (sv.value / maxGroupSize) * 100
 				: 0,
+			populationDisplayPercentageLog10: maxGroupSize > 0
+				? (Math.log10(sv.value) / maxGroupSizeLog10) * 100
+				: 0,
 			commonWithPreviousGroup: sv.commonWithPreviousGroup,
 			commonWithPreviousPercentage: sv.value > 0
 				? sv.commonWithPreviousGroup / sv.value
 				: 0,
 			commonWithPreviousDisplayPercentage: sv.value > 0
-				? (sv.commonWithPreviousGroup / sv.value) * 100
-				: 0
+				? (sv.commonWithPreviousGroup / maxGroupSize) * 100
+				: 0,
+			commonWithPreviousDisplayPercentageLog10: sv.value > 0 && sv.commonWithPreviousGroup > 0
+				? (Math.log10(sv.commonWithPreviousGroup) / maxGroupSizeLog10) * 100
+				: 0,
 		}));
 
 		return <div key={group.id} className={pyramidVisualizationStyles.tableRow}>
@@ -153,16 +167,7 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 					: group.description}
 			</div>
 			<div className={pyramidVisualizationStyles.bars}>
-				{seriesValues.map(seriesValue =>
-					<div key={seriesValue.uniqueId}
-						className={classnames(pyramidVisualizationStyles.barWrapper, seriesValue.colorClass)}>
-						<div className={pyramidVisualizationStyles.bar}
-							style={{ width: `${seriesValue.populationDisplayPercentage.toFixed(2)}%` }}>
-							{seriesValue.commonWithPreviousGroup > 0 &&
-								<div className={pyramidVisualizationStyles.commonPartBar}
-									style={{ width: `${seriesValue.commonWithPreviousDisplayPercentage.toFixed(2)}%` }} />}
-						</div>
-					</div>)}
+				{this.renderBars(seriesValues)}
 			</div>
 			<div className={pyramidVisualizationStyles.populationSize}>
 				{seriesValues.map(seriesValue => <div
@@ -204,6 +209,29 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 					</div>
 				</>}
 		</div >;
+	}
+
+	private renderBars(seriesValues: ISeriesVisualizationInfo[]): React.ReactNode {
+		return seriesValues.map(seriesValue => this.renderBar(seriesValue));
+	}
+
+	private renderBar(seriesValue: ISeriesVisualizationInfo): JSX.Element {
+		const normalBarWidth = this.props.logScaleGraph
+			? seriesValue.populationDisplayPercentageLog10.toFixed(2)
+			: seriesValue.populationDisplayPercentage.toFixed(2);
+		const commonBarWidth = this.props.logScaleGraph
+			? seriesValue.commonWithPreviousDisplayPercentageLog10.toFixed(2)
+			: seriesValue.commonWithPreviousDisplayPercentage.toFixed(2);
+
+		return <div key={seriesValue.uniqueId}
+			className={classnames(pyramidVisualizationStyles.barWrapper, seriesValue.colorClass)}>
+			<div className={pyramidVisualizationStyles.bar}
+				style={{ width: `${normalBarWidth}%` }}>
+			</div>
+			{seriesValue.commonWithPreviousGroup > 0 &&
+				<div className={pyramidVisualizationStyles.commonPartBar}
+					style={{ width: `${commonBarWidth}%` }} />}
+		</div>;
 	}
 
 	private getColorClass(index: number) {

@@ -44,6 +44,8 @@
 	"userPyramids.series.retry": "Try to load data series again",
 	"userPyramids.series.delete": "Delete data series",
 	"userPyramids.noSeriesAdded": "No series added",
+	"userPyramids.displaySettings": "Display settings",
+	"userPyramids.logScaleGraph": "Use log scale for the graph",
 	"userPyramids.invalidPyramidConfiguration": "Invalid pyramid configuration",
 	"userPyramids.invalidPyramidConfiguration.description": "Pyramid configuration of the selected wiki is invalid. Operator of the site can fix the configuration.",
 	"userPyramids.nothingToVisualize": "Nothing to visualize",

@@ -42,6 +42,8 @@
 	"userPyramids.series.retry": "Adatok betöltésének ismételt megpróbálása",
 	"userPyramids.series.delete": "Adatsor törlése",
 	"userPyramids.noSeriesAdded": "Nincs adatsor felvéve",
+	"userPyramids.displaySettings": "Megjelenítési beállítások",
+	"userPyramids.logScaleGraph": "Logaritmikus skálázás a grafikonon",
 	"userPyramids.invalidPyramidConfiguration": "Érvénytelen piramiskonfiguráció",
 	"userPyramids.invalidPyramidConfiguration.description": "A kiválasztott wiki piramiskonfigurációja érvénytelen. A konfiguráció javítását az oldal üzemeltetője tudja elvégezni. ",
 	"userPyramids.nothingToVisualize": "Nincs megjeleníthető adat",

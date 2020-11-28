@@ -1,4 +1,4 @@
-import { AnchorButton, Button, Callout, IconName, Intent, Spinner, Tooltip } from "@blueprintjs/core";
+import { AnchorButton, Button, Callout, IconName, Intent, Spinner, Switch, Tooltip } from "@blueprintjs/core";
 import Axios from "axios";
 import { format, isSameDay } from "date-fns";
 import { computed, makeObservable, observable } from "mobx";
@@ -61,6 +61,8 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 	selectedUserPyramid: SelectableValue;
 	selectableUserPyramids: SelectableValue[] = [];
 
+	logScaleGraph: boolean = false;
+
 	newUserPyramidSeries: UserPyramidSeries = new UserPyramidSeries();
 	userPyramidSeries: UserPyramidSeries[] = [];
 
@@ -93,6 +95,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			selectableWikis: observable,
 			selectedUserPyramid: observable,
 			userPyramidSeries: observable,
+			logScaleGraph: observable,
 			isAddPyramidSeriesDisabled: computed,
 		});
 	}
@@ -148,6 +151,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 					.map(x => moment(x.date).format("LL"))
 			}
 			showIntersectionWithPreviousGroup={pyramid.showIntersectionWithPreviousGroup === true}
+			logScaleGraph={this.logScaleGraph}
 			groups={pyramid.groups.map((group, index) => ({
 				id: index.toString(),
 				description: group.name,
@@ -328,6 +332,12 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 				{this.userPyramidSeries.length >= 10 && <div className={userPyramidsStyles.maxNumberOfSeriesReached}>
 					{this.t("userPyramids.maxNumberOfSeriesReached")}
 				</div>}
+			</ParameterGroup>
+			<ParameterGroup title={this.t("userPyramids.displaySettings")}>
+				<Switch
+					checked={this.logScaleGraph}
+					onChange={(ev) => this.logScaleGraph = ev.currentTarget.checked}
+					label={this.t("userPyramids.logScaleGraph")} />
 			</ParameterGroup>
 		</ParameterBox>;
 	}

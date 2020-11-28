@@ -107,6 +107,8 @@ $valueFontSize: 12px;
 .populationSizeEntry,
 .populationSizePrevEntry {
 	box-sizing: content-box;
+	position: relative;
+	height: $barHeight;
 
 	@each $colorName,
 	$colorValue in $barColors {
@@ -118,9 +120,17 @@ $valueFontSize: 12px;
 	margin-right: 2px;
 }
 
-.bar {
-	position: relative;
+.bar,
+.commonPartBar {
+	position: absolute;
+	left: 0px;
+	top: 0px;
 	height: $barHeight;
+	transition: width 0.2s;
+	transition-timing-function: ease-out;
+}
+
+.bar {
 
 	@each $colorName,
 	$colorValue in $barColors {
@@ -131,12 +141,6 @@ $valueFontSize: 12px;
 }
 
 .commonPartBar {
-	position: absolute;
-	left: 0px;
-	top: 0px;
-	display: block;
-	height: $barHeight;
-
 	background: repeating-linear-gradient(-45deg,
 			rgba(0, 0, 0, 0.15),
 			rgba(0, 0, 0, 0.15) 10px,
