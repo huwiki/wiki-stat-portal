@@ -2,7 +2,7 @@
 	"userPyramids": [
 		{
 			"id": "first",
-			"name": "I. szerkesztői piramis",
+			"name": "Szerkesztés az elmúlt 30 napban I.",
 			"groups": [
 				{
 					"name": "anon szerkesztők",
@@ -48,7 +48,7 @@
 		},
 		{
 			"id": "second",
-			"name": "II. szerkesztői piramis",
+			"name": "Szerkesztés az elmúlt 30 napban II.",
 			"groups": [
 				{
 					"name": "regisztráltak száma",
@@ -150,7 +150,7 @@
 		},
 		{
 			"id": "third",
-			"name": "III. szerkesztői piramis",
+			"name": "Összes szerkesztés",
 			"groups": [
 				{
 					"name": "regisztráltak száma",
@@ -246,7 +246,7 @@
 		},
 		{
 			"id": "fourth",
-			"name": "IV. szerkesztői piramis",
+			"name": "Az elmúlt 30 napban regisztrált szerkesztők aktivitása",
 			"groups": [
 				{
 					"name": "az elmúlt 30 napban regisztrált",
@@ -308,7 +308,7 @@
 		},
 		{
 			"id": "fifth",
-			"name": "V. szerkesztői piramis",
+			"name": "30-60 nappal ezelőtt regisztrált szerkesztők aktivitása",
 			"groups": [
 				{
 					"name": "30-60 nappal ezelőtt regisztrált",
@@ -376,7 +376,7 @@
 		},
 		{
 			"id": "tgr",
-			"name": "Tgr szerkesztői piramisa",
+			"name": "61-90 napja regisztrált szerkesztők lemorzsolódása",
 			"showIntersectionWithPreviousGroup": true,
 			"groups": [
 				{
@@ -425,8 +425,7 @@
 		},
 		{
 			"id": "userGroupTest",
-			"name": "Szerkesztői csoportok tesztelése",
-			"showIntersectionWithPreviousGroup": true,
+			"name": "Szerkesztői csoportok mérete",
 			"groups": [
 				{
 					"name": "Megerősített szerkesztők",
@@ -473,6 +472,22 @@
 					"requirements": {
 						"userGroups": [
 							"templateeditor"
+						]
+					}
+				},
+				{
+					"name": "Felületadminisztrátorok",
+					"requirements": {
+						"userGroups": [
+							"interface-admin"
+						]
+					}
+				},
+				{
+					"name": "Felületszerkesztők",
+					"requirements": {
+						"userGroups": [
+							"interface-editor"
 						]
 					}
 				},
