@@ -2,7 +2,7 @@
 	"userPyramids": [
 		{
 			"id": "first",
-			"name": "Szerkesztés az elmúlt 30 napban I.",
+			"name": "Az elmúlt 30 nap szerkesztései alapján I.",
 			"groups": [
 				{
 					"name": "anon szerkesztők",
@@ -48,7 +48,7 @@
 		},
 		{
 			"id": "second",
-			"name": "Szerkesztés az elmúlt 30 napban II.",
+			"name": "Az elmúlt 30 nap szerkesztései alapján II.",
 			"groups": [
 				{
 					"name": "regisztráltak száma",
@@ -150,7 +150,7 @@
 		},
 		{
 			"id": "third",
-			"name": "Összes szerkesztés",
+			"name": "Az összes szerkesztés alapján",
 			"groups": [
 				{
 					"name": "regisztráltak száma",
