@@ -44,6 +44,7 @@
 	"userPyramids.series.retry": "Try to load data series again",
 	"userPyramids.series.delete": "Delete data series",
 	"userPyramids.noSeriesAdded": "No series added",
+	"userPyramids.timelessSeries": "The selected pyramid not tied to a date so it can only be displayed for today.",
 	"userPyramids.displaySettings": "Display settings",
 	"userPyramids.logScaleGraph": "Use log scale for the graph",
 	"userPyramids.invalidPyramidConfiguration": "Invalid pyramid configuration",

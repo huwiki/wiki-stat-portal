@@ -35,6 +35,9 @@
 				"showIntersectionWithPreviousGroup": {
 					"type": "boolean"
 				},
+				"isTimeless": {
+					"type": "boolean"
+				},
 				"groups": {
 					"type": "array",
 					"items": {

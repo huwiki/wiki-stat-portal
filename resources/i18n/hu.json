@@ -42,6 +42,7 @@
 	"userPyramids.series.retry": "Adatok betöltésének ismételt megpróbálása",
 	"userPyramids.series.delete": "Adatsor törlése",
 	"userPyramids.noSeriesAdded": "Nincs adatsor felvéve",
+	"userPyramids.timelessSeries": "A kiválasztott piramis nem dátumhoz kötött adatokat jelenít meg, így csak a mai napra kérhető le.",
 	"userPyramids.displaySettings": "Megjelenítési beállítások",
 	"userPyramids.logScaleGraph": "Logaritmikus skálázás a grafikonon",
 	"userPyramids.invalidPyramidConfiguration": "Érvénytelen piramiskonfiguráció",

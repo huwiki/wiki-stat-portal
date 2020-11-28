@@ -1,4 +1,4 @@
-import { AnchorButton, Button, Callout, IconName, Intent, Spinner, Switch, Tooltip } from "@blueprintjs/core";
+import { AnchorButton, Button, Callout, Icon, IconName, Intent, Spinner, Switch, Tooltip } from "@blueprintjs/core";
 import Axios from "axios";
 import { format, isSameDay } from "date-fns";
 import { computed, makeObservable, observable } from "mobx";
@@ -7,6 +7,7 @@ import moment from "moment";
 import { NextPageContext } from "next";
 import { withRouter } from "next/router";
 import * as React from "react";
+import { InlineCallout } from "../../client/components/inlineCallout";
 import { DateInput } from "../../client/components/inputs/dateInput";
 import { SelectInput } from "../../client/components/inputs/selectInput";
 import { PageFrame } from "../../client/components/pageFrame";
@@ -287,6 +288,8 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 	}
 
 	private renderModuleParameters() {
+		const { pyramid } = this.getWikiPyramidsAndSelectedPyramid();
+
 		return <ParameterBox>
 			<div className={userPyramidsStyles.resetButton}>
 				<Button
@@ -300,7 +303,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			<ParameterGroup title={this.t("userPyramids.basicParameters")}>
 				<SelectInput<SelectableValue>
 					value={this.selectedWiki}
-					setValue={this.updateSelectedWiki}
+					setValue={this.setSelectedWiki}
 					itemKeySelector={ele => ele.id}
 					items={this.selectableWikis}
 					itemRenderer={ele => ele.label}
@@ -332,6 +335,12 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 				{this.userPyramidSeries.length >= 10 && <div className={userPyramidsStyles.maxNumberOfSeriesReached}>
 					{this.t("userPyramids.maxNumberOfSeriesReached")}
 				</div>}
+				{pyramid
+					&& pyramid.isTimeless
+					&& <InlineCallout
+						icon={<Icon iconSize={14} icon="info-sign" />}>
+						{this.t("userPyramids.timelessSeries")}
+					</InlineCallout>}
 			</ParameterGroup>
 			<ParameterGroup title={this.t("userPyramids.displaySettings")}>
 				<Switch
@@ -344,9 +353,10 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 
 	private renderExistingSeries(): React.ReactNode {
 		if (this.userPyramidSeries.length === 0) {
-			return <div key="noSeries" className={userPyramidsStyles.visibleSeries}>
+			return <InlineCallout
+				icon={<Icon iconSize={14} icon="info-sign" />}>
 				{this.t("userPyramids.noSeriesAdded")}
-			</div>;
+			</InlineCallout>;
 		}
 
 		return this.userPyramidSeries.map(series => <div key={format(series.date, "yyyy-MM-dd")}
@@ -380,11 +390,14 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 	}
 
 	private renderAddSeriesControls(): React.ReactNode {
+		const { pyramid } = this.getWikiPyramidsAndSelectedPyramid();
+
 		return <>
 			<DateInput
 				value={this.newUserPyramidSeries.date}
 				setValue={this.setNewPyramidDate}
 				localizationProvider={this.getDateInputLocalizationProvider()}
+				minDate={pyramid?.isTimeless === true ? today : undefined}
 				maxDate={today}
 				disabled={!this.isProperPyramidSelected}
 			/>
@@ -396,7 +409,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 		</>;
 	}
 
-	private updateSelectedWiki = (selectedWiki: SelectableValue) => {
+	private setSelectedWiki = (selectedWiki: SelectableValue) => {
 		this.selectedWiki = selectedWiki;
 
 		const newSelectableUserPyramids: SelectableValue[] = [];
@@ -418,11 +431,16 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 	private resetAll = () => {
 		this.userPyramidSeries = [];
 		this.newUserPyramidSeries = new UserPyramidSeries();
-		this.updateSelectedWiki(this.selectableWikis[0]);
+		this.setSelectedWiki(this.selectableWikis[0]);
 	}
 
 	private setSelectedUserPyramid = (selectedUserPyramid: SelectableValue) => {
 		this.selectedUserPyramid = selectedUserPyramid;
+
+		const { pyramid } = this.getWikiPyramidsAndSelectedPyramid();
+		if (pyramid?.isTimeless) {
+			this.newUserPyramidSeries.date = today;
+		}
 	}
 
 	private setNewPyramidDate = (date: Date) => {
@@ -470,6 +488,20 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			if (seriesIndex !== -1) {
 				this.userPyramidSeries.splice(seriesIndex, 1);
 			}
+		};
+	}
+
+	private getWikiPyramidsAndSelectedPyramid() {
+		const wikiPyramids = this.selectedWiki
+			? this.props.userPyramids.find(x => x.wiki === this.selectedWiki.id)
+			: null;
+		const pyramid = wikiPyramids && wikiPyramids.valid && this.selectedUserPyramid
+			? wikiPyramids.userPyramids.find(x => x.id === this.selectedUserPyramid.id)
+			: null;
+
+		return {
+			wikiPyramids: wikiPyramids,
+			pyramid: pyramid
 		};
 	}
 }
