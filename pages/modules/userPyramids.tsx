@@ -230,7 +230,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 				{typeof group.requirements.totalEditsAtLeast !== "undefined"
 					&& typeof group.requirements.totalEditsAtLeast !== "number"
 					&& <li key="totalEditsAtLeast.withEpoch">{
-						this.t("userPyramids.groupRequirements.totalEditsAtLeast.withEpock")
+						this.t("userPyramids.groupRequirements.totalEditsAtLeast.withEpoch")
 							.replace("{0}", group.requirements.totalEditsAtLeast.epoch.toString())
 							.replace("{1}", group.requirements.totalEditsAtLeast.edits.toString())
 					}</li>}
@@ -244,7 +244,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 				{typeof group.requirements.totalEditsAtMost !== "undefined"
 					&& typeof group.requirements.totalEditsAtMost !== "number"
 					&& <li key="totalEditsAtMost.withEpoch">{
-						this.t("userPyramids.groupRequirements.totalEditsAtMost.withEpock")
+						this.t("userPyramids.groupRequirements.totalEditsAtMost.withEpoch")
 							.replace("{0}", group.requirements.totalEditsAtMost.epoch.toString())
 							.replace("{1}", group.requirements.totalEditsAtMost.edits.toString())
 					}</li>}
