@@ -3,10 +3,8 @@ import path from "path";
 import { Logger } from "winston";
 import { getResourcesBasePath } from "../helpers/i18nServer";
 import { createWikiStatLogger } from "../loggingHelper";
-import { AnotherModule } from "./anotherModule/anotherModule";
 import { ModuleBase } from "./common/moduleBase";
 import { ModuleJsonConfiguration } from "./common/moduleJsonConfiguration";
-import { ThirdModule } from "./thirdModule/thirdModule";
 import { UserPyramidsModule } from "./userPyramidsModule/userPyramidsModule";
 
 class ModuleManager {
@@ -37,8 +35,8 @@ class ModuleManager {
 	public initializeModules(): void {
 		this.allModules = [
 			new UserPyramidsModule(this.logger),
-			new AnotherModule(this.logger),
-			new ThirdModule(this.logger)
+			//new AnotherModule(this.logger),
+			//new ThirdModule(this.logger)
 		];
 
 		for (const module of this.allModules) {
