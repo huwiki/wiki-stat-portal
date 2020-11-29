@@ -3,7 +3,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { moduleManager } from "../../../server/modules/moduleManager";
 import { UserPyramidsModule } from "../../../server/modules/userPyramidsModule/userPyramidsModule";
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default function handler(req: NextApiRequest, res: NextApiResponse): void {
 	const { query: { wikiId } } = req;
 
 	const userPyramidModule = moduleManager.getModuleById<UserPyramidsModule>("userPyramids");

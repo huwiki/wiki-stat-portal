@@ -1,7 +1,7 @@
 import { Button, Icon, IconName, Menu, MenuItem, Navbar, NavbarDivider, NavbarGroup, NavbarHeading, Popover, Tooltip } from "@blueprintjs/core";
 import Head from "next/head";
 import { NextRouter } from "next/router";
-import { parseCookies, setCookie } from "nookies";
+import { setCookie } from "nookies";
 import * as React from "react";
 import { SupportedLanguages } from "../../common/interfaces/I18nCommon";
 import { I18nProvider } from "../helpers/i18nClient";
@@ -36,8 +36,6 @@ export class PageFrame extends React.Component<PageFrameProps> {
 	}
 
 	private renderNavbar() {
-		const cookies = parseCookies();
-
 		return <Navbar fixedToTop>
 			<div className={styles.headerMargin}>
 				<NavbarGroup>

@@ -20,6 +20,7 @@ const REQUIRED_LANGUAGE_GROUPS = [
 	"indexPage"
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface IndexPageProps extends CommonPageProps {
 }
 
