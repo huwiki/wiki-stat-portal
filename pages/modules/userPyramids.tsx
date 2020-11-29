@@ -1,12 +1,13 @@
 import { AnchorButton, Button, Callout, Icon, IconName, Intent, Spinner, Switch, Tooltip } from "@blueprintjs/core";
 import Axios from "axios";
-import { format, isSameDay } from "date-fns";
+import { format as dateFormat, isSameDay } from "date-fns";
 import { computed, makeObservable, observable } from "mobx";
 import { observer } from "mobx-react";
 import moment from "moment";
 import { NextPageContext } from "next";
 import { withRouter } from "next/router";
 import * as React from "react";
+import { format as stringFormat } from "react-string-format";
 import { InlineCallout } from "../../client/components/inlineCallout";
 import { DateInput } from "../../client/components/inputs/dateInput";
 import { SelectInput } from "../../client/components/inputs/selectInput";
@@ -192,96 +193,116 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 
 				{typeof group.requirements.registrationAgeAtLeast !== "undefined"
 					&& <li key="regAgeAtLeast">{
-						this.t("userPyramids.groupRequirements.registrationAgeAtLeast")
-							.replace("{0}", group.requirements.registrationAgeAtLeast.toString())
+						stringFormat(
+							this.t("userPyramids.groupRequirements.registrationAgeAtLeast"),
+							group.requirements.registrationAgeAtLeast.toString()
+						)
 					}</li>}
 
 				{typeof group.requirements.registrationAgeAtMost !== "undefined"
 					&& <li key="regAgeAtMost">{
-						this.t("userPyramids.groupRequirements.registrationAgeAtMost")
-							.replace("{0}", group.requirements.registrationAgeAtMost.toString())
+						stringFormat(
+							this.t("userPyramids.groupRequirements.registrationAgeAtMost"),
+							group.requirements.registrationAgeAtMost.toString()
+						)
 					}</li>}
 
 				{typeof group.requirements.userGroups !== "undefined"
 					&& group.requirements.userGroups.length === 1
 					&& <li key="userGroups">{
-						this.t("userPyramids.groupRequirements.memberOfUserGroup")
-							.replace(
-								"{0}",
-								this.t(`userGroup.${group.requirements.userGroups[0]}`)
-							)
+						stringFormat(
+							this.t("userPyramids.groupRequirements.memberOfUserGroup"),
+							this.t(`userGroup.${group.requirements.userGroups[0]}`)
+						)
 					}</li>}
 
 				{typeof group.requirements.userGroups !== "undefined"
 					&& group.requirements.userGroups.length > 1
 					&& <li key="userGroups">{
-						this.t("userPyramids.groupRequirements.memberOfUserGroups")
-							.replace("{0}",
-								group.requirements.userGroups
-									.map(gn => this.t(`userGroup.${gn}`))
-									.join(", "))
+						stringFormat(
+							this.t("userPyramids.groupRequirements.memberOfUserGroups"),
+							group.requirements.userGroups
+								.map(gn => this.t(`userGroup.${gn}`))
+								.join(", ")
+						)
 					}</li>}
 
 				{typeof group.requirements.totalEditsAtLeast === "number"
 					&& <li key="totalEditsAtLeast.simple">{
-						this.t("userPyramids.groupRequirements.totalEditsAtLeast.simple")
-							.replace("{0}", group.requirements.totalEditsAtLeast.toString())
+						stringFormat(
+							this.t("userPyramids.groupRequirements.totalEditsAtLeast.simple"),
+							group.requirements.totalEditsAtLeast.toString()
+						)
 					}</li>}
 
 				{typeof group.requirements.totalEditsAtLeast !== "undefined"
 					&& typeof group.requirements.totalEditsAtLeast !== "number"
 					&& <li key="totalEditsAtLeast.withEpoch">{
-						this.t("userPyramids.groupRequirements.totalEditsAtLeast.withEpoch")
-							.replace("{0}", group.requirements.totalEditsAtLeast.epoch.toString())
-							.replace("{1}", group.requirements.totalEditsAtLeast.edits.toString())
+						stringFormat(
+							this.t("userPyramids.groupRequirements.totalEditsAtLeast.withEpoch"),
+							group.requirements.totalEditsAtLeast.epoch.toString(),
+							group.requirements.totalEditsAtLeast.edits.toString()
+						)
 					}</li>}
 
 				{typeof group.requirements.totalEditsAtMost === "number"
 					&& <li key="totalEditsAtMost.simple">{
-						this.t("userPyramids.groupRequirements.totalEditsAtLeast.simple")
-							.replace("{0}", group.requirements.totalEditsAtMost.toString())
+						stringFormat(
+							this.t("userPyramids.groupRequirements.totalEditsAtLeast.simple"),
+							group.requirements.totalEditsAtMost.toString()
+						)
 					}</li>}
 
 				{typeof group.requirements.totalEditsAtMost !== "undefined"
 					&& typeof group.requirements.totalEditsAtMost !== "number"
 					&& <li key="totalEditsAtMost.withEpoch">{
-						this.t("userPyramids.groupRequirements.totalEditsAtMost.withEpoch")
-							.replace("{0}", group.requirements.totalEditsAtMost.epoch.toString())
-							.replace("{1}", group.requirements.totalEditsAtMost.edits.toString())
+						stringFormat(
+							this.t("userPyramids.groupRequirements.totalEditsAtMost.withEpoch"),
+							group.requirements.totalEditsAtMost.epoch.toString(),
+							group.requirements.totalEditsAtMost.edits.toString()
+						)
 					}</li>}
 
 				{typeof group.requirements.inPeriodEditsAtLeast !== "undefined"
 					&& typeof group.requirements.inPeriodEditsAtLeast.epoch === "undefined"
 					&& <li key="inPeriodEditsAtLeast.simple">{
-						this.t("userPyramids.groupRequirements.inPeriodEditsAtLeast.simple")
-							.replace("{0}", group.requirements.inPeriodEditsAtLeast.period.toString())
-							.replace("{1}", group.requirements.inPeriodEditsAtLeast.edits.toString())
+						stringFormat(
+							this.t("userPyramids.groupRequirements.inPeriodEditsAtLeast.simple"),
+							group.requirements.inPeriodEditsAtLeast.period.toString(),
+							group.requirements.inPeriodEditsAtLeast.edits.toString()
+						)
 					}</li>}
 
 				{typeof group.requirements.inPeriodEditsAtLeast !== "undefined"
 					&& typeof group.requirements.inPeriodEditsAtLeast.epoch === "number"
 					&& <li key="inPeriodEditsAtLeast.withEpoch">{
-						this.t("userPyramids.groupRequirements.inPeriodEditsAtLeast.withEpoch")
-							.replace("{0}", group.requirements.inPeriodEditsAtLeast.epoch.toString())
-							.replace("{1}", group.requirements.inPeriodEditsAtLeast.period.toString())
-							.replace("{2}", group.requirements.inPeriodEditsAtLeast.edits.toString())
+						stringFormat(
+							this.t("userPyramids.groupRequirements.inPeriodEditsAtLeast.withEpoch"),
+							group.requirements.inPeriodEditsAtLeast.epoch.toString(),
+							group.requirements.inPeriodEditsAtLeast.period.toString(),
+							group.requirements.inPeriodEditsAtLeast.edits.toString()
+						)
 					}</li>}
 
 				{typeof group.requirements.inPeriodEditsAtMost !== "undefined"
 					&& typeof group.requirements.inPeriodEditsAtMost.epoch === "undefined"
 					&& <li key="inPeriodEditsAtMost.simple">{
-						this.t("userPyramids.groupRequirements.inPeriodEditsAtMost.simple")
-							.replace("{0}", group.requirements.inPeriodEditsAtMost.period.toString())
-							.replace("{1}", group.requirements.inPeriodEditsAtMost.edits.toString())
+						stringFormat(
+							this.t("userPyramids.groupRequirements.inPeriodEditsAtMost.simple"),
+							group.requirements.inPeriodEditsAtMost.period.toString(),
+							group.requirements.inPeriodEditsAtMost.edits.toString()
+						)
 					}</li>}
 
 				{typeof group.requirements.inPeriodEditsAtMost !== "undefined"
 					&& typeof group.requirements.inPeriodEditsAtMost.epoch === "number"
 					&& <li key="inPeriodEditsAtMost.withEpoch">{
-						this.t("userPyramids.groupRequirements.inPeriodEditsAtMost.withEpoch")
-							.replace("{0}", group.requirements.inPeriodEditsAtMost.epoch.toString())
-							.replace("{1}", group.requirements.inPeriodEditsAtMost.period.toString())
-							.replace("{2}", group.requirements.inPeriodEditsAtMost.edits.toString())
+						stringFormat(
+							this.t("userPyramids.groupRequirements.inPeriodEditsAtMost.withEpoch"),
+							group.requirements.inPeriodEditsAtMost.epoch.toString(),
+							group.requirements.inPeriodEditsAtMost.period.toString(),
+							group.requirements.inPeriodEditsAtMost.edits.toString()
+						)
 					}</li>}
 			</ul>
 		</>;
@@ -359,7 +380,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			</InlineCallout>;
 		}
 
-		return this.userPyramidSeries.map(series => <div key={format(series.date, "yyyy-MM-dd")}
+		return this.userPyramidSeries.map(series => <div key={dateFormat(series.date, "yyyy-MM-dd")}
 			className={userPyramidsStyles.visibleSeries}>
 			{moment(series.date).format("LL")}
 			{series.isLoading
@@ -465,7 +486,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 				"/api/userPyramids/seriesData?"
 				+ `wikiId=${this.selectedWiki.id}`
 				+ `&pyramidId=${this.selectedUserPyramid.id}`
-				+ `&date=${format(series.date, "yyyy-MM-dd")}`,
+				+ `&date=${dateFormat(series.date, "yyyy-MM-dd")}`,
 				{ timeout: 100000 }
 			);
 
