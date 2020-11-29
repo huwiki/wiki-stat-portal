@@ -29,6 +29,7 @@ jobs:
           path: |
             .next
             resources
+            package.json
 
       - name: Compile tools
         run: yarn run build:tools
