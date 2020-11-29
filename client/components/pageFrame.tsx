@@ -3,6 +3,7 @@ import Head from "next/head";
 import { NextRouter } from "next/router";
 import { setCookie } from "nookies";
 import * as React from "react";
+import { format } from "react-string-format";
 import { SupportedLanguages } from "../../common/interfaces/I18nCommon";
 import { I18nProvider } from "../helpers/i18nClient";
 import styles from "./pageFrame.module.scss";
@@ -32,6 +33,7 @@ export class PageFrame extends React.Component<PageFrameProps> {
 				<span className={styles.pageTitleContent}>{this.props.title}</span>
 			</h2>
 			{this.props.children}
+			{this.renderFooter()}
 		</div>;
 	}
 
@@ -64,6 +66,29 @@ export class PageFrame extends React.Component<PageFrameProps> {
 				label={x.name}
 				onClick={this.setLanguage(x.languageCode)} />)}
 		</Menu>;
+	}
+
+	private renderFooter(): JSX.Element {
+		return <div className={styles.footer}>
+			{format(
+				this.t("footer.author"),
+				<b><a href="https://github.com/qcz">{this.t("footer.author.name")}</a></b>
+			)}
+			{" "}
+			{format(
+				this.t("footer.source"),
+				<a href="https://github.com/huwiki/wiki-stat-portal">
+					{this.t("footer.source.github")}
+				</a>
+			)}
+			{" "}
+			{format(
+				this.t("footer.requests"),
+				<a href="https://github.com/huwiki/wiki-stat-portal/issues">
+					{this.t("footer.requests.here")}
+				</a>
+			)}
+		</div>;
 	}
 
 	private goToMainPage = () => {
