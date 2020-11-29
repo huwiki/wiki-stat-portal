@@ -78,7 +78,7 @@
 	"userGroup.trusted": "megerősített szerkesztők",
 	"footer.author": "Készítette: {0}.",
 	"footer.author.name": "Tar Dániel (qcz)",
-	"footer.source": "A forráskód {0} érhető el.",
+	"footer.source": "A forráskód a {0} érhető el.",
 	"footer.source.github": "GitHubon",
 	"footer.requests": "A felmerült problémákat és fejlesztési ötleteket {0} tudod jelezni.",
 	"footer.requests.here": "itt"
