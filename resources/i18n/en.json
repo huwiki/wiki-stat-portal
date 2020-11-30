@@ -28,7 +28,7 @@
 	"input.userPyramid.filterPlaceholder": "Filter pyramids by name...",
 	"input.date.label": "Date:",
 	"indexPage.title": "Main Page",
-	"indexPage.description": "Welcome to the Wikipedia Statistics Portal. Select a module to continue.",
+	"indexPage.description": "Welcome to the statistics portal. Select a module to continue.",
 	"indexPage.filterByWiki": "Filter by wiki:",
 	"indexPage.noFilterByWiki": "< Not filtered >",
 	"indexPage.moduleNotAvailableOnSelectedWiki": "This module is not yet available for the selected wiki.",

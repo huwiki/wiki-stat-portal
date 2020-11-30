@@ -1,4 +1,4 @@
-User statistics portal for Wikipedia.
+User statistics portal for Wikimedia Foundation wikis.
 
 # Development
 

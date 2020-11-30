@@ -26,7 +26,7 @@
 	"input.userPyramid.filterPlaceholder": "Szűrés a piramis nevére...",
 	"input.date.label": "Dátum:",
 	"indexPage.title": "Kezdőlap",
-	"indexPage.description": "Üdvözlünk a Wikipédia Statisztikai Portálon! Válassz egy modult a folytatáshoz!",
+	"indexPage.description": "Üdvözlünk a statisztikai portálon! Válassz egy modult a folytatáshoz!",
 	"indexPage.filterByWiki": "Szűrés wiki alapján:",
 	"indexPage.noFilterByWiki": "< Nincs szűrés >",
 	"indexPage.moduleNotAvailableOnSelectedWiki": "Ez a modul még nem érhető el a kiválasztott wikihez.",
