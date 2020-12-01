@@ -80,6 +80,15 @@ A user pyramid definition looks like this:
 	"id": "first",
 	"name": "I. szerkesztői piramis",
 		// Name of the pyramid. Will be displayed on the UI.
+		// If specified, `i18nKey` must not be set.
+	"i18nKey": "pyramid.firstPyramid",
+		// Localization key of the name of the pyramid.
+		// If specified, `name` must not be set and
+		// items in the `group` array must also have
+		// an `i18nKey` property with the localization key
+		// of the group name. UI and the API will use
+		// this key from the language file to localize 
+		// the name of the pyramid.
 	"groups": [
 		// List of groups belonging to this user pyramid.
 		// A user pyramid can have many groups, however
@@ -94,6 +103,16 @@ A user pyramid group definition looks like this:
 {
 	"name": "Járőrök",
 		// Name of the group. Will be displayed on the UI.
+		// If specified, `i18nKey` must not be set.
+		// Forbidden if the parent pyramid has an
+		// `i18nkey` property.
+	"i18nKey": "pyramid.firstPyramid.group.myGroup",
+		// Localization key of the name of the group.
+		// If specified, `name` must not be set.
+		// Forbidden if the parent pyramid has a
+		// `name` property. UI and the API will use
+		// this key from the language file to localize
+		// the name of the group. 
 	"requirements": {
 		// One or more requirements can be defined
 		"registrationStatus": "userType",

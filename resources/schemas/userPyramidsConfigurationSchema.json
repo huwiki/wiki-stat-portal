@@ -8,7 +8,11 @@
 		"userPyramids": {
 			"type": "array",
 			"items": {
-				"$ref": "#/definitions/userPyramid"
+				"oneOf": [{
+					"$ref": "#/definitions/userPyramid"
+				}, {
+					"$ref": "#/definitions/localizedUserPyramid"
+				}]
 			},
 			"minItems": 1
 		}
@@ -53,6 +57,36 @@
 			],
 			"additionalProperties": false
 		},
+		"localizedUserPyramid": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"i18nKey": {
+					"type": "string"
+				},
+				"showIntersectionWithPreviousGroup": {
+					"type": "boolean"
+				},
+				"isTimeless": {
+					"type": "boolean"
+				},
+				"groups": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/localizedGroup"
+					},
+					"minItems": 2
+				}
+			},
+			"required": [
+				"id",
+				"i18nKey",
+				"groups"
+			],
+			"additionalProperties": false
+		},
 		"group": {
 			"type": "object",
 			"properties": {
@@ -64,6 +98,19 @@
 				}
 			},
 			"required": ["name"],
+			"additionalProperties": false
+		},
+		"localizedGroup": {
+			"type": "object",
+			"properties": {
+				"i18nKey": {
+					"type": "string"
+				},
+				"requirements": {
+					"$ref": "#/definitions/groupRequirement"
+				}
+			},
+			"required": ["i18nKey"],
 			"additionalProperties": false
 		},
 		"groupRequirement": {

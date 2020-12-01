@@ -8,7 +8,7 @@ interface IPyramidSeriesValue {
 	commonWithPreviousGroup: number;
 }
 
-interface IPyramidGroup {
+export interface IPyramidGroup {
 	id: string;
 	description: string;
 	tooltip: JSX.Element | string;

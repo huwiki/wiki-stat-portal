@@ -1,10 +1,9 @@
 import fs from "fs";
 import path from "path";
-import { I18nDictionary, MultiLangueageI18nDictionary } from "../../common/interfaces/I18nCommon";
+import { I18nDictionary, MultiLanguageI18nDictionary } from "../../common/interfaces/I18nCommon";
 import { getFiles } from "./pathUtils";
 
-const i18nData: MultiLangueageI18nDictionary = {
-};
+const i18nData: MultiLanguageI18nDictionary = {};
 
 let isInitialized = false;
 
@@ -31,6 +30,10 @@ export const initializeI18nData = async (): Promise<void> => {
 	isInitialized = true;
 };
 
+export const hasLanguage = (languageCode: string): boolean => {
+	return typeof i18nData[languageCode] === "object";
+};
+
 export const getLocalizations = (languageCode: string): I18nDictionary => {
 	let usedLanguageCode = languageCode || "en";
 
@@ -39,4 +42,14 @@ export const getLocalizations = (languageCode: string): I18nDictionary => {
 		usedLanguageCode = "en";
 
 	return i18nData[usedLanguageCode];
+};
+
+export const getLocalizedString = (languageCode: string, key: string): string => {
+	let usedLanguageCode = languageCode || "en";
+
+	// Fallback to english if the language code is not known
+	if (!i18nData[usedLanguageCode])
+		usedLanguageCode = "en";
+
+	return i18nData[usedLanguageCode][key] ?? `?[${key}]`;
 };

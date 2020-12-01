@@ -2,7 +2,7 @@ export type I18nDictionary = {
 	[index: string]: string;
 };
 
-export type MultiLangueageI18nDictionary = {
+export type MultiLanguageI18nDictionary = {
 	[index: string]: I18nDictionary;
 };
 

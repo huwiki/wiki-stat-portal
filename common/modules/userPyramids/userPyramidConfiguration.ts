@@ -1,3 +1,5 @@
+import { isArray } from "lodash";
+
 export interface UserPyramidConfigurationFile {
 	use: string;
 	userPyramids?: UserPyramidConfiguration[];
@@ -14,17 +16,63 @@ export type WikiUserPyramidConfigurations =
 		userPyramids: UserPyramidConfiguration[];
 	};
 
-export interface UserPyramidConfiguration {
+export type UserPyramidConfiguration =
+	NonLocalizedUserPyramidConfiguration
+	| LocalizedUserPyramidConfiguration;
+
+export interface NonLocalizedUserPyramidConfiguration {
 	id: string;
-	name: string;
 	isTimeless: boolean;
 	showIntersectionWithPreviousGroup?: boolean;
-	groups: UserPyramidGroup[];
+	name: string;
+	groups: NonLocalizedUserPyramidGroup[];
 }
 
-export interface UserPyramidGroup {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isNonLocalizedUserPyramidConfiguration(obj: any): obj is NonLocalizedUserPyramidConfiguration {
+	return typeof obj.name === "string"
+		&& isArray(obj.groups) === true;
+}
+
+
+export interface LocalizedUserPyramidConfiguration {
+	id: string;
+	isTimeless: boolean;
+	showIntersectionWithPreviousGroup?: boolean;
+	i18nKey: string;
+	groups: LocalizedUserPyramidGroup[];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isLocalizedUserPyramidConfiguration(obj: any): obj is LocalizedUserPyramidConfiguration {
+	return typeof obj.i18nKey === "string"
+		&& isArray(obj.groups) === true;
+}
+
+export type UserPyramidGroup =
+	NonLocalizedUserPyramidGroup
+	| LocalizedUserPyramidGroup;
+
+export interface NonLocalizedUserPyramidGroup {
 	name: string;
 	requirements: UserPyramidRequirements;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isNonLocalizedUserPyramidGroup(obj: any): obj is NonLocalizedUserPyramidGroup {
+	return typeof obj.name === "string"
+		&& typeof obj.requirements === "object";
+}
+
+export interface LocalizedUserPyramidGroup {
+	i18nKey: string;
+	requirements: UserPyramidRequirements;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isLocalizedUserPyramidGroup(obj: any): obj is LocalizedUserPyramidGroup {
+	return typeof obj.i18nKey === "string"
+		&& typeof obj.requirements === "object";
 }
 
 export interface UserPyramidRequirements {

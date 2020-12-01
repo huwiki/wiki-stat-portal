@@ -1,22 +1,29 @@
 import { addDays, parse, startOfDay, subDays } from "date-fns";
 import { isArray } from "lodash";
 import { NextApiRequest, NextApiResponse } from "next";
-import { UserPyramidConfiguration } from "../../../common/modules/userPyramids/userPyramidConfiguration";
+import { isLocalizedUserPyramidGroup, UserPyramidConfiguration } from "../../../common/modules/userPyramids/userPyramidConfiguration";
 import { AppRunningContext } from "../../../server/appRunningContext";
 import { createActorEntitiesForWiki } from "../../../server/database/entities/toolsDatabase/actorByWiki";
+import { getLocalizedString, hasLanguage, initializeI18nData } from "../../../server/helpers/i18nServer";
 import { KnownWiki } from "../../../server/interfaces/knownWiki";
 import { moduleManager } from "../../../server/modules/moduleManager";
 import { UserPyramidsModule } from "../../../server/modules/userPyramidsModule/userPyramidsModule";
 
 interface GroupResult {
-	title: string;
+	name: string;
 	population: number;
 	matchingWithPreviousGroup: number;
-	sql: string;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
-	const { query: { wikiId: rawWikiId, pyramidId: rawPyramidId, date: rawDate } } = req;
+	const {
+		query: {
+			wikiId: rawWikiId,
+			pyramidId: rawPyramidId,
+			date: rawDate,
+			languageCode: rawLanguageCode
+		}
+	} = req;
 
 	const appCtx = AppRunningContext.getInstance("portal");
 	if (appCtx.isValid === false) {
@@ -24,6 +31,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		res.status(500).json({ errorMessage: "Internal server error" });
 		return;
 	}
+
+	if (!rawLanguageCode || isArray(rawLanguageCode)) {
+		res.status(400).json({ errorMessage: "Invalid or missing languageCode parameter" });
+		return;
+	}
+
+	await initializeI18nData();
+	const languageCode = hasLanguage(rawLanguageCode)
+		? rawLanguageCode
+		: "en";
 
 	const { isValid, wiki, pyramid, epochDate } = processParameters(appCtx, res, rawWikiId, rawPyramidId, rawDate);
 	if (!isValid || !pyramid || !wiki || !epochDate)
@@ -211,12 +228,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			const usersInThisGroup = new Set<number>(users.map(x => x.aId));
 
 			results.push({
-				title: userGroup.name,
+				name: isLocalizedUserPyramidGroup(userGroup)
+					? getLocalizedString(languageCode, userGroup.i18nKey)
+					: userGroup.name,
 				population: users.length,
 				matchingWithPreviousGroup: usersInPreviousGroup.size > 0
 					? new Set([...usersInThisGroup].filter(x => usersInPreviousGroup.has(x))).size
 					: 0,
-				sql: query.getSql()
 			});
 			usersInPreviousGroup = usersInThisGroup;
 		}

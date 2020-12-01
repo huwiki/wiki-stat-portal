@@ -14,11 +14,11 @@ import { SelectInput } from "../../client/components/inputs/selectInput";
 import { PageFrame } from "../../client/components/pageFrame";
 import { ParameterBox } from "../../client/components/parameterBox";
 import { ParameterGroup } from "../../client/components/parameterGroup";
-import { PyramidVisualization } from "../../client/components/userPyramids/pyramidVisualization";
+import { IPyramidGroup, PyramidVisualization } from "../../client/components/userPyramids/pyramidVisualization";
 import { NextBasePage } from "../../client/helpers/nextBasePage";
 import { SelectableValue } from "../../client/models/selectableValue";
 import { CommonPageProps } from "../../common/interfaces/commonPageProps";
-import { UserPyramidGroup, WikiUserPyramidConfigurations } from "../../common/modules/userPyramids/userPyramidConfiguration";
+import { isLocalizedUserPyramidConfiguration, isLocalizedUserPyramidGroup, UserPyramidGroup, WikiUserPyramidConfigurations } from "../../common/modules/userPyramids/userPyramidConfiguration";
 import { withCommonServerSideProps } from "../../server/helpers/serverSidePageHelpers";
 import { GetServerSidePropsResult } from "../../server/interfaces/getServerSidePropsResult";
 import { moduleManager } from "../../server/modules/moduleManager";
@@ -154,9 +154,25 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 			}
 			showIntersectionWithPreviousGroup={pyramid.showIntersectionWithPreviousGroup === true}
 			logScaleGraph={this.logScaleGraph}
-			groups={pyramid.groups.map((group, index) => ({
+			groups={this.createGroupsForPyramidVisualization(pyramid.groups)}
+			locale={this.props.languageCode}
+			translatorFunction={this.t}
+		/>;
+	}
+
+	createGroupsForPyramidVisualization(groups: UserPyramidGroup[]): IPyramidGroup[] {
+		const ret: IPyramidGroup[] = [];
+
+
+		let index = 0;
+		for (const group of groups) {
+			const groupName = isLocalizedUserPyramidGroup(group)
+				? this.t(group.i18nKey)
+				: group.name;
+
+			ret.push({
 				id: index.toString(),
-				description: group.name,
+				description: groupName ?? "?",
 				tooltip: this.renderGroupDescriptionTooltip(group),
 				seriesValues: this.userPyramidSeries
 					.filter(x => x.isLoading === false && x.failedToLoad === false)
@@ -164,10 +180,12 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 						value: x.data[index].population,
 						commonWithPreviousGroup: x.data[index].matchingWithPreviousGroup
 					}))
-			}))}
-			locale={this.props.languageCode}
-			translatorFunction={this.t}
-		/>;
+			});
+
+			index++;
+		}
+
+		return ret;
 	}
 
 	private renderNothingToVisualizeMessage() {
@@ -441,7 +459,10 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 		const wikiPyramids = this.props.userPyramids.find(x => x.wiki === selectedWiki.id);
 		if (wikiPyramids && wikiPyramids.valid && wikiPyramids.userPyramids.length) {
 			for (const pyramid of wikiPyramids.userPyramids) {
-				newSelectableUserPyramids.push(new SelectableValue(pyramid.id, pyramid.name));
+				newSelectableUserPyramids.push(new SelectableValue(pyramid.id,
+					isLocalizedUserPyramidConfiguration(pyramid)
+						? this.t(pyramid.i18nKey)
+						: pyramid.name));
 			}
 		}
 
@@ -486,7 +507,8 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 				"/api/userPyramids/seriesData?"
 				+ `wikiId=${this.selectedWiki.id}`
 				+ `&pyramidId=${this.selectedUserPyramid.id}`
-				+ `&date=${dateFormat(series.date, "yyyy-MM-dd")}`,
+				+ `&date=${dateFormat(series.date, "yyyy-MM-dd")}`
+				+ `&languageCode=${this.props.languageCode}`,
 				{ timeout: 100000 }
 			);
 
