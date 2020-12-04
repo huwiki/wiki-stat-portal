@@ -429,6 +429,14 @@
 			"isTimeless": true,
 			"groups": [
 				{
+					"i18nKey": "userGroup.bot",
+					"requirements": {
+						"userGroups": [
+							"bot"
+						]
+					}
+				},
+				{
 					"i18nKey": "userGroup.trusted",
 					"requirements": {
 						"userGroups": [
@@ -453,18 +461,18 @@
 					}
 				},
 				{
-					"i18nKey": "userGroup.bureaucrat",
+					"i18nKey": "userGroup.checkuser",
 					"requirements": {
 						"userGroups": [
-							"bureaucrat"
+							"checkuser"
 						]
 					}
 				},
 				{
-					"i18nKey": "userGroup.bot",
+					"i18nKey": "userGroup.bureaucrat",
 					"requirements": {
 						"userGroups": [
-							"bot"
+							"bureaucrat"
 						]
 					}
 				},
@@ -477,14 +485,6 @@
 					}
 				},
 				{
-					"i18nKey": "userGroup.interface-admin",
-					"requirements": {
-						"userGroups": [
-							"interface-admin"
-						]
-					}
-				},
-				{
 					"i18nKey": "userGroup.interface-editor",
 					"requirements": {
 						"userGroups": [
@@ -493,10 +493,10 @@
 					}
 				},
 				{
-					"i18nKey": "userGroup.checkuser",
+					"i18nKey": "userGroup.interface-admin",
 					"requirements": {
 						"userGroups": [
-							"checkuser"
+							"interface-admin"
 						]
 					}
 				}
