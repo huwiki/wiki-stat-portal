@@ -258,7 +258,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 					&& <li key="totalEditsAtLeast.withEpoch">{
 						stringFormat(
 							this.t("userPyramids.groupRequirements.totalEditsAtLeast.withEpoch"),
-							group.requirements.totalEditsAtLeast.epoch.toString(),
+							(group.requirements.totalEditsAtLeast.epoch * -1).toString(),
 							group.requirements.totalEditsAtLeast.edits.toString()
 						)
 					}</li>}
@@ -276,7 +276,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 					&& <li key="totalEditsAtMost.withEpoch">{
 						stringFormat(
 							this.t("userPyramids.groupRequirements.totalEditsAtMost.withEpoch"),
-							group.requirements.totalEditsAtMost.epoch.toString(),
+							(group.requirements.totalEditsAtMost.epoch * -1).toString(),
 							group.requirements.totalEditsAtMost.edits.toString()
 						)
 					}</li>}
@@ -296,7 +296,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 					&& <li key="inPeriodEditsAtLeast.withEpoch">{
 						stringFormat(
 							this.t("userPyramids.groupRequirements.inPeriodEditsAtLeast.withEpoch"),
-							group.requirements.inPeriodEditsAtLeast.epoch.toString(),
+							(group.requirements.inPeriodEditsAtLeast.epoch * -1).toString(),
 							group.requirements.inPeriodEditsAtLeast.period.toString(),
 							group.requirements.inPeriodEditsAtLeast.edits.toString()
 						)
@@ -317,7 +317,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 					&& <li key="inPeriodEditsAtMost.withEpoch">{
 						stringFormat(
 							this.t("userPyramids.groupRequirements.inPeriodEditsAtMost.withEpoch"),
-							group.requirements.inPeriodEditsAtMost.epoch.toString(),
+							(group.requirements.inPeriodEditsAtMost.epoch * -1).toString(),
 							group.requirements.inPeriodEditsAtMost.period.toString(),
 							group.requirements.inPeriodEditsAtMost.edits.toString()
 						)
