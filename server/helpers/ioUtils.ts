@@ -26,3 +26,8 @@ export function* getFiles(path = "./", recursive: boolean = false): Generator<st
 		}
 	}
 }
+
+export function readFileLines(filePath: string): string[] {
+	const fileContent = fs.readFileSync(filePath, { encoding: "utf-8" });
+	return fileContent.split(/\r?\n/);
+}

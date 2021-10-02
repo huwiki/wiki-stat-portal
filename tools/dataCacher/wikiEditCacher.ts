@@ -4,9 +4,11 @@ import moment from "moment";
 import "moment-timezone";
 import { Connection, EntityManager, getManager, LessThan } from "typeorm";
 import { Logger } from "winston";
+import { FLAGLESS_BOT_VIRTUAL_GROUP_NAME } from "../../common/consts";
 import { AppRunningContext } from "../../server/appRunningContext";
 import { ApplicationConfiguration } from "../../server/configuration/applicationConfiguration";
 import { createConnectionToMediaWikiReplica } from "../../server/database/connectionManager";
+import { UserGroup } from "../../server/database/entities/mediawiki";
 import { Actor } from "../../server/database/entities/mediawiki/actor";
 import { Revision } from "../../server/database/entities/mediawiki/revision";
 import { ActorTypeModel, createActorEntitiesForWiki, WikiStatisticsTypesResult } from "../../server/database/entities/toolsDatabase/actorByWiki";
@@ -206,6 +208,7 @@ export class WikiEditCacher {
 			.innerJoinAndSelect("actor.user", "user")
 			.leftJoinAndSelect("user.userGroups", "groups")
 			.getMany();
+		this.injectFlaglessBotInfo(userActors);
 
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActors: Getting actors from stat db`);
 		const existingStatActors = await this.toolsConnection.getRepository(this.wikiStatisticsEntities.actor)
@@ -246,6 +249,28 @@ export class WikiEditCacher {
 		}
 
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] getActorsToUpdate: Needs to update ${this.actorsToUpdate.length} actors`);
+	}
+
+	private injectFlaglessBotInfo(actors: Actor[]): void {
+		if (!this.wiki.flaglessBots)
+			return;
+		for (const actor of actors) {
+			if (this.wiki.flaglessBots.indexOf(actor.name) === -1)
+				continue;
+
+			const virtualUserGroup: UserGroup = {
+				groupName: FLAGLESS_BOT_VIRTUAL_GROUP_NAME,
+				user: actor.user,
+				userId: actor.user.id,
+				expirationTimestamp: new Date(2050, 0, 1),
+			};
+
+			if (!actor.user.userGroups) {
+				actor.user.userGroups = [virtualUserGroup];
+			} else {
+				actor.user.userGroups.push(virtualUserGroup);
+			}
+		}
 	}
 
 	private async saveCachedDataToToolsDb(): Promise<void> {

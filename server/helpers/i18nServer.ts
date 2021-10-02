@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { I18nDictionary, MultiLanguageI18nDictionary } from "../../common/interfaces/I18nCommon";
-import { getFiles } from "./pathUtils";
+import { getFiles } from "./ioUtils";
 
 const i18nData: MultiLanguageI18nDictionary = {};
 

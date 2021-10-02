@@ -3,7 +3,7 @@ import fs from "fs";
 import { isInteger } from "lodash";
 import path from "path";
 import { getResourcesBasePath } from "../helpers/i18nServer";
-import { fileExists } from "../helpers/pathUtils";
+import { fileExists, readFileLines } from "../helpers/ioUtils";
 import { KnownWiki } from "../interfaces/knownWiki";
 import { ApplicationConfiguration } from "./applicationConfiguration";
 
@@ -85,4 +85,12 @@ export const readKnownWikisConfiguration = (): KnownWiki[] | string => {
 	} catch (err) {
 		return `[readKnownWikisConfiguration] Error while reading knownWikis.json: ${err}`;
 	}
+};
+
+export const readFlaglessBotList = (wiki: KnownWiki): string[] => {
+	const listPath = path.join(getResourcesBasePath(), "configuration", "flaglessBots", `${wiki.id}.flaglessBots.txt`);
+	if (fileExists(listPath) === false)
+		return [];
+
+	return readFileLines(listPath).filter(x => typeof x === "string" && x.length > 0 && x[0] !== "#");
 };

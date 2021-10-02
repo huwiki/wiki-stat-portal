@@ -3,4 +3,5 @@ export interface KnownWiki {
 	domain: string;
 	replicaDatabaseName: string;
 	timeZone: string;
+	flaglessBots: string[];
 }

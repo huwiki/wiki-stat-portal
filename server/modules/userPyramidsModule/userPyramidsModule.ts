@@ -5,7 +5,7 @@ import { Logger } from "winston";
 import { UserPyramidConfiguration, UserPyramidConfigurationFile, WikiUserPyramidConfigurations } from "../../../common/modules/userPyramids/userPyramidConfiguration";
 import { readJsonSchema } from "../../configuration/configurationReader";
 import { getResourcesBasePath } from "../../helpers/i18nServer";
-import { fileExists } from "../../helpers/pathUtils";
+import { fileExists } from "../../helpers/ioUtils";
 import { ModuleBase } from "../common/moduleBase";
 import { ModuleJsonConfiguration } from "../common/moduleJsonConfiguration";
 

@@ -1,7 +1,7 @@
 import { Connection } from "typeorm";
 import { Logger } from "winston";
 import { ApplicationConfiguration } from "./configuration/applicationConfiguration";
-import { readApplicationConfiguration, readKnownWikisConfiguration } from "./configuration/configurationReader";
+import { readApplicationConfiguration, readFlaglessBotList, readKnownWikisConfiguration } from "./configuration/configurationReader";
 import { createConnectionToUserDatabase } from "./database/connectionManager";
 import { KnownWiki } from "./interfaces/knownWiki";
 import { createWikiStatLogger } from "./loggingHelper";
@@ -41,6 +41,10 @@ export class AppRunningContext {
 			return;
 		}
 		this.knownWikisConfiguration = knownWikisConfiguration;
+
+		for (const wiki of knownWikisConfiguration) {
+			wiki.flaglessBots = readFlaglessBotList(wiki);
+		}
 
 		this.isValid = true;
 	}
