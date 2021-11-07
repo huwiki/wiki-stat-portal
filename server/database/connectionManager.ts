@@ -15,7 +15,7 @@ export const createConnectionToUserDatabase = async (appConfig: ApplicationConfi
 	const items: Function[] = [];
 	for (const wikiId of wikis) {
 		const entities = createActorEntitiesForWiki(wikiId);
-		items.push(entities.actor, entities.actorGroup, entities.actorStatistics, entities.actorStatisticsByNamespace);
+		items.push(entities.actor, entities.actorGroup, entities.actorEditStatistics, entities.actorEditStatisticsByNamespace, entities.actorLogStatistics, entities.actorLogStatisticsByNamespaceAndChangeTag);
 	}
 
 	return await createConnection({

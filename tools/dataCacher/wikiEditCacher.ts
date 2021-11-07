@@ -407,13 +407,13 @@ export class WikiEditCacher {
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating edits by date for ${actorName} (${actorStat.editsByDate.length} items)...`);
 
 		for (const editByDate of actorStat.editsByDate) {
-			const existingStat = await em.getRepository(this.wikiStatisticsEntities.actorStatistics)
+			const existingStat = await em.getRepository(this.wikiStatisticsEntities.actorEditStatistics)
 				.findOne({ where: { actorId: actorStat.actorId, date: editByDate.date } });
 
 			if (existingStat) {
 				await em
 					.createQueryBuilder()
-					.update(this.wikiStatisticsEntities.actorStatistics)
+					.update(this.wikiStatisticsEntities.actorEditStatistics)
 					.set({ dailyEdits: existingStat.dailyEdits + editByDate.edits })
 					.where("actorId = :actorId", { actorId: actorStat.actorId })
 					.andWhere("date = :date", { date: editByDate.date })
@@ -421,7 +421,7 @@ export class WikiEditCacher {
 
 				await em
 					.createQueryBuilder()
-					.update(this.wikiStatisticsEntities.actorStatistics)
+					.update(this.wikiStatisticsEntities.actorEditStatistics)
 					.set({
 						dailyEdits: () => `daily_edits + ${editByDate.edits}`,
 						editsToDate: () => `edits_to_date + ${editByDate.edits}`,
@@ -430,7 +430,7 @@ export class WikiEditCacher {
 					.andWhere("date > :date", { date: editByDate.date })
 					.execute();
 			} else {
-				const previousDay = await em.getRepository(this.wikiStatisticsEntities.actorStatistics)
+				const previousDay = await em.getRepository(this.wikiStatisticsEntities.actorEditStatistics)
 					.findOne({
 						where: {
 							actorId: actorStat.actorId,
@@ -443,7 +443,7 @@ export class WikiEditCacher {
 
 				await em.createQueryBuilder()
 					.insert()
-					.into(this.wikiStatisticsEntities.actorStatistics)
+					.into(this.wikiStatisticsEntities.actorEditStatistics)
 					.values({
 						actorId: actorStat.actorId,
 						date: editByDate.date,
@@ -462,13 +462,13 @@ export class WikiEditCacher {
 
 		for (const editsByNs of actorStat.editsByDateAndNs) {
 			for (const editByDateAndNs of editsByNs.editsByDate) {
-				const existingStat = await em.getRepository(this.wikiStatisticsEntities.actorStatisticsByNamespace)
+				const existingStat = await em.getRepository(this.wikiStatisticsEntities.actorEditStatisticsByNamespace)
 					.findOne({ where: { actorId: actorStat.actorId, namespace: editsByNs.namespace, date: editByDateAndNs.date } });
 
 				if (existingStat) {
 					await em
 						.createQueryBuilder()
-						.update(this.wikiStatisticsEntities.actorStatisticsByNamespace)
+						.update(this.wikiStatisticsEntities.actorEditStatisticsByNamespace)
 						.set({ dailyEdits: existingStat.dailyEdits + editByDateAndNs.edits })
 						.where("actorId = :actorId", { actorId: actorStat.actorId })
 						.andWhere("date = :date", { date: editByDateAndNs.date })
@@ -477,7 +477,7 @@ export class WikiEditCacher {
 
 					await em
 						.createQueryBuilder()
-						.update(this.wikiStatisticsEntities.actorStatistics)
+						.update(this.wikiStatisticsEntities.actorEditStatistics)
 						.set({
 							dailyEdits: () => `daily_edits + ${editByDateAndNs.edits}`,
 							editsToDate: () => `edits_to_date + ${editByDateAndNs.edits}`,
@@ -486,7 +486,7 @@ export class WikiEditCacher {
 						.andWhere("date > :date", { date: editByDateAndNs.date })
 						.execute();
 				} else {
-					const previousDay = await em.getRepository(this.wikiStatisticsEntities.actorStatisticsByNamespace)
+					const previousDay = await em.getRepository(this.wikiStatisticsEntities.actorEditStatisticsByNamespace)
 						.findOne({
 							where: {
 								actorId: actorStat.actorId,
@@ -500,7 +500,7 @@ export class WikiEditCacher {
 
 					await em.createQueryBuilder()
 						.insert()
-						.into(this.wikiStatisticsEntities.actorStatisticsByNamespace)
+						.into(this.wikiStatisticsEntities.actorEditStatisticsByNamespace)
 						.values({
 							actorId: actorStat.actorId,
 							date: editByDateAndNs.date,

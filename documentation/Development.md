@@ -52,8 +52,10 @@ This database contains the following tables:
 * There are four wiki specific entities/tables for every wiki (`server/database/entities/toolsDatabase/actorByWiki.ts`):
 	* **Actor** entity in the `[wikiId]_actor` table: Registered or anonymous users in that wikis
 	* **ActorGroup** entity in the `[wikiId]_actor_groups` table: Contains registered user-user group associations
-	* **ActorStatistics** entity in the `[wikiId]_actor_stats` table: Contains edit statistics (total edits to date and edits on that date) for an user on a given date
-	* **ActorStatisticsByNamespace** entity in the `[wikiId]_stats_by_ns` table: Contains edit statistics for a given namespace (total edits to date and edits on that date) for an user on a given date
+	* **ActorEditStatistics** entity in the `[wikiId]_actor_edit_stats` table: Contains edit statistics (total edits to date and edits on that date) for an user on a given date
+	* **ActorEditStatisticsByNamespace** entity in the `[wikiId]_actor_edit_stats_by_ns` table: Contains edit statistics for a given namespace (total edits to date and edits on that date) for an user on a given date
+	* **ActorLogStatistics** entity in the `[wikiId]_actor_logs` table: Contains log statistics (total log entries to date and log entries on that date) for an user on a given date
+	* **ActorLogStatisticsByNamespaceAndChangeTag** entity in the `[wikiId]_actor_logs_by_nsct` table: Contains log statistics for a given namespace and change tag (total log entries to date and log entries on that date) for an user on a given date
 
 Note: Currently wiki specific tables must be manually created when adding new supported wikis.
 
