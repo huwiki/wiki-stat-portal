@@ -29,9 +29,9 @@ For development, use the `yarn run dev` command, which uses the Next.js infrastr
 
 VS Code is used as the primary platform of development. VS Code provides IDE-like features for TypeScript like code completion, debugging, formatting and validating JSON schemas. There are preconfigured tasks ready for launching the frontend or the backend for debug purposes.
 
-To access ToolForge databases on your development system, you should use SSH local port forwarding:
+To access ToolForge databases on your development system, you should use SSH local port forwarding (replace USERNAME with your own user name):
 ```
-ssh -i ~/.ssh/id_rsa -N -L 4711:huwiki.analytics.db.svc.eqiad.wmflabs:3306 login.toolforge.org -L 4712:tools.db.svc.eqiad.wmflabs:3306 login.toolforge.org
+ssh -i ~/.ssh/id_rsa -N -L 4711:huwiki.analytics.db.svc.eqiad.wmflabs:3306 [USERNAME]@login.toolforge.org -L 4712:tools.db.svc.eqiad.wmflabs:3306 [USERNAME]@login.toolforge.org
 ```
 You can replace `huwiki` with any valid wiki database ID in the first database server URL. For further information on ToolForge user and replica databases, see [Help:ToolForge/Databases#Connecting to the database replicas](https://wikitech.wikimedia.org/wiki/Help:Toolforge/Database#Connecting_to_the_database_replicas) on Wikitech.
 
