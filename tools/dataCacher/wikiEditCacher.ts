@@ -10,13 +10,16 @@ import { ApplicationConfiguration } from "../../server/configuration/application
 import { createConnectionToMediaWikiReplica } from "../../server/database/connectionManager";
 import { UserGroup } from "../../server/database/entities/mediawiki";
 import { Actor } from "../../server/database/entities/mediawiki/actor";
+import { LogEntry } from "../../server/database/entities/mediawiki/logEntry";
 import { Revision } from "../../server/database/entities/mediawiki/revision";
 import { ActorTypeModel, createActorEntitiesForWiki, WikiStatisticsTypesResult } from "../../server/database/entities/toolsDatabase/actorByWiki";
 import { WikiProcessedRevisions } from "../../server/database/entities/toolsDatabase/wikiProcessedRevisions";
 import { KnownWiki } from "../../server/interfaces/knownWiki";
 
 const REVISIONS_PROCESSED_AT_ONCE: number = 10000;
+const LOG_ENTRIES_PROCESSED_AT_ONCE: number = 10000;
 const MAXIMUM_PROCESSED_REVISIONS_AT_ONCE: number = 500000;
+const MAXIMUM_LOG_ENTRIES_PROCESSED_AT_ONCE: number = 500000;
 const MAXIMUM_PROCESSED_ACTORS_AT_ONCE: number = 100000;
 
 interface WikiEditCacherOptions {
@@ -25,21 +28,31 @@ interface WikiEditCacherOptions {
 	toolsConnection: Connection;
 }
 
-interface EditsByDate {
+interface CounterByDate {
 	date: Date;
-	edits: number;
+	events: number;
 }
 
 interface EditsByDateAndNs {
 	namespace: number;
-	editsByDate: EditsByDate[];
+	editsByDate: CounterByDate[];
+}
+
+interface LogEntriesByDateNsAndCt {
+	namespace: number;
+	logType: string;
+	logAction: string;
+	editsByDate: CounterByDate[];
 }
 
 interface StatsByActor {
 	actorId: number;
 	actor: Actor;
-	editsByDate: EditsByDate[];
+	actorName: string;
+	editsByDate: CounterByDate[];
 	editsByDateAndNs: EditsByDateAndNs[];
+	logEntriesByDate: CounterByDate[];
+	logEntriesByDateNsAndCt: LogEntriesByDateNsAndCt[];
 }
 
 interface ActorToUpdate {
@@ -48,16 +61,19 @@ interface ActorToUpdate {
 }
 
 export class WikiEditCacher {
-	private appConfig: ApplicationConfiguration;
-	private wiki: KnownWiki;
-	private toolsConnection: Connection;
-	private logger: Logger;
-	private wikiStatisticsEntities: WikiStatisticsTypesResult;
+	private readonly appConfig: ApplicationConfiguration;
+	private readonly wiki: KnownWiki;
+	private readonly toolsConnection: Connection;
+	private readonly logger: Logger;
+	private readonly wikiStatisticsEntities: WikiStatisticsTypesResult;
 
 	private lastProcessedRevisionId: number;
+	private totalProcessedRevisions: number = 0;
+	private lastProcessedLogId: number;
+	private totalProcessedLogEntries: number = 0;
+
 	private lastActorUpdateTimestamp: Date;
 	private replicatedDatabaseConnection: Connection;
-	private totalProcessedRevisions: number = 0;
 	private statsByActorList: StatsByActor[] = [];
 	private statsByActorDict: { [index: number]: StatsByActor } = {};
 
@@ -85,6 +101,14 @@ export class WikiEditCacher {
 				break;
 		}
 
+		for (; ;) {
+			if (!(await this.tryProcessNextLogBatch()))
+				break;
+
+			if (this.totalProcessedRevisions >= MAXIMUM_LOG_ENTRIES_PROCESSED_AT_ONCE)
+				break;
+		}
+
 		const dateDiff = differenceInHours(new Date(), this.lastActorUpdateTimestamp);
 		if (dateDiff > 24) {
 			await this.getActorsToUpdate();
@@ -101,6 +125,7 @@ export class WikiEditCacher {
 		const wikiProcessEntry = await this.toolsConnection.getRepository(WikiProcessedRevisions)
 			.findOne({ where: { wiki: this.wiki.id } });
 		this.lastProcessedRevisionId = wikiProcessEntry?.lastProcessedRevisionId ?? 0;
+		this.lastProcessedLogId = wikiProcessEntry?.lastProcessedLogId ?? 0;
 
 		this.lastActorUpdateTimestamp = wikiProcessEntry?.lastActorUpdate ?? new Date(2000, 1, 1);
 		if (isNaN(this.lastActorUpdateTimestamp.getTime())) {
@@ -135,7 +160,7 @@ export class WikiEditCacher {
 	}
 
 	private processRevisionList(revisions: Revision[]): void {
-		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Starting processing ${REVISIONS_PROCESSED_AT_ONCE} revisions.`);
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Starting processing ${revisions.length} revisions.`);
 
 		for (const revision of revisions) {
 			if (revision.actor == null) {
@@ -150,50 +175,138 @@ export class WikiEditCacher {
 
 			const actor = revision.actor;
 
-			const editDate = this.getStartOfDayAsPlainDate(revision);
+			const editDate = this.getStartOfDayAsPlainDate(revision.timestamp);
 
 			let statsByActor = this.statsByActorDict[actor.id];
 			if (!statsByActor) {
 				statsByActor = {
 					actor: actor,
 					actorId: actor.id,
-					editsByDate: [{ date: editDate, edits: 1 }],
+					actorName: actor.user ? actor.user.name : actor.name,
+					editsByDate: [{ date: editDate, events: 1 }],
 					editsByDateAndNs: [{
 						namespace: revision.page.namespace,
-						editsByDate: [{ date: editDate, edits: 1 }]
-					}]
+						editsByDate: [{ date: editDate, events: 1 }]
+					}],
+					logEntriesByDate: [],
+					logEntriesByDateNsAndCt: [],
 				};
 				this.statsByActorList.push(statsByActor);
 				this.statsByActorDict[actor.id] = statsByActor;
 			} else {
 				const dailyBucket = statsByActor.editsByDate.find(x => isSameDay(x.date, editDate));
 				if (!dailyBucket) {
-					statsByActor.editsByDate.push({ date: editDate, edits: 1 });
+					statsByActor.editsByDate.push({ date: editDate, events: 1 });
 				} else {
-					dailyBucket.edits++;
+					dailyBucket.events++;
 				}
 
-				const nsBucket = statsByActor.editsByDateAndNs.find(x => x.namespace == revision.page.namespace);
+				const nsBucket = statsByActor.editsByDateAndNs.find(x => x.namespace === revision.page.namespace);
 				if (!nsBucket) {
 					statsByActor.editsByDateAndNs.push({
 						namespace: revision.page.namespace,
-						editsByDate: [{ date: editDate, edits: 1 }]
+						editsByDate: [{ date: editDate, events: 1 }]
 					});
 				} else {
 					const dailyNsBucket = nsBucket.editsByDate.find(x => isSameDay(x.date, editDate));
 					if (!dailyNsBucket) {
-						nsBucket.editsByDate.push({ date: editDate, edits: 1 });
+						nsBucket.editsByDate.push({ date: editDate, events: 1 });
 					} else {
-						dailyNsBucket.edits++;
+						dailyNsBucket.events++;
 					}
 				}
 			}
 		}
 	}
 
-	private getStartOfDayAsPlainDate(revision: Revision) {
+	private async tryProcessNextLogBatch(): Promise<boolean> {
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Getting at most ${LOG_ENTRIES_PROCESSED_AT_ONCE} log entries starting at id ${this.lastProcessedLogId + 1}...`);
+
+		const logEntries = await this.replicatedDatabaseConnection.getRepository(LogEntry)
+			.createQueryBuilder("log")
+			.leftJoinAndSelect("log.actor", "act")
+			.leftJoinAndSelect("act.user", "usr")
+			.where("log.id > :lastProcessedLogId", { lastProcessedLogId: this.lastProcessedLogId })
+			.orderBy("log.id", "ASC")
+			.limit(LOG_ENTRIES_PROCESSED_AT_ONCE)
+			.getMany();
+
+		if (!logEntries || logEntries.length == 0) {
+			this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] No new log entries to process.`);
+			return false;
+		}
+
+		this.totalProcessedLogEntries += logEntries.length;
+		this.lastProcessedLogId = logEntries[logEntries.length - 1].id;
+		this.processLogEntryList(logEntries);
+
+		return true;
+	}
+
+	private processLogEntryList(logEntries: LogEntry[]): void {
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Starting processing ${logEntries.length} log entries.`);
+
+		for (const logEntry of logEntries) {
+			if (logEntry.actor == null) {
+				this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Log entry ${logEntry.id} does not have a valid actor reference.`);
+				continue;
+			}
+
+			const actor = logEntry.actor;
+
+			const editDate = this.getStartOfDayAsPlainDate(logEntry.timestamp);
+
+			let statsByActor = this.statsByActorDict[actor.id];
+			if (!statsByActor) {
+				statsByActor = {
+					actor: actor,
+					actorId: actor.id,
+					actorName: actor.user ? actor.user.name : actor.name,
+					editsByDate: [],
+					editsByDateAndNs: [],
+					logEntriesByDate: [{ date: editDate, events: 1 }],
+					logEntriesByDateNsAndCt: [{
+						namespace: logEntry.namespace,
+						logType: logEntry.type,
+						logAction: logEntry.action,
+						editsByDate: [{ date: editDate, events: 1 }]
+					}]
+				};
+				this.statsByActorList.push(statsByActor);
+				this.statsByActorDict[actor.id] = statsByActor;
+			} else {
+				const dailyBucket = statsByActor.logEntriesByDate.find(x => isSameDay(x.date, editDate));
+				if (!dailyBucket) {
+					statsByActor.logEntriesByDate.push({ date: editDate, events: 1 });
+				} else {
+					dailyBucket.events++;
+				}
+
+				const nsctBucket = statsByActor.logEntriesByDateNsAndCt.find(x => x.namespace === logEntry.namespace
+					&& x.logType === logEntry.type
+					&& x.logAction === logEntry.action);
+				if (!nsctBucket) {
+					statsByActor.logEntriesByDateNsAndCt.push({
+						namespace: logEntry.namespace,
+						logType: logEntry.type,
+						logAction: logEntry.action,
+						editsByDate: [{ date: editDate, events: 1 }]
+					});
+				} else {
+					const dailyNsBucket = nsctBucket.editsByDate.find(x => isSameDay(x.date, editDate));
+					if (!dailyNsBucket) {
+						nsctBucket.editsByDate.push({ date: editDate, events: 1 });
+					} else {
+						dailyNsBucket.events++;
+					}
+				}
+			}
+		}
+	}
+
+	private getStartOfDayAsPlainDate(timestamp: Date) {
 		return moment(
-			moment.tz(revision.timestamp, "UTC")
+			moment.tz(timestamp, "UTC")
 				.tz(this.wiki.timeZone, false)
 				.startOf("day")
 				.format("YYYY-MM-DDTHH:mm:ss"),
@@ -287,7 +400,7 @@ export class WikiEditCacher {
 				await this.updateActor(em, actorToUpdate);
 			}
 			for (const actorStat of this.statsByActorList) {
-				await this.saveActorStatistics(em, actorStat);
+				await this.saveActorStatisticsToDatabase(em, actorStat);
 			}
 			await this.saveWikiProcessedRevisionInfo(em);
 		});
@@ -371,40 +484,56 @@ export class WikiEditCacher {
 		}
 	}
 
-	private async saveActorStatistics(em: EntityManager, actorStat: StatsByActor): Promise<void> {
-		const existingActor = await em.getRepository(this.wikiStatisticsEntities.actor)
-			.findOne({ where: { actorId: actorStat.actorId } });
-
+	private async saveActorStatisticsToDatabase(em: EntityManager, actorStat: StatsByActor): Promise<void> {
 		actorStat.editsByDate.sort((a, b) => compareAsc(a.date, b.date));
 		for (const nsStat of actorStat.editsByDateAndNs) {
 			nsStat.editsByDate.sort((a, b) => compareAsc(a.date, b.date));
 		}
+		actorStat.logEntriesByDate.sort((a, b) => compareAsc(a.date, b.date));
+		for (const nsctStat of actorStat.logEntriesByDateNsAndCt) {
+			nsctStat.editsByDate.sort((a, b) => compareAsc(a.date, b.date));
+		}
+
+		await this.saveActorEntityToDatabase(actorStat, em);
+		await this.saveActorEditsByDateToDatabase(actorStat, em);
+		await this.saveActorEditsByDateAndNsToDatabase(actorStat, em);
+		await this.saveActorLogEntriesByDateToDatabase(actorStat, em);
+		await this.saveActorLogEntriesByDateNsAndCtToDatabase(actorStat, em);
+
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: ${actorStat.actorName} successfully finished.`);
+	}
+
+	private async saveActorEntityToDatabase(actorStat: StatsByActor, em: EntityManager) {
+		const existingActor = await em.getRepository(this.wikiStatisticsEntities.actor)
+			.findOne({ where: { actorId: actorStat.actorId } });
 
 		const firstEditDate = actorStat.editsByDate[0].date;
 
-		const actorName = actorStat.actor.user ? actorStat.actor.user.name : actorStat.actor.name;
-		if (!existingActor) {
-			this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] saveActorStatistics: Creating actor for '${actorName}'`);
-			await em.createQueryBuilder()
-				.insert()
-				.into(this.wikiStatisticsEntities.actor)
-				.values({
-					actorId: actorStat.actorId,
-					actorName: actorName,
-					isRegistered: !!actorStat.actor.user,
-					isRegistrationTimestampFromFirstEdit: actorStat.actor.user
-						? actorStat.actor.user.registrationTimestamp == null
-						: null,
-					registrationTimestamp: actorStat.actor.user
-						? (actorStat.actor.user.registrationTimestamp == null
-							? firstEditDate
-							: actorStat.actor.user.registrationTimestamp)
-						: null,
-				})
-				.execute();
-		}
+		if (existingActor)
+			return;
 
-		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating edits by date for ${actorName} (${actorStat.editsByDate.length} items)...`);
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] saveActorStatistics: Creating actor for '${actorStat.actorName}'`);
+		await em.createQueryBuilder()
+			.insert()
+			.into(this.wikiStatisticsEntities.actor)
+			.values({
+				actorId: actorStat.actorId,
+				actorName: actorStat.actorName,
+				isRegistered: !!actorStat.actor.user,
+				isRegistrationTimestampFromFirstEdit: actorStat.actor.user
+					? actorStat.actor.user.registrationTimestamp == null
+					: null,
+				registrationTimestamp: actorStat.actor.user
+					? (actorStat.actor.user.registrationTimestamp == null
+						? firstEditDate
+						: actorStat.actor.user.registrationTimestamp)
+					: null,
+			})
+			.execute();
+	}
+
+	private async saveActorEditsByDateToDatabase(actorStat: StatsByActor, em: EntityManager) {
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating edits by date for ${actorStat.actorName} (${actorStat.editsByDate.length} items)...`);
 
 		for (const editByDate of actorStat.editsByDate) {
 			const existingStat = await em.getRepository(this.wikiStatisticsEntities.actorEditStatistics)
@@ -414,7 +543,7 @@ export class WikiEditCacher {
 				await em
 					.createQueryBuilder()
 					.update(this.wikiStatisticsEntities.actorEditStatistics)
-					.set({ dailyEdits: existingStat.dailyEdits + editByDate.edits })
+					.set({ dailyEdits: existingStat.dailyEdits + editByDate.events })
 					.where("actorId = :actorId", { actorId: actorStat.actorId })
 					.andWhere("date = :date", { date: editByDate.date })
 					.execute();
@@ -423,8 +552,8 @@ export class WikiEditCacher {
 					.createQueryBuilder()
 					.update(this.wikiStatisticsEntities.actorEditStatistics)
 					.set({
-						dailyEdits: () => `daily_edits + ${editByDate.edits}`,
-						editsToDate: () => `edits_to_date + ${editByDate.edits}`,
+						dailyEdits: () => `daily_edits + ${editByDate.events}`,
+						editsToDate: () => `edits_to_date + ${editByDate.events}`,
 					})
 					.where("actorId = :actorId", { actorId: actorStat.actorId })
 					.andWhere("date > :date", { date: editByDate.date })
@@ -447,7 +576,7 @@ export class WikiEditCacher {
 					.values({
 						actorId: actorStat.actorId,
 						date: editByDate.date,
-						dailyEdits: editByDate.edits,
+						dailyEdits: editByDate.events,
 						editsToDate: previousDay
 							? previousDay.editsToDate + previousDay.dailyEdits
 							: 0
@@ -456,9 +585,11 @@ export class WikiEditCacher {
 			}
 
 		}
+	}
 
+	private async saveActorEditsByDateAndNsToDatabase(actorStat: StatsByActor, em: EntityManager) {
 		const nsItemCount = _.sumBy(actorStat.editsByDateAndNs, x => x.editsByDate.length);
-		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating edits by date by namespace for ${actorName} (${nsItemCount} items)...`);
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating edits by date by namespace for ${actorStat.actorName} (${nsItemCount} items)...`);
 
 		for (const editsByNs of actorStat.editsByDateAndNs) {
 			for (const editByDateAndNs of editsByNs.editsByDate) {
@@ -469,7 +600,7 @@ export class WikiEditCacher {
 					await em
 						.createQueryBuilder()
 						.update(this.wikiStatisticsEntities.actorEditStatisticsByNamespace)
-						.set({ dailyEdits: existingStat.dailyEdits + editByDateAndNs.edits })
+						.set({ dailyEdits: existingStat.dailyEdits + editByDateAndNs.events })
 						.where("actorId = :actorId", { actorId: actorStat.actorId })
 						.andWhere("date = :date", { date: editByDateAndNs.date })
 						.andWhere("namespace = :namespace", { namespace: editsByNs.namespace })
@@ -477,10 +608,10 @@ export class WikiEditCacher {
 
 					await em
 						.createQueryBuilder()
-						.update(this.wikiStatisticsEntities.actorEditStatistics)
+						.update(this.wikiStatisticsEntities.actorEditStatisticsByNamespace)
 						.set({
-							dailyEdits: () => `daily_edits + ${editByDateAndNs.edits}`,
-							editsToDate: () => `edits_to_date + ${editByDateAndNs.edits}`,
+							dailyEdits: () => `daily_edits + ${editByDateAndNs.events}`,
+							editsToDate: () => `edits_to_date + ${editByDateAndNs.events}`,
 						})
 						.where("actorId = :actorId", { actorId: actorStat.actorId })
 						.andWhere("date > :date", { date: editByDateAndNs.date })
@@ -505,7 +636,7 @@ export class WikiEditCacher {
 							actorId: actorStat.actorId,
 							date: editByDateAndNs.date,
 							namespace: editsByNs.namespace,
-							dailyEdits: editByDateAndNs.edits,
+							dailyEdits: editByDateAndNs.events,
 							editsToDate: previousDay
 								? previousDay.editsToDate + previousDay.dailyEdits
 								: 0
@@ -514,8 +645,120 @@ export class WikiEditCacher {
 				}
 			}
 		}
+	}
 
-		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: ${actorName} successfully finished.`);
+	private async saveActorLogEntriesByDateToDatabase(actorStat: StatsByActor, em: EntityManager) {
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating log entries by date for ${actorStat.actorName} (${actorStat.editsByDate.length} items)...`);
+
+		for (const editByDate of actorStat.editsByDate) {
+			const existingStat = await em.getRepository(this.wikiStatisticsEntities.actorLogStatistics)
+				.findOne({ where: { actorId: actorStat.actorId, date: editByDate.date } });
+
+			if (existingStat) {
+				await em
+					.createQueryBuilder()
+					.update(this.wikiStatisticsEntities.actorLogStatistics)
+					.set({ dailyLogEvents: existingStat.dailyLogEvents + editByDate.events })
+					.where("actorId = :actorId", { actorId: actorStat.actorId })
+					.andWhere("date = :date", { date: editByDate.date })
+					.execute();
+
+				await em
+					.createQueryBuilder()
+					.update(this.wikiStatisticsEntities.actorLogStatistics)
+					.set({
+						dailyLogEvents: () => `daily_log_events + ${editByDate.events}`,
+						logEventsToDate: () => `log_events_to_date + ${editByDate.events}`,
+					})
+					.where("actorId = :actorId", { actorId: actorStat.actorId })
+					.andWhere("date > :date", { date: editByDate.date })
+					.execute();
+			} else {
+				const previousDay = await em.getRepository(this.wikiStatisticsEntities.actorLogStatistics)
+					.findOne({
+						where: {
+							actorId: actorStat.actorId,
+							date: LessThan(editByDate.date)
+						},
+						order: {
+							date: "DESC"
+						}
+					});
+
+				await em.createQueryBuilder()
+					.insert()
+					.into(this.wikiStatisticsEntities.actorLogStatistics)
+					.values({
+						actorId: actorStat.actorId,
+						date: editByDate.date,
+						dailyLogEvents: editByDate.events,
+						logEventsToDate: previousDay
+							? previousDay.logEventsToDate + previousDay.dailyLogEvents
+							: 0
+					})
+					.execute();
+			}
+		}
+	}
+
+	private async saveActorLogEntriesByDateNsAndCtToDatabase(actorStat: StatsByActor, em: EntityManager) {
+		const nsItemCount = _.sumBy(actorStat.logEntriesByDateNsAndCt, x => x.editsByDate.length);
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating log entries by date, log type and namespace for ${actorStat.actorName} (${nsItemCount} items)...`);
+
+		for (const editsByNs of actorStat.logEntriesByDateNsAndCt) {
+			for (const editByDateNsAndCt of editsByNs.editsByDate) {
+				const existingStat = await em.getRepository(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndChangeTag)
+					.findOne({ where: { actorId: actorStat.actorId, namespace: editsByNs.namespace, date: editByDateNsAndCt.date } });
+
+				if (existingStat) {
+					await em
+						.createQueryBuilder()
+						.update(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndChangeTag)
+						.set({ dailyLogEvents: existingStat.dailyLogEvents + editByDateNsAndCt.events })
+						.where("actorId = :actorId", { actorId: actorStat.actorId })
+						.andWhere("date = :date", { date: editByDateNsAndCt.date })
+						.andWhere("namespace = :namespace", { namespace: editsByNs.namespace })
+						.execute();
+
+					await em
+						.createQueryBuilder()
+						.update(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndChangeTag)
+						.set({
+							dailyLogEvents: () => `daily_edits + ${editByDateNsAndCt.events}`,
+							logEventsToDate: () => `edits_to_date + ${editByDateNsAndCt.events}`,
+						})
+						.where("actorId = :actorId", { actorId: actorStat.actorId })
+						.andWhere("date > :date", { date: editByDateNsAndCt.date })
+						.execute();
+				} else {
+					const previousDay = await em.getRepository(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndChangeTag)
+						.findOne({
+							where: {
+								actorId: actorStat.actorId,
+								namespace: editsByNs.namespace,
+								date: LessThan(editByDateNsAndCt.date)
+							},
+							order: {
+								date: "DESC"
+							}
+						});
+
+					await em.createQueryBuilder()
+						.insert()
+						.into(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndChangeTag)
+						.values({
+							actorId: actorStat.actorId,
+							date: editByDateNsAndCt.date,
+							namespace: editsByNs.namespace,
+							dailyLogEvents: editByDateNsAndCt.events,
+							logEventsToDate: previousDay
+								? previousDay.logEventsToDate + previousDay.logEventsToDate
+								: 0
+						})
+						.execute();
+				}
+			}
+		}
 	}
 
 	private async saveWikiProcessedRevisionInfo(em: EntityManager): Promise<void> {
@@ -528,6 +771,7 @@ export class WikiEditCacher {
 				.values({
 					wiki: this.wiki.id,
 					lastProcessedRevisionId: this.lastProcessedRevisionId,
+					lastProcessedLogId: this.lastProcessedLogId,
 					lastActorUpdate: this.actorsToUpdate.length > 0
 						? moment.utc().toDate()
 						: this.lastActorUpdateTimestamp,
@@ -539,6 +783,7 @@ export class WikiEditCacher {
 				.update(WikiProcessedRevisions)
 				.set({
 					lastProcessedRevisionId: this.lastProcessedRevisionId,
+					lastProcessedLogId: this.lastProcessedLogId,
 					lastActorUpdate: this.actorsToUpdate.length > 0
 						? moment.utc().toDate()
 						: this.lastActorUpdateTimestamp,
