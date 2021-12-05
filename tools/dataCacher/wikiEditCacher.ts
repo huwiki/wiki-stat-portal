@@ -22,21 +22,27 @@ interface WikiEditCacherOptions {
 	toolsConnection: Connection;
 }
 
-interface CounterByDate {
+interface EditsByDate {
 	date: Date;
-	events: number;
+	edits: number;
+	characterChanges: number;
+}
+
+interface LogEntriesByDate {
+	date: Date;
+	logEntries: number;
 }
 
 interface EditsByDateAndNs {
 	namespace: number;
-	editsByDate: CounterByDate[];
+	editsByDate: EditsByDate[];
 }
 
 interface LogEntriesByDateNsAndCt {
 	namespace: number;
 	logType: string;
 	logAction: string;
-	editsByDate: CounterByDate[];
+	editsByDate: LogEntriesByDate[];
 }
 
 interface StatsByActor {
@@ -47,9 +53,9 @@ interface StatsByActor {
 	lastEditTimestamp: moment.Moment | null;
 	firstLogEntryTimestamp: moment.Moment | null;
 	lastLogEntryTimestamp: moment.Moment | null;
-	editsByDate: CounterByDate[];
+	editsByDate: EditsByDate[];
 	editsByDateAndNs: EditsByDateAndNs[];
-	logEntriesByDate: CounterByDate[];
+	logEntriesByDate: LogEntriesByDate[];
 	logEntriesByDateNsAndCt: LogEntriesByDateNsAndCt[];
 }
 
@@ -103,7 +109,7 @@ export class WikiEditCacher {
 			if (!(await this.tryProcessNextLogBatch()))
 				break;
 
-			if (this.totalProcessedRevisions >= this.appConfig.dataCacher.maxLogEntriesProcessedInASingleRun)
+			if (this.totalProcessedLogEntries >= this.appConfig.dataCacher.maxLogEntriesProcessedInASingleRun)
 				break;
 		}
 
@@ -140,6 +146,7 @@ export class WikiEditCacher {
 			.leftJoinAndSelect("rev.actor", "act")
 			.leftJoinAndSelect("rev.comment", "comm")
 			.leftJoinAndSelect("act.user", "usr")
+			.leftJoinAndSelect("rev.parentRevision", "p")
 			.where("rev.id > :lastProcessedRevisionId", { lastProcessedRevisionId: this.lastProcessedRevisionId })
 			.orderBy("rev.id", "ASC")
 			.limit(this.appConfig.dataCacher.revisionsProcessedAtOnce)
@@ -175,6 +182,11 @@ export class WikiEditCacher {
 
 			const editDate = this.getStartOfDayAsPlainDate(revision.timestamp);
 			const currentEditTimestamp = moment(revision.timestamp);
+			const characterChanges = revision.length - (revision.parentRevision?.length ?? 0);
+
+			if (revision.parentRevision) {
+				this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Revision ${revision.id} has a valid parent revision reference.`);
+			}
 
 			let statsByActor = this.statsByActorDict[actor.id];
 			if (!statsByActor) {
@@ -186,10 +198,10 @@ export class WikiEditCacher {
 					lastEditTimestamp: currentEditTimestamp,
 					firstLogEntryTimestamp: null,
 					lastLogEntryTimestamp: null,
-					editsByDate: [{ date: editDate, events: 1 }],
+					editsByDate: [{ date: editDate, edits: 1, characterChanges: characterChanges }],
 					editsByDateAndNs: [{
 						namespace: revision.page.namespace,
-						editsByDate: [{ date: editDate, events: 1 }]
+						editsByDate: [{ date: editDate, edits: 1, characterChanges: characterChanges }]
 					}],
 					logEntriesByDate: [],
 					logEntriesByDateNsAndCt: [],
@@ -207,23 +219,25 @@ export class WikiEditCacher {
 
 				const dailyBucket = statsByActor.editsByDate.find(x => isSameDay(x.date, editDate));
 				if (!dailyBucket) {
-					statsByActor.editsByDate.push({ date: editDate, events: 1 });
+					statsByActor.editsByDate.push({ date: editDate, edits: 1, characterChanges: characterChanges });
 				} else {
-					dailyBucket.events++;
+					dailyBucket.edits++;
+					dailyBucket.characterChanges += characterChanges;
 				}
 
 				const nsBucket = statsByActor.editsByDateAndNs.find(x => x.namespace === revision.page.namespace);
 				if (!nsBucket) {
 					statsByActor.editsByDateAndNs.push({
 						namespace: revision.page.namespace,
-						editsByDate: [{ date: editDate, events: 1 }]
+						editsByDate: [{ date: editDate, edits: 1, characterChanges: characterChanges }]
 					});
 				} else {
 					const dailyNsBucket = nsBucket.editsByDate.find(x => isSameDay(x.date, editDate));
 					if (!dailyNsBucket) {
-						nsBucket.editsByDate.push({ date: editDate, events: 1 });
+						nsBucket.editsByDate.push({ date: editDate, edits: 1, characterChanges: characterChanges });
 					} else {
-						dailyNsBucket.events++;
+						dailyNsBucket.edits++;
+						dailyNsBucket.characterChanges += characterChanges;
 					}
 				}
 			}
@@ -280,12 +294,12 @@ export class WikiEditCacher {
 					lastLogEntryTimestamp: currentLogEntryTimestamp,
 					editsByDate: [],
 					editsByDateAndNs: [],
-					logEntriesByDate: [{ date: editDate, events: 1 }],
+					logEntriesByDate: [{ date: editDate, logEntries: 1 }],
 					logEntriesByDateNsAndCt: [{
 						namespace: logEntry.namespace,
 						logType: logEntry.type,
 						logAction: logEntry.action,
-						editsByDate: [{ date: editDate, events: 1 }]
+						editsByDate: [{ date: editDate, logEntries: 1 }]
 					}]
 				};
 				this.statsByActorList.push(statsByActor);
@@ -301,9 +315,9 @@ export class WikiEditCacher {
 
 				const dailyBucket = statsByActor.logEntriesByDate.find(x => isSameDay(x.date, editDate));
 				if (!dailyBucket) {
-					statsByActor.logEntriesByDate.push({ date: editDate, events: 1 });
+					statsByActor.logEntriesByDate.push({ date: editDate, logEntries: 1 });
 				} else {
-					dailyBucket.events++;
+					dailyBucket.logEntries++;
 				}
 
 				const nsctBucket = statsByActor.logEntriesByDateNsAndCt.find(x => x.namespace === logEntry.namespace
@@ -314,14 +328,14 @@ export class WikiEditCacher {
 						namespace: logEntry.namespace,
 						logType: logEntry.type,
 						logAction: logEntry.action,
-						editsByDate: [{ date: editDate, events: 1 }]
+						editsByDate: [{ date: editDate, logEntries: 1 }]
 					});
 				} else {
 					const dailyNsBucket = nsctBucket.editsByDate.find(x => isSameDay(x.date, editDate));
 					if (!dailyNsBucket) {
-						nsctBucket.editsByDate.push({ date: editDate, events: 1 });
+						nsctBucket.editsByDate.push({ date: editDate, logEntries: 1 });
 					} else {
-						dailyNsBucket.events++;
+						dailyNsBucket.logEntries++;
 					}
 				}
 			}
@@ -632,7 +646,10 @@ export class WikiEditCacher {
 				await em
 					.createQueryBuilder()
 					.update(this.wikiStatisticsEntities.actorEditStatistics)
-					.set({ dailyEdits: existingStat.dailyEdits + editByDate.events })
+					.set({
+						dailyEdits: existingStat.dailyEdits + editByDate.edits,
+						dailyCharacterChanges: existingStat.dailyCharacterChanges + editByDate.characterChanges
+					})
 					.where("actorId = :actorId", { actorId: actorStat.actorId })
 					.andWhere("date = :date", { date: editByDate.date })
 					.execute();
@@ -641,8 +658,10 @@ export class WikiEditCacher {
 					.createQueryBuilder()
 					.update(this.wikiStatisticsEntities.actorEditStatistics)
 					.set({
-						dailyEdits: () => `daily_edits + ${editByDate.events}`,
-						editsToDate: () => `edits_to_date + ${editByDate.events}`,
+						dailyEdits: () => `daily_edits + ${editByDate.edits}`,
+						editsToDate: () => `edits_to_date + ${editByDate.edits}`,
+						dailyCharacterChanges: () => `daily_character_changes + ${editByDate.characterChanges}`,
+						characterChangesToDate: () => `character_changes_to_date + ${editByDate.characterChanges}`,
 					})
 					.where("actorId = :actorId", { actorId: actorStat.actorId })
 					.andWhere("date > :date", { date: editByDate.date })
@@ -665,10 +684,14 @@ export class WikiEditCacher {
 					.values({
 						actorId: actorStat.actorId,
 						date: editByDate.date,
-						dailyEdits: editByDate.events,
+						dailyEdits: editByDate.edits,
 						editsToDate: previousDay
 							? previousDay.editsToDate + previousDay.dailyEdits
-							: 0
+							: 0,
+						dailyCharacterChanges: editByDate.characterChanges,
+						characterChangesToDate: previousDay
+							? previousDay.characterChangesToDate + previousDay.dailyCharacterChanges
+							: 0,
 					})
 					.execute();
 			}
@@ -689,7 +712,10 @@ export class WikiEditCacher {
 					await em
 						.createQueryBuilder()
 						.update(this.wikiStatisticsEntities.actorEditStatisticsByNamespace)
-						.set({ dailyEdits: existingStat.dailyEdits + editByDateAndNs.events })
+						.set({
+							dailyEdits: existingStat.dailyEdits + editByDateAndNs.edits,
+							dailyCharacterChanges: existingStat.dailyCharacterChanges + editByDateAndNs.characterChanges,
+						})
 						.where("actorId = :actorId", { actorId: actorStat.actorId })
 						.andWhere("date = :date", { date: editByDateAndNs.date })
 						.andWhere("namespace = :namespace", { namespace: editsByNs.namespace })
@@ -699,8 +725,10 @@ export class WikiEditCacher {
 						.createQueryBuilder()
 						.update(this.wikiStatisticsEntities.actorEditStatisticsByNamespace)
 						.set({
-							dailyEdits: () => `daily_edits + ${editByDateAndNs.events}`,
-							editsToDate: () => `edits_to_date + ${editByDateAndNs.events}`,
+							dailyEdits: () => `daily_edits + ${editByDateAndNs.edits}`,
+							editsToDate: () => `edits_to_date + ${editByDateAndNs.edits}`,
+							dailyCharacterChanges: () => `daily_character_changes + ${editByDateAndNs.characterChanges}`,
+							characterChangesToDate: () => `character_changes_to_date + ${editByDateAndNs.characterChanges}`,
 						})
 						.where("actorId = :actorId", { actorId: actorStat.actorId })
 						.andWhere("date > :date", { date: editByDateAndNs.date })
@@ -725,10 +753,14 @@ export class WikiEditCacher {
 							actorId: actorStat.actorId,
 							date: editByDateAndNs.date,
 							namespace: editsByNs.namespace,
-							dailyEdits: editByDateAndNs.events,
+							dailyEdits: editByDateAndNs.edits,
 							editsToDate: previousDay
 								? previousDay.editsToDate + previousDay.dailyEdits
-								: 0
+								: 0,
+							dailyCharacterChanges: editByDateAndNs.characterChanges,
+							characterChangesToDate: previousDay
+								? previousDay.characterChangesToDate + previousDay.dailyCharacterChanges
+								: 0,
 						})
 						.execute();
 				}
@@ -747,7 +779,7 @@ export class WikiEditCacher {
 				await em
 					.createQueryBuilder()
 					.update(this.wikiStatisticsEntities.actorLogStatistics)
-					.set({ dailyLogEvents: existingStat.dailyLogEvents + editByDate.events })
+					.set({ dailyLogEvents: existingStat.dailyLogEvents + editByDate.logEntries })
 					.where("actorId = :actorId", { actorId: actorStat.actorId })
 					.andWhere("date = :date", { date: editByDate.date })
 					.execute();
@@ -756,8 +788,8 @@ export class WikiEditCacher {
 					.createQueryBuilder()
 					.update(this.wikiStatisticsEntities.actorLogStatistics)
 					.set({
-						dailyLogEvents: () => `daily_log_events + ${editByDate.events}`,
-						logEventsToDate: () => `log_events_to_date + ${editByDate.events}`,
+						dailyLogEvents: () => `daily_log_events + ${editByDate.logEntries}`,
+						logEventsToDate: () => `log_events_to_date + ${editByDate.logEntries}`,
 					})
 					.where("actorId = :actorId", { actorId: actorStat.actorId })
 					.andWhere("date > :date", { date: editByDate.date })
@@ -780,7 +812,7 @@ export class WikiEditCacher {
 					.values({
 						actorId: actorStat.actorId,
 						date: editByDate.date,
-						dailyLogEvents: editByDate.events,
+						dailyLogEvents: editByDate.logEntries,
 						logEventsToDate: previousDay
 							? previousDay.logEventsToDate + previousDay.dailyLogEvents
 							: 0
@@ -811,7 +843,7 @@ export class WikiEditCacher {
 					await em
 						.createQueryBuilder()
 						.update(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndChangeTag)
-						.set({ dailyLogEvents: existingStat.dailyLogEvents + editByDateNsAndCt.events })
+						.set({ dailyLogEvents: existingStat.dailyLogEvents + editByDateNsAndCt.logEntries })
 						.where("actorId = :actorId", { actorId: actorStat.actorId })
 						.andWhere("date = :date", { date: editByDateNsAndCt.date })
 						.andWhere("namespace = :namespace", { namespace: editsByNs.namespace })
@@ -821,8 +853,8 @@ export class WikiEditCacher {
 						.createQueryBuilder()
 						.update(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndChangeTag)
 						.set({
-							dailyLogEvents: () => `daily_log_events + ${editByDateNsAndCt.events}`,
-							logEventsToDate: () => `log_events_to_date + ${editByDateNsAndCt.events}`,
+							dailyLogEvents: () => `daily_log_events + ${editByDateNsAndCt.logEntries}`,
+							logEventsToDate: () => `log_events_to_date + ${editByDateNsAndCt.logEntries}`,
 						})
 						.where("actorId = :actorId", { actorId: actorStat.actorId })
 						.andWhere("date > :date", { date: editByDateNsAndCt.date })
@@ -853,7 +885,7 @@ export class WikiEditCacher {
 							namespace: editsByNs.namespace,
 							logAction: editsByNs.logAction,
 							logType: editsByNs.logType,
-							dailyLogEvents: editByDateNsAndCt.events,
+							dailyLogEvents: editByDateNsAndCt.logEntries,
 							logEventsToDate: previousDay
 								? previousDay.logEventsToDate + previousDay.dailyLogEvents
 								: 0

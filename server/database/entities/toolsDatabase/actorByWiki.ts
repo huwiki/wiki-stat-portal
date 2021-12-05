@@ -32,6 +32,8 @@ export class ActorEditStatisticsTypeModel {
 	public date: Date;
 	public dailyEdits: number;
 	public editsToDate: number;
+	public dailyCharacterChanges: number;
+	public characterChangesToDate: number;
 }
 
 export class ActorEditStatisticsByNamespaceTypeModel {
@@ -40,6 +42,8 @@ export class ActorEditStatisticsByNamespaceTypeModel {
 	public date: Date;
 	public dailyEdits: number;
 	public editsToDate: number;
+	public dailyCharacterChanges: number;
+	public characterChangesToDate: number;
 }
 
 export class ActorLogStatisticsTypeModel {
@@ -164,6 +168,12 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 		@Column({ name: "edits_to_date", type: "int" })
 		public editsToDate: number;
+
+		@Column({ name: "daily_character_changes", type: "int" })
+		public dailyCharacterChanges: number;
+
+		@Column({ name: "character_changes_to_date", type: "int" })
+		public characterChangesToDate: number;
 	}
 
 	@Entity({ name: actorEditStatisticsByNamespaceTableName })
@@ -182,6 +192,12 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 		@Column({ name: "edits_to_date", type: "int" })
 		public editsToDate: number;
+
+		@Column({ name: "daily_character_changes", type: "int" })
+		public dailyCharacterChanges: number;
+
+		@Column({ name: "character_changes_to_date", type: "int" })
+		public characterChangesToDate: number;
 	}
 
 	@Entity({ name: actorLogStatisticsTableName })
