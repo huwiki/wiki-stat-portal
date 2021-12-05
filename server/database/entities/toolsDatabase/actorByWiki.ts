@@ -34,6 +34,8 @@ export class ActorEditStatisticsTypeModel {
 	public editsToDate: number;
 	public dailyCharacterChanges: number;
 	public characterChangesToDate: number;
+	public dailyThanks: number;
+	public thanksToDate: number;
 }
 
 export class ActorEditStatisticsByNamespaceTypeModel {
@@ -174,6 +176,12 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 		@Column({ name: "character_changes_to_date", type: "int" })
 		public characterChangesToDate: number;
+
+		@Column({ name: "daily_thanks", type: "int" })
+		public dailyThanks: number;
+
+		@Column({ name: "thanks_to_date", type: "int" })
+		public thanksToDate: number;
 	}
 
 	@Entity({ name: actorEditStatisticsByNamespaceTableName })

@@ -33,6 +33,10 @@ export class LogEntry {
 	@Column({ name: "log_namespace", type: "int", unsigned: true })
 	public namespace: number;
 
+	// log_title varbinary(255)
+	@Column({ name: "log_title", type: "varbinary", length: 255, transformer: bufferToStringTransformer })
+	public title: string;
+
 	// log_deleted tinyint(1) UN
 	@Column({ name: "log_deleted", type: "tinyint", unsigned: true, transformer: intToBooleanTransformer })
 	public isDeleted: boolean;
