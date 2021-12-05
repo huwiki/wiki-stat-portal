@@ -2,7 +2,7 @@
 	"npm.packageManager": "yarn",
 	"files.exclude": {
 		"node_modules/": true,
-		"tools-out/": true,
+		//"tools-out/": true,
 	},
 	"editor.formatOnSave": true,
 	"[typescript]": {
@@ -28,6 +28,18 @@
 				"resources/configuration/modules/userPyramids/*.userPyramids.json",
 			],
 			"url": "./resources/schemas/userPyramidsConfigurationSchema.json"
+		},
+		{
+			"fileMatch": [
+				"resources/configuration/serviceAward/*.serviceAwardLevels.json",
+			],
+			"url": "./resources/schemas/serviceAwardLevelsConfigurationSchema.json"
+		},
+		{
+			"fileMatch": [
+				"resources/configuration/modules/topLists/*.topLists.json",
+			],
+			"url": "./resources/schemas/topListsConfigurationSchema.json"
 		}
 	]
 }
