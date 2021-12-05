@@ -337,10 +337,10 @@ export class WikiEditCacher {
 				dailyBucket.logEntries++;
 			}
 
-			const nsctBucket = statsByActor.logEntriesByDateNsAndCt.find(x => x.namespace === logEntry.namespace
+			const nsltBucket = statsByActor.logEntriesByDateNsAndCt.find(x => x.namespace === logEntry.namespace
 				&& x.logType === logEntry.type
 				&& x.logAction === logEntry.action);
-			if (!nsctBucket) {
+			if (!nsltBucket) {
 				statsByActor.logEntriesByDateNsAndCt.push({
 					namespace: logEntry.namespace,
 					logType: logEntry.type,
@@ -348,9 +348,9 @@ export class WikiEditCacher {
 					editsByDate: [{ date: logEntryDate, logEntries: 1 }]
 				});
 			} else {
-				const dailyNsBucket = nsctBucket.editsByDate.find(x => isSameDay(x.date, logEntryDate));
+				const dailyNsBucket = nsltBucket.editsByDate.find(x => isSameDay(x.date, logEntryDate));
 				if (!dailyNsBucket) {
-					nsctBucket.editsByDate.push({ date: logEntryDate, logEntries: 1 });
+					nsltBucket.editsByDate.push({ date: logEntryDate, logEntries: 1 });
 				} else {
 					dailyNsBucket.logEntries++;
 				}
@@ -575,8 +575,8 @@ export class WikiEditCacher {
 			nsStat.editsByDate.sort((a, b) => compareAsc(a.date, b.date));
 		}
 		actorStat.logEntriesByDate.sort((a, b) => compareAsc(a.date, b.date));
-		for (const nsctStat of actorStat.logEntriesByDateNsAndCt) {
-			nsctStat.editsByDate.sort((a, b) => compareAsc(a.date, b.date));
+		for (const nsltStat of actorStat.logEntriesByDateNsAndCt) {
+			nsltStat.editsByDate.sort((a, b) => compareAsc(a.date, b.date));
 		}
 
 		await this.saveActorEntityToDatabase(actorStat, em);
@@ -879,7 +879,7 @@ export class WikiEditCacher {
 
 		for (const editsByNs of actorStat.logEntriesByDateNsAndCt) {
 			for (const editByDateNsAndCt of editsByNs.editsByDate) {
-				const existingStat = await em.getRepository(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndChangeTag)
+				const existingStat = await em.getRepository(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndLogType)
 					.findOne({
 						where: {
 							actorId: actorStat.actorId,
@@ -893,7 +893,7 @@ export class WikiEditCacher {
 				if (existingStat) {
 					await em
 						.createQueryBuilder()
-						.update(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndChangeTag)
+						.update(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndLogType)
 						.set({ dailyLogEvents: existingStat.dailyLogEvents + editByDateNsAndCt.logEntries })
 						.where("actorId = :actorId", { actorId: actorStat.actorId })
 						.andWhere("date = :date", { date: editByDateNsAndCt.date })
@@ -902,7 +902,7 @@ export class WikiEditCacher {
 
 					await em
 						.createQueryBuilder()
-						.update(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndChangeTag)
+						.update(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndLogType)
 						.set({
 							dailyLogEvents: () => `daily_log_events + ${editByDateNsAndCt.logEntries}`,
 							logEventsToDate: () => `log_events_to_date + ${editByDateNsAndCt.logEntries}`,
@@ -911,7 +911,7 @@ export class WikiEditCacher {
 						.andWhere("date > :date", { date: editByDateNsAndCt.date })
 						.execute();
 				} else {
-					const previousDay = await em.getRepository(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndChangeTag)
+					const previousDay = await em.getRepository(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndLogType)
 						.findOne({
 							where: {
 								actorId: actorStat.actorId,
@@ -927,7 +927,7 @@ export class WikiEditCacher {
 
 					await em.createQueryBuilder()
 						.insert()
-						.into(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndChangeTag)
+						.into(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndLogType)
 						.values({
 							actorId: actorStat.actorId,
 							date: editByDateNsAndCt.date,

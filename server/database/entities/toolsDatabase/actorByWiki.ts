@@ -55,7 +55,7 @@ export class ActorLogStatisticsTypeModel {
 	public logEventsToDate: number;
 }
 
-export class ActorLogStatisticsByNamespaceAndChangeTagTypeModel {
+export class ActorLogStatisticsByNamespaceAndLogTypeTypeModel {
 	public actorId: number;
 	public namespace: number;
 	public logType: string;
@@ -89,7 +89,7 @@ export interface WikiStatisticsTypesResult {
 	/**
 	 * Entity representing a daily log statistics for a given namespace and change tag of an actor on a wiki.
 	 */
-	actorLogStatisticsByNamespaceAndChangeTag: typeof ActorLogStatisticsByNamespaceAndChangeTagTypeModel,
+	actorLogStatisticsByNamespaceAndLogType: typeof ActorLogStatisticsByNamespaceAndLogTypeTypeModel,
 }
 
 const ENTITY_CACHE_BY_WIKI: { [index: string]: WikiStatisticsTypesResult } = {};
@@ -109,7 +109,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 	const actorEditStatisticsTableName = `${wikiId}_actor_edit_stats_v2`;
 	const actorEditStatisticsByNamespaceTableName = `${wikiId}_actor_edit_stats_by_ns_v2`;
 	const actorLogStatisticsTableName = `${wikiId}_actor_log_stats_v2`;
-	const actorLogStatisticsByNamespaceAndChangeTagTableName = `${wikiId}_actor_log_stats_by_nsct_v2`;
+	const actorLogStatisticsByNamespaceAndLogTypeTableName = `${wikiId}_actor_log_stats_by_nslt_v2`;
 
 	@Entity({ name: actorTableName })
 	class Actor {
@@ -223,8 +223,8 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		public logEventsToDate: number;
 	}
 
-	@Entity({ name: actorLogStatisticsByNamespaceAndChangeTagTableName })
-	class ActorLogStatisticsByNamespaceAndChangeTag {
+	@Entity({ name: actorLogStatisticsByNamespaceAndLogTypeTableName })
+	class ActorLogStatisticsByNamespaceAndLogType {
 		@PrimaryColumn({ name: "actor_id", type: "bigint" })
 		public actorId: number;
 
@@ -253,7 +253,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		actorEditStatistics: ActorEditStatistics,
 		actorEditStatisticsByNamespace: ActorEditStatisticsByNamespace,
 		actorLogStatistics: ActorLogStatistics,
-		actorLogStatisticsByNamespaceAndChangeTag: ActorLogStatisticsByNamespaceAndChangeTag,
+		actorLogStatisticsByNamespaceAndLogType: ActorLogStatisticsByNamespaceAndLogType,
 	};
 
 	ENTITY_CACHE_BY_WIKI[wikiId] = ret;
