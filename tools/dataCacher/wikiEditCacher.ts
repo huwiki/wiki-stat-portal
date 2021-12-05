@@ -16,7 +16,7 @@ import { ActorTypeModel, createActorEntitiesForWiki, WikiStatisticsTypesResult }
 import { WikiProcessedRevisions } from "../../server/database/entities/toolsDatabase/wikiProcessedRevisions";
 import { KnownWiki } from "../../server/interfaces/knownWiki";
 
-//const BASE_TIMESTAMP: string = "20211113000000";
+const BASE_TIMESTAMP: string = "20211113000000";
 
 interface WikiEditCacherOptions {
 	appCtx: AppRunningContext;
@@ -24,31 +24,37 @@ interface WikiEditCacherOptions {
 	toolsConnection: Connection;
 }
 
-interface EditsByDate {
+interface EditStatisticsOnDate {
 	date: Date;
 	edits: number;
 	characterChanges: number;
 	thanks: number;
 }
 
-interface LogEntriesByDate {
+interface LogStatisticsOnDate {
 	date: Date;
 	logEntries: number;
 }
 
-interface EditsByDateAndNs {
+interface EditsByDateAndNamespace {
 	namespace: number;
-	editsByDate: EditsByDate[];
+	editsByDate: EditStatisticsOnDate[];
 }
 
-interface LogEntriesByDateNsAndCt {
+interface EditsByDateNamespaceAndChangeTag {
+	namespace: number;
+	changeTagId: number;
+	editsByDate: EditStatisticsOnDate[];
+}
+
+interface LogEntriesByDateNamespaceAndChangeTag {
 	namespace: number;
 	logType: string;
 	logAction: string;
-	editsByDate: LogEntriesByDate[];
+	editsByDate: LogStatisticsOnDate[];
 }
 
-interface StatsByActor {
+interface ActorStatisticsUpdateCollection {
 	actorId: number;
 	actor: Actor;
 	actorName: string;
@@ -56,10 +62,11 @@ interface StatsByActor {
 	lastEditTimestamp: moment.Moment | null;
 	firstLogEntryTimestamp: moment.Moment | null;
 	lastLogEntryTimestamp: moment.Moment | null;
-	editsByDate: EditsByDate[];
-	editsByDateAndNs: EditsByDateAndNs[];
-	logEntriesByDate: LogEntriesByDate[];
-	logEntriesByDateNsAndCt: LogEntriesByDateNsAndCt[];
+	editsByDate: EditStatisticsOnDate[];
+	editsByDateAndNs: EditsByDateAndNamespace[];
+	editsByDateNsAndChangeTag: EditsByDateNamespaceAndChangeTag[];
+	logEntriesByDate: LogStatisticsOnDate[];
+	logEntriesByDateNsAndCt: LogEntriesByDateNamespaceAndChangeTag[];
 }
 
 interface ActorToUpdate {
@@ -81,8 +88,8 @@ export class WikiEditCacher {
 
 	private lastActorUpdateTimestamp: Date;
 	private replicatedDatabaseConnection: Connection;
-	private statsByActorList: StatsByActor[] = [];
-	private statsByActorDict: { [index: number]: StatsByActor } = {};
+	private statsByActorList: ActorStatisticsUpdateCollection[] = [];
+	private statsByActorDict: { [index: number]: ActorStatisticsUpdateCollection } = {};
 
 	private wikiActors: Actor[] = [];
 	private wikiActorsById: Map<number, Actor> = new Map<number, Actor>();
@@ -172,7 +179,7 @@ export class WikiEditCacher {
 			.leftJoinAndSelect("rev.parentRevision", "p")
 			.leftJoinAndSelect("rev.changeTags", "ctags")
 			.where("rev.id > :lastProcessedRevisionId", { lastProcessedRevisionId: this.lastProcessedRevisionId })
-			//.andWhere("rev.rev_timestamp > :baseTimestamp", { baseTimestamp: BASE_TIMESTAMP })
+			.andWhere("rev.rev_timestamp > :baseTimestamp", { baseTimestamp: BASE_TIMESTAMP })
 			.orderBy("rev.id", "ASC")
 			.limit(this.appConfig.dataCacher.revisionsProcessedAtOnce)
 			.getMany();
@@ -221,6 +228,14 @@ export class WikiEditCacher {
 					editsByDate: [{ date: editDate, edits: 1, characterChanges: characterChanges, thanks: 0 }]
 				});
 
+				for (const ct of (revision.changeTags || [])) {
+					statsByActor.editsByDateNsAndChangeTag.push({
+						changeTagId: ct.tagDefitionId,
+						namespace: revision.page.namespace,
+						editsByDate: [{ date: editDate, edits: 1, characterChanges: characterChanges, thanks: 0 }]
+					});
+				}
+
 				this.statsByActorList.push(statsByActor);
 				this.statsByActorDict[actor.id] = statsByActor;
 			} else {
@@ -255,6 +270,27 @@ export class WikiEditCacher {
 						dailyNsBucket.characterChanges += characterChanges;
 					}
 				}
+
+				for (const ct of (revision.changeTags || [])) {
+					const ctBucket = statsByActor.editsByDateNsAndChangeTag.find(x =>
+						x.namespace === revision.page.namespace
+						&& x.changeTagId === ct.tagDefitionId);
+					if (!ctBucket) {
+						statsByActor.editsByDateNsAndChangeTag.push({
+							namespace: revision.page.namespace,
+							changeTagId: ct.tagDefitionId,
+							editsByDate: [{ date: editDate, edits: 1, characterChanges: characterChanges, thanks: 0 }]
+						});
+					} else {
+						const dailyCtBucket = ctBucket.editsByDate.find(x => isSameDay(x.date, editDate));
+						if (!dailyCtBucket) {
+							ctBucket.editsByDate.push({ date: editDate, edits: 1, characterChanges: characterChanges, thanks: 0 });
+						} else {
+							dailyCtBucket.edits++;
+							dailyCtBucket.characterChanges += characterChanges;
+						}
+					}
+				}
 			}
 		}
 	}
@@ -267,7 +303,7 @@ export class WikiEditCacher {
 			.leftJoinAndSelect("log.actor", "act")
 			.leftJoinAndSelect("act.user", "usr")
 			.where("log.id > :lastProcessedLogId", { lastProcessedLogId: this.lastProcessedLogId })
-			//.andWhere("log.log_timestamp > :baseTimestamp", { baseTimestamp: BASE_TIMESTAMP })
+			.andWhere("log.log_timestamp > :baseTimestamp", { baseTimestamp: BASE_TIMESTAMP })
 			.orderBy("log.id", "ASC")
 			.limit(this.appConfig.dataCacher.logEntriesProcessedAtOnce)
 			.getMany();
@@ -570,7 +606,7 @@ export class WikiEditCacher {
 		}
 	}
 
-	private async saveActorStatisticsToDatabase(em: EntityManager, actorStat: StatsByActor): Promise<void> {
+	private async saveActorStatisticsToDatabase(em: EntityManager, actorStat: ActorStatisticsUpdateCollection): Promise<void> {
 		actorStat.editsByDate.sort((a, b) => compareAsc(a.date, b.date));
 		for (const nsStat of actorStat.editsByDateAndNs) {
 			nsStat.editsByDate.sort((a, b) => compareAsc(a.date, b.date));
@@ -583,13 +619,14 @@ export class WikiEditCacher {
 		await this.saveActorEntityToDatabase(actorStat, em);
 		await this.saveActorEditsByDateToDatabase(actorStat, em);
 		await this.saveActorEditsByDateAndNsToDatabase(actorStat, em);
+		await this.saveActorEditsByDateNsAndChangeTagToDatabase(actorStat, em);
 		await this.saveActorLogEntriesByDateToDatabase(actorStat, em);
 		await this.saveActorLogEntriesByDateNsAndCtToDatabase(actorStat, em);
 
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: ${actorStat.actorName} successfully finished.`);
 	}
 
-	private async saveActorEntityToDatabase(actorStat: StatsByActor, em: EntityManager) {
+	private async saveActorEntityToDatabase(actorStat: ActorStatisticsUpdateCollection, em: EntityManager) {
 		const existingActor = await em.getRepository(this.wikiStatisticsEntities.actor)
 			.findOne({ where: { actorId: actorStat.actorId } });
 
@@ -600,7 +637,7 @@ export class WikiEditCacher {
 		}
 	}
 
-	private async createActorInDatabase(actorStat: StatsByActor, em: EntityManager) {
+	private async createActorInDatabase(actorStat: ActorStatisticsUpdateCollection, em: EntityManager) {
 		const firstEditDate = actorStat.editsByDate.length > 0 ? actorStat.editsByDate[0].date : undefined;
 
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] createActorInDatabase: Creating actor for '${actorStat.actorName}'`);
@@ -627,21 +664,21 @@ export class WikiEditCacher {
 			.execute();
 	}
 
-	private async updateActorInDatabase(actorStat: StatsByActor, existingActor: ActorTypeModel, em: EntityManager): Promise<void> {
+	private async updateActorInDatabase(actorStat: ActorStatisticsUpdateCollection, existingActor: ActorTypeModel, em: EntityManager): Promise<void> {
 		if (existingActor.firstEditTimestamp == null && actorStat.firstEditTimestamp == null
 			&& existingActor.lastEditTimestamp == null && actorStat.lastEditTimestamp == null
 			&& existingActor.firstLogEntryTimestamp == null && actorStat.firstLogEntryTimestamp == null
 			&& existingActor.lastLogEntryTimestamp == null && actorStat.lastLogEntryTimestamp == null)
 			return;
 
-		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] createActorInDatabase: Updating first/last edit statistics for '${actorStat.actorName}'`);
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActorInDatabase: Updating first/last edit statistics for '${actorStat.actorName}'`);
 
 		const isRegistrationTimestampFromFirstEdit = existingActor.registrationTimestamp != null
-			? existingActor.isRegistrationTimestampFromFirstEdit
+			? existingActor.isRegistrationTimestampFromFirstEdit ?? undefined
 			: true;
 		const actorRegistrationTimestamp = existingActor.registrationTimestamp != null
 			? existingActor.registrationTimestamp
-			: actorStat.firstEditTimestamp;
+			: actorStat.firstEditTimestamp?.toDate() ?? undefined;
 
 		const firstEditTimestamp =
 			existingActor.firstEditTimestamp == null && actorStat.firstEditTimestamp == null ? undefined
@@ -678,9 +715,11 @@ export class WikiEditCacher {
 			})
 			.where("actorId = :actorId", { actorId: actorStat.actorId })
 			.execute();
+
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActorInDatabase: Updating first/last edit statistics for '${actorStat.actorName}' completed`);
 	}
 
-	private async saveActorEditsByDateToDatabase(actorStat: StatsByActor, em: EntityManager) {
+	private async saveActorEditsByDateToDatabase(actorStat: ActorStatisticsUpdateCollection, em: EntityManager) {
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating edits by date for ${actorStat.actorName} (${actorStat.editsByDate.length} items)...`);
 
 		for (const editsByDate of actorStat.editsByDate) {
@@ -751,7 +790,7 @@ export class WikiEditCacher {
 		}
 	}
 
-	private async saveActorEditsByDateAndNsToDatabase(actorStat: StatsByActor, em: EntityManager) {
+	private async saveActorEditsByDateAndNsToDatabase(actorStat: ActorStatisticsUpdateCollection, em: EntityManager) {
 		const nsItemCount = _.sumBy(actorStat.editsByDateAndNs, x => x.editsByDate.length);
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating edits by date by namespace for ${actorStat.actorName} (${nsItemCount} items)...`);
 
@@ -820,7 +859,87 @@ export class WikiEditCacher {
 		}
 	}
 
-	private async saveActorLogEntriesByDateToDatabase(actorStat: StatsByActor, em: EntityManager) {
+	private async saveActorEditsByDateNsAndChangeTagToDatabase(actorStat: ActorStatisticsUpdateCollection, em: EntityManager) {
+		const nsItemCount = _.sumBy(actorStat.editsByDateNsAndChangeTag, x => x.editsByDate.length);
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating edits by date by namespace & change tag for ${actorStat.actorName} (${nsItemCount} items)...`);
+
+		for (const editsByCt of actorStat.editsByDateNsAndChangeTag) {
+			for (const editByDateNsAndCt of editsByCt.editsByDate) {
+				const existingStat = await em.getRepository(this.wikiStatisticsEntities.actorEditStatisticsByNamespaceAndChangeTag)
+					.findOne({
+						where: {
+							actorId: actorStat.actorId,
+							changeTagId: editsByCt.changeTagId,
+							namespace: editsByCt.namespace,
+							date: editByDateNsAndCt.date
+						}
+					});
+
+				if (existingStat) {
+					await em
+						.createQueryBuilder()
+						.update(this.wikiStatisticsEntities.actorEditStatisticsByNamespaceAndChangeTag)
+						.set({
+							dailyEdits: existingStat.dailyEdits + editByDateNsAndCt.edits,
+							dailyCharacterChanges: existingStat.dailyCharacterChanges + editByDateNsAndCt.characterChanges,
+						})
+						.where("actorId = :actorId", { actorId: actorStat.actorId })
+						.andWhere("changeTagId = :changeTagId", { changeTagId: editsByCt.changeTagId })
+						.andWhere("date = :date", { date: editByDateNsAndCt.date })
+						.andWhere("namespace = :namespace", { namespace: editsByCt.namespace })
+						.execute();
+
+					await em
+						.createQueryBuilder()
+						.update(this.wikiStatisticsEntities.actorEditStatisticsByNamespaceAndChangeTag)
+						.set({
+							dailyEdits: () => `daily_edits + ${editByDateNsAndCt.edits}`,
+							editsToDate: () => `edits_to_date + ${editByDateNsAndCt.edits}`,
+							dailyCharacterChanges: () => `daily_character_changes + ${editByDateNsAndCt.characterChanges}`,
+							characterChangesToDate: () => `character_changes_to_date + ${editByDateNsAndCt.characterChanges}`,
+						})
+						.where("actorId = :actorId", { actorId: actorStat.actorId })
+						.andWhere("changeTagId = :changeTagId", { changeTagId: editsByCt.changeTagId })
+						.andWhere("date > :date", { date: editByDateNsAndCt.date })
+						.execute();
+				} else {
+					const previousDay = await em.getRepository(this.wikiStatisticsEntities.actorEditStatisticsByNamespaceAndChangeTag)
+						.findOne({
+							where: {
+								actorId: actorStat.actorId,
+								changeTagId: editsByCt.changeTagId,
+								namespace: editsByCt.namespace,
+								date: LessThan(editByDateNsAndCt.date)
+							},
+							order: {
+								date: "DESC"
+							}
+						});
+
+					await em.createQueryBuilder()
+						.insert()
+						.into(this.wikiStatisticsEntities.actorEditStatisticsByNamespaceAndChangeTag)
+						.values({
+							actorId: actorStat.actorId,
+							changeTagId: editsByCt.changeTagId,
+							date: editByDateNsAndCt.date,
+							namespace: editsByCt.namespace,
+							dailyEdits: editByDateNsAndCt.edits,
+							editsToDate: previousDay
+								? previousDay.editsToDate + previousDay.dailyEdits
+								: 0,
+							dailyCharacterChanges: editByDateNsAndCt.characterChanges,
+							characterChangesToDate: previousDay
+								? previousDay.characterChangesToDate + previousDay.dailyCharacterChanges
+								: 0,
+						})
+						.execute();
+				}
+			}
+		}
+	}
+
+	private async saveActorLogEntriesByDateToDatabase(actorStat: ActorStatisticsUpdateCollection, em: EntityManager) {
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating log entries by date for ${actorStat.actorName} (${actorStat.logEntriesByDate.length} items)...`);
 
 		for (const editByDate of actorStat.logEntriesByDate) {
@@ -874,7 +993,7 @@ export class WikiEditCacher {
 		}
 	}
 
-	private async saveActorLogEntriesByDateNsAndCtToDatabase(actorStat: StatsByActor, em: EntityManager) {
+	private async saveActorLogEntriesByDateNsAndCtToDatabase(actorStat: ActorStatisticsUpdateCollection, em: EntityManager) {
 		const nsItemCount = _.sumBy(actorStat.logEntriesByDateNsAndCt, x => x.editsByDate.length);
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating log entries by date, log type and namespace for ${actorStat.actorName} (${nsItemCount} items)...`);
 
@@ -988,7 +1107,7 @@ export class WikiEditCacher {
 		return `Unknown (${actor.id.toString()})`;
 	}
 
-	private static createNewStatsByActorInstance(actor: Actor): StatsByActor {
+	private static createNewStatsByActorInstance(actor: Actor): ActorStatisticsUpdateCollection {
 		return {
 			actor: actor,
 			actorId: actor.id,
@@ -999,6 +1118,7 @@ export class WikiEditCacher {
 			lastLogEntryTimestamp: null,
 			editsByDate: [],
 			editsByDateAndNs: [],
+			editsByDateNsAndChangeTag: [],
 			logEntriesByDate: [],
 			logEntriesByDateNsAndCt: [],
 		};
