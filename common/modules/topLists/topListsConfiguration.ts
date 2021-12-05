@@ -28,9 +28,10 @@ export interface NonLocalizedTopListConfiguration {
 	isTimeless: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function isNonLocalizedTopListConfiguration(obj: any): obj is NonLocalizedTopListConfiguration {
-	return typeof obj.name === "string";
+export function isNonLocalizedTopListConfiguration(obj: unknown): obj is NonLocalizedTopListConfiguration {
+	return typeof obj === "object"
+		&& obj != null
+		&& typeof obj["name"] === "string";
 }
 
 
@@ -42,7 +43,8 @@ export interface LocalizedTopListConfiguration {
 	userRequirements: UserRequirements;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function isLocalizedTopListConfiguration(obj: any): obj is LocalizedTopListConfiguration {
-	return typeof obj.i18nKey === "string";
+export function isLocalizedTopListConfiguration(obj: unknown): obj is LocalizedTopListConfiguration {
+	return typeof obj === "object"
+		&& obj != null
+		&& typeof obj["i18nKey"] === "string";
 }
