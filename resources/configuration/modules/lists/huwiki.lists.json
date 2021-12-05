@@ -1,8 +1,8 @@
 {
-	"topLists": [
+	"lists": [
 		{
 			"id": "byUserCount",
-			"i18nKey": "topList.byUserCount",
+			"i18nKey": "list.byUserCount",
 			"itemCount": 500,
 			"columns": [
 				{

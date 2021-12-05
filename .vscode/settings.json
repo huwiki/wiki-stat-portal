@@ -37,9 +37,9 @@
 		},
 		{
 			"fileMatch": [
-				"resources/configuration/modules/topLists/*.topLists.json",
+				"resources/configuration/modules/lists/*.lists.json",
 			],
-			"url": "./resources/schemas/topListsConfigurationSchema.json"
+			"url": "./resources/schemas/listsConfigurationSchema.json"
 		}
 	]
 }

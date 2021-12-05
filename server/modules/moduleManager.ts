@@ -5,7 +5,7 @@ import { getResourcesBasePath } from "../helpers/i18nServer";
 import { createWikiStatLogger } from "../loggingHelper";
 import { ModuleBase } from "./common/moduleBase";
 import { ModuleJsonConfiguration } from "./common/moduleJsonConfiguration";
-import { TopListsModule } from "./topListsModule/topListsModule";
+import { ListsModule } from "./listsModule/listsModule";
 import { UserPyramidsModule } from "./userPyramidsModule/userPyramidsModule";
 
 class ModuleManager {
@@ -36,7 +36,7 @@ class ModuleManager {
 	public initializeModules(): void {
 		this.allModules = [
 			new UserPyramidsModule(this.logger),
-			new TopListsModule(this.logger)
+			new ListsModule(this.logger)
 		];
 
 		for (const module of this.allModules) {

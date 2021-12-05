@@ -1,19 +1,19 @@
 {
 	"type": "object",
-	"title": "Top list configuration for a wiki",
+	"title": "List configuration for a wiki",
 	"properties": {
 		"use": {
 			"type": "string"
 		},
-		"topLists": {
+		"lists": {
 			"type": "array",
 			"items": {
 				"oneOf": [
 					{
-						"$ref": "#/definitions/topList"
+						"$ref": "#/definitions/list"
 					},
 					{
-						"$ref": "#/definitions/localizedTopList"
+						"$ref": "#/definitions/localizedList"
 					}
 				]
 			},
@@ -29,12 +29,12 @@
 		},
 		{
 			"required": [
-				"topLists"
+				"lists"
 			]
 		}
 	],
 	"definitions": {
-		"topList": {
+		"list": {
 			"type": "object",
 			"properties": {
 				"id": {
@@ -53,7 +53,7 @@
 					"$ref": "common.json#/definitions/userRequirement"
 				},
 				"columns": {
-					"$ref": "#/definitions/topListColumnList"
+					"$ref": "#/definitions/listColumnList"
 				}
 			},
 			"required": [
@@ -64,7 +64,7 @@
 			],
 			"additionalProperties": false
 		},
-		"localizedTopList": {
+		"localizedList": {
 			"type": "object",
 			"properties": {
 				"id": {
@@ -83,7 +83,7 @@
 					"$ref": "common.json#/definitions/userRequirement"
 				},
 				"columns": {
-					"$ref": "#/definitions/topListColumnList"
+					"$ref": "#/definitions/listColumnList"
 				}
 			},
 			"required": [
@@ -94,7 +94,7 @@
 			],
 			"additionalProperties": false
 		},
-		"topListColumnList": {
+		"listColumnList": {
 			"type": "array",
 			"items": {
 				"oneOf": [
