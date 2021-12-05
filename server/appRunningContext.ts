@@ -1,7 +1,9 @@
 import { Connection } from "typeorm";
 import { Logger } from "winston";
 import { ApplicationConfiguration } from "./configuration/applicationConfiguration";
-import { readApplicationConfiguration, readFlaglessBotList, readKnownWikisConfiguration } from "./configuration/configurationReader";
+import { readApplicationConfiguration, readFlaglessBotList } from "./configuration/configurationReader";
+import { readKnownWikisConfiguration } from "./configuration/knownWikisConfigurationReader";
+import { readServiceAwardLevelsConfiguration } from "./configuration/serviceAwardLevelsConfigurationReader";
 import { createConnectionToUserDatabase } from "./database/connectionManager";
 import { KnownWiki } from "./interfaces/knownWiki";
 import { createWikiStatLogger } from "./loggingHelper";
@@ -43,6 +45,13 @@ export class AppRunningContext {
 
 		for (const wiki of knownWikisConfiguration) {
 			wiki.flaglessBots = readFlaglessBotList(wiki);
+
+			const serviceAwardLevels = readServiceAwardLevelsConfiguration(wiki);
+			if (typeof serviceAwardLevels === "string") {
+				this.logger.error(`[AppRunningContext.initialize/${wiki.id}] Failed to start tool due to invalid serviceAwardLevel.json: ${serviceAwardLevels}`);
+				return;
+			}
+			wiki.serviceAwardLevels = serviceAwardLevels;
 		}
 
 		this.isValid = true;

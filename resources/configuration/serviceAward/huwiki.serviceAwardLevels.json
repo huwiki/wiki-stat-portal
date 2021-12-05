@@ -1,0 +1,86 @@
+[
+	{
+		"id": "Level1",
+		"label": "Wikisded",
+		"requiredActiveDays": 30,
+		"requiredEdits": 600,
+		"requiredLogEntries": 0
+	},
+	{
+		"id": "Level2",
+		"label": "Wikinas",
+		"requiredActiveDays": 60,
+		"requiredEdits": 1200,
+		"requiredLogEntries": 0
+	},
+	{
+		"id": "Level3",
+		"label": "Wikigyakornok",
+		"requiredActiveDays": 115,
+		"requiredEdits": 2300,
+		"requiredLogEntries": 0
+	},
+	{
+		"id": "Level4",
+		"label": "Gyakorlott Helyi Erő",
+		"requiredActiveDays": 210,
+		"requiredEdits": 4200,
+		"requiredLogEntries": 0
+	},
+	{
+		"id": "Level5",
+		"label": "Közel Bennfentes",
+		"requiredActiveDays": 360,
+		"requiredEdits": 7200,
+		"requiredLogEntries": 0
+	},
+	{
+		"id": "Level6",
+		"label": "Tekintetes Sokatvanitt",
+		"requiredActiveDays": 585,
+		"requiredEdits": 11700,
+		"requiredLogEntries": 0
+	},
+	{
+		"id": "Level7",
+		"label": "Tekintetes Mégtöbbetvanitt",
+		"requiredActiveDays": 910,
+		"requiredEdits": 18200,
+		"requiredLogEntries": 0
+	},
+	{
+		"id": "Level8",
+		"label": "Nagyságos Wikiaddikt",
+		"requiredActiveDays": 1370,
+		"requiredEdits": 27400,
+		"requiredLogEntries": 0
+	},
+	{
+		"id": "Level9",
+		"label": "Wikiprofesszor",
+		"requiredActiveDays": 2010,
+		"requiredEdits": 40200,
+		"requiredLogEntries": 0
+	},
+	{
+		"id": "Level10",
+		"label": "Wikiprofessor emeritus",
+		"requiredActiveDays": 2880,
+		"requiredEdits": 57600,
+		"requiredLogEntries": 0
+	},
+	{
+		"id": "Level11",
+		"label": "Wikivén",
+		"requiredActiveDays": 4030,
+		"requiredEdits": 80600,
+		"requiredLogEntries": 0
+	},
+	{
+		"id": "Level12",
+		"label": "Wikizsálem",
+		"requiredActiveDays": 5500,
+		"requiredEdits": 110000,
+		"requiredLogEntries": 0
+	}
+]

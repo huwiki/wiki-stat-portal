@@ -1,0 +1,40 @@
+{
+	"type": "array",
+	"items": {
+		"$ref": "#/definitions/serviceAwardLevel"
+	},
+	"minItems": 1,
+	"definitions": {
+		"serviceAwardLevel": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"label": {
+					"type": "string"
+				},
+				"requiredActiveDays": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"requiredEdits": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"requiredLogEntries": {
+					"type": "integer",
+					"minimum": 0
+				}
+			},
+			"required": [
+				"id",
+				"label",
+				"requiredActiveDays",
+				"requiredEdits",
+				"requiredLogEntries"
+			],
+			"additionalProperties": false
+		}
+	}
+}
