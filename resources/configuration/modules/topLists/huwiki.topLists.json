@@ -1,1 +1,50 @@
-{}
+{
+	"topLists": [
+		{
+			"id": "byUserCount",
+			"i18nKey": "topList.byUserCount",
+			"itemCount": 500,
+			"columns": [
+				{
+					"type": "counter"
+				},
+				{
+					"type": "userName",
+					"showUserLinks": true
+				},
+				{
+					"type": "userRoles"
+				},
+				{
+					"type": "editsSinceRegistration"
+				},
+				{
+					"type": "editsSinceRegistrationInNamespace",
+					"namespace": 0
+				},
+				{
+					"type": "editsInPeriod"
+				},
+				{
+					"type": "editsInPeriodInNamespace",
+					"namespace": 0
+				},
+				{
+					"type": "firstEditDate"
+				},
+				{
+					"type": "lastEditDate"
+				},
+				{
+					"type": "daysSinceRegistration"
+				},
+				{
+					"type": "activeDaysSinceRegistration"
+				},
+				{
+					"type": "averageEditsPerDayInPeriod"
+				}
+			]
+		}
+	]
+}

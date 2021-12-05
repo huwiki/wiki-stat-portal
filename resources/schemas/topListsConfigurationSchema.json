@@ -5,10 +5,17 @@
 		"use": {
 			"type": "string"
 		},
-		"userPyramids": {
+		"topLists": {
 			"type": "array",
 			"items": {
-				"$ref": "#/definitions/topList"
+				"oneOf": [
+					{
+						"$ref": "#/definitions/topList"
+					},
+					{
+						"$ref": "#/definitions/localizedTopList"
+					}
+				]
 			},
 			"minItems": 1
 		}
@@ -22,7 +29,7 @@
 		},
 		{
 			"required": [
-				"userPyramids"
+				"topLists"
 			]
 		}
 	],
@@ -44,12 +51,16 @@
 				},
 				"userRequirements": {
 					"$ref": "common.json#/definitions/userRequirement"
+				},
+				"columns": {
+					"$ref": "#/definitions/topListColumnList"
 				}
 			},
 			"required": [
 				"id",
 				"name",
-				"itemCount"
+				"itemCount",
+				"columns"
 			],
 			"additionalProperties": false
 		},
@@ -70,14 +81,128 @@
 				},
 				"userRequirements": {
 					"$ref": "common.json#/definitions/userRequirement"
+				},
+				"columns": {
+					"$ref": "#/definitions/topListColumnList"
 				}
 			},
 			"required": [
 				"id",
 				"i18nKey",
-				"itemCount"
+				"itemCount",
+				"columns"
 			],
 			"additionalProperties": false
+		},
+		"topListColumnList": {
+			"type": "array",
+			"items": {
+				"oneOf": [
+					{
+						"$ref": "#/definitions/parameterlessColumn"
+					},
+					{
+						"$ref": "#/definitions/userNameColumn"
+					},
+					{
+						"$ref": "#/definitions/columnWithNamespaceParameter"
+					},
+					{
+						"$ref": "#/definitions/columnWithLogTypeParameter"
+					}
+				]
+			},
+			"minItems": 1
+		},
+		"parameterlessColumn": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"type": {
+					"type": "string",
+					"enum": [
+						"counter",
+						"userRoles",
+						"editsInPeriod",
+						"editsSinceRegistration",
+						"revertedEditsInPeriod",
+						"revertedEditsSinceRegistration",
+						"firstEditDate",
+						"lastEditDate",
+						"logEventsInPeriod",
+						"logEventsSinceRegistration",
+						"thanksInPeriod",
+						"thanksSinceRegistration",
+						"registrationDate",
+						"daysSinceRegistration",
+						"activeDaysSinceRegistration",
+						"activeDaysInPeriod",
+						"averageEditsPerDaySinceRegistration",
+						"averageEditsPerDayInPeriod"
+					]
+				}
+			},
+			"required": [
+				"type"
+			]
+		},
+		"userNameColumn": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"type": {
+					"type": "string",
+					"pattern": "userName"
+				},
+				"showUserLinks": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"type"
+			]
+		},
+		"columnWithNamespaceParameter": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"type": {
+					"type": "string",
+					"enum": [
+						"editsInPeriodInNamespace",
+						"editsSinceRegistrationInNamespace",
+						"revertedEditsInPeriodInNamespace",
+						"revertedEditsSinceRegistrationInNamespace"
+					]
+				},
+				"namespace": {
+					"type": "integer",
+					"minValue": 0
+				}
+			},
+			"required": [
+				"type",
+				"namespace"
+			]
+		},
+		"columnWithLogTypeParameter": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"type": {
+					"type": "string",
+					"enum": [
+						"logEventsInPeriodByType",
+						"logEventsSinceRegistrationByType"
+					]
+				},
+				"logType": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"type"
+			]
 		}
 	}
 }
