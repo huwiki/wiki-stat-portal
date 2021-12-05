@@ -67,11 +67,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 			// Manage required joins
 			if (typeof reqs.totalEditsAtLeast !== "undefined") {
-				query = query.leftJoin(wikiEntities.actorEditStatistics, "totalEditsAtLeast", "totalEditsAtLeast.actorId = actor.actorId");
+				query = query.leftJoin(wikiEntities.actorDailyStatistics, "totalEditsAtLeast", "totalEditsAtLeast.actorId = actor.actorId");
 			}
 
 			if (typeof reqs.totalEditsAtMost !== "undefined") {
-				query = query.leftJoin(wikiEntities.actorEditStatistics, "totalEditsAtMost", "totalEditsAtMost.actorId = actor.actorId");
+				query = query.leftJoin(wikiEntities.actorDailyStatistics, "totalEditsAtMost", "totalEditsAtMost.actorId = actor.actorId");
 			}
 
 			if (typeof reqs.inPeriodEditsAtLeast !== "undefined") {
@@ -86,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 					return qb.subQuery()
 						.select("peal.actorId", "actorId")
 						.addSelect("SUM(peal.dailyEdits)", "periodEdits")
-						.from(wikiEntities.actorEditStatistics, "peal")
+						.from(wikiEntities.actorDailyStatistics, "peal")
 						.where(
 							"peal.date >= :startDate AND peal.date <= :endDate",
 							{ startDate: periodEditsCalculationStartDate, endDate: periodEditsCalculationEndDate }
@@ -107,7 +107,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 					return qb.subQuery()
 						.select("peam.actorId", "actorId")
 						.addSelect("SUM(peam.dailyEdits)", "periodEdits")
-						.from(wikiEntities.actorEditStatistics, "peam")
+						.from(wikiEntities.actorDailyStatistics, "peam")
 						.where(
 							"peam.date >= :startDate AND peam.date <= :endDate",
 							{ startDate: periodEditsCalculationStartDate, endDate: periodEditsCalculationEndDate }
@@ -172,7 +172,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				query = query.andWhere(qb => {
 					const subQuery = qb.subQuery()
 						.select("MAX(iats.date)")
-						.from(wikiEntities.actorEditStatistics, "iats")
+						.from(wikiEntities.actorDailyStatistics, "iats")
 						.where("iats.date <= :date", { date: totalEditsEpochDate })
 						.andWhere("iats.actorId = actor.actorId")
 						.getQuery();
@@ -196,7 +196,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				query = query.andWhere(qb => {
 					const subQuery = qb.subQuery()
 						.select("MAX(iats.date)")
-						.from(wikiEntities.actorEditStatistics, "iats")
+						.from(wikiEntities.actorDailyStatistics, "iats")
 						.where("iats.date <= :date", { date: totalEditsEpochDate })
 						.andWhere("iats.actorId = actor.actorId")
 						.getQuery();
