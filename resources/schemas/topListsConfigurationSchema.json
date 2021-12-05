@@ -1,6 +1,6 @@
 {
 	"type": "object",
-	"title": "User pyramids configuration for a wiki",
+	"title": "Top list configuration for a wiki",
 	"properties": {
 		"use": {
 			"type": "string"
@@ -8,14 +8,7 @@
 		"userPyramids": {
 			"type": "array",
 			"items": {
-				"oneOf": [
-					{
-						"$ref": "#/definitions/userPyramid"
-					},
-					{
-						"$ref": "#/definitions/localizedUserPyramid"
-					}
-				]
+				"$ref": "#/definitions/topList"
 			},
 			"minItems": 1
 		}
@@ -34,7 +27,7 @@
 		}
 	],
 	"definitions": {
-		"userPyramid": {
+		"topList": {
 			"type": "object",
 			"properties": {
 				"id": {
@@ -43,88 +36,42 @@
 				"name": {
 					"type": "string"
 				},
-				"showIntersectionWithPreviousGroup": {
-					"type": "boolean"
-				},
 				"isTimeless": {
 					"type": "boolean"
 				},
-				"groups": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/group"
-					},
-					"minItems": 2
+				"userRequirements": {
+					"$ref": "#/definitions/userRequirement"
 				}
 			},
 			"required": [
 				"id",
-				"name",
-				"groups"
-			],
-			"additionalProperties": false
-		},
-		"localizedUserPyramid": {
-			"type": "object",
-			"properties": {
-				"id": {
-					"type": "string"
-				},
-				"i18nKey": {
-					"type": "string"
-				},
-				"showIntersectionWithPreviousGroup": {
-					"type": "boolean"
-				},
-				"isTimeless": {
-					"type": "boolean"
-				},
-				"groups": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/localizedGroup"
-					},
-					"minItems": 2
-				}
-			},
-			"required": [
-				"id",
-				"i18nKey",
-				"groups"
-			],
-			"additionalProperties": false
-		},
-		"group": {
-			"type": "object",
-			"properties": {
-				"name": {
-					"type": "string"
-				},
-				"requirements": {
-					"$ref": "#/definitions/groupRequirement"
-				}
-			},
-			"required": [
 				"name"
 			],
 			"additionalProperties": false
 		},
-		"localizedGroup": {
+		"localizedTopList": {
 			"type": "object",
 			"properties": {
+				"id": {
+					"type": "string"
+				},
 				"i18nKey": {
 					"type": "string"
 				},
-				"requirements": {
-					"$ref": "#/definitions/groupRequirement"
+				"isTimeless": {
+					"type": "boolean"
+				},
+				"userRequirements": {
+					"$ref": "#/definitions/userRequirement"
 				}
 			},
 			"required": [
+				"id",
 				"i18nKey"
 			],
 			"additionalProperties": false
 		},
-		"groupRequirement": {
+		"userRequirement": {
 			"type": "object",
 			"properties": {
 				"registrationStatus": {
