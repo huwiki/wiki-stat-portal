@@ -1,3 +1,4 @@
+import { UserRequirements } from "../commonConfiguration";
 
 export interface TopListConfigurationFile {
 	use: string;
@@ -21,9 +22,10 @@ export type TopListConfiguration =
 
 export interface NonLocalizedTopListConfiguration {
 	id: string;
-	isTimeless: boolean;
 	name: string;
-	userRequirements: TopListUserRequirements;
+	itemCount: number;
+	userRequirements: UserRequirements;
+	isTimeless: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,38 +36,13 @@ export function isNonLocalizedTopListConfiguration(obj: any): obj is NonLocalize
 
 export interface LocalizedTopListConfiguration {
 	id: string;
-	isTimeless: boolean;
-	showIntersectionWithPreviousGroup?: boolean;
 	i18nKey: string;
-	userRequirements: TopListUserRequirements;
+	itemCount: number;
+	isTimeless: boolean;
+	userRequirements: UserRequirements;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isLocalizedTopListConfiguration(obj: any): obj is LocalizedTopListConfiguration {
 	return typeof obj.i18nKey === "string";
-}
-
-export interface TopListUserRequirements {
-	registrationStatus?: "registered" | "anon",
-	registrationAgeAtLeast?: number;
-	registrationAgeAtMost?: number;
-	userGroups?: ("bot" | "bureaucrat" | "checkuser"
-		| "editor" | "flow-bot" | "interface-admin"
-		| "interface-editor" | "sysop"
-		| "templateeditor" | "trusted")[];
-	totalEditsAtLeast?: number | UserEditsInTimeRequirement;
-	totalEditsAtMost?: number | UserEditsInTimeRequirement;
-	inPeriodEditsAtLeast?: UserEditsInPeriodRequirement;
-	inPeriodEditsAtMost?: UserEditsInPeriodRequirement;
-}
-
-export interface UserEditsInTimeRequirement {
-	edits: number;
-	epoch: number;
-}
-
-export interface UserEditsInPeriodRequirement {
-	edits: number;
-	period: number;
-	epoch?: number;
 }

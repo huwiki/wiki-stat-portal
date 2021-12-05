@@ -1,0 +1,128 @@
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"type": "object",
+	"additionalProperties": false,
+	"definitions": {
+		"userRequirement": {
+			"type": "object",
+			"properties": {
+				"registrationStatus": {
+					"description": "If specified, only users whose registration status is registered or anon will be counted to the group.",
+					"type": "string",
+					"enum": [
+						"registered",
+						"anon"
+					]
+				},
+				"registrationAgeAtLeast": {
+					"description": "If specified, only users whose registration age is at least the specified days at the requested data will be counted to the group.",
+					"type": "number",
+					"minimum": 1
+				},
+				"registrationAgeAtMost": {
+					"description": "If specified, only users whose registration age is at most the specified days at the requested data will be counted to the group.",
+					"type": "number",
+					"minimum": 1
+				},
+				"userGroups": {
+					"description": "If specified, only users who belongs to the specified groups will be counted to the group.",
+					"type": "array",
+					"items": {
+						"type": "string",
+						"enum": [
+							"bot",
+							"bureaucrat",
+							"checkuser",
+							"editor",
+							"flow-bot",
+							"interface-admin",
+							"interface-editor",
+							"sysop",
+							"templateeditor",
+							"trusted"
+						]
+					},
+					"minItems": 1,
+					"uniqueItems": true
+				},
+				"totalEditsAtLeast": {
+					"description": "If specified, only users with total edits at least this amount at the requested date will be counted to the group.",
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userEditsInTimeRequirement"
+						}
+					]
+				},
+				"totalEditsAtMost": {
+					"description": "If specified, only users with total edits at most this amount at the requested date will be counted to the group.",
+					"type": "number",
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userEditsInTimeRequirement"
+						}
+					]
+				},
+				"inPeriodEditsAtLeast": {
+					"description": "If specified, only users with edits at least this amount in the specified days before the requested date will be counted to the group.",
+					"$ref": "#/definitions/editsInPeriodRequirement"
+				},
+				"inPeriodEditsAtMost": {
+					"description": "If specified, only users with edits at most this amount in the specified days before the requested date will be counted to the group.",
+					"$ref": "#/definitions/editsInPeriodRequirement"
+				}
+			},
+			"additionalProperties": false
+		},
+		"userEditsInTimeRequirement": {
+			"type": "object",
+			"properties": {
+				"edits": {
+					"type": "number",
+					"minimum": 0
+				},
+				"epoch": {
+					"type": "number",
+					"minimum": -365,
+					"maximum": -1
+				}
+			},
+			"required": [
+				"edits",
+				"epoch"
+			],
+			"additionalProperties": false
+		},
+		"editsInPeriodRequirement": {
+			"type": "object",
+			"properties": {
+				"edits": {
+					"type": "number",
+					"minimum": 0
+				},
+				"period": {
+					"type": "number",
+					"minimum": 1,
+					"maximum": 365
+				},
+				"epoch": {
+					"type": "number",
+					"minimum": -365,
+					"maximum": -1
+				}
+			},
+			"required": [
+				"edits",
+				"period"
+			],
+			"additionalProperties": false
+		}
+	}
+}

@@ -1,4 +1,5 @@
 import { isArray } from "lodash";
+import { UserRequirements } from "../commonConfiguration";
 
 export interface UserPyramidConfigurationFile {
 	use: string;
@@ -55,7 +56,7 @@ export type UserPyramidGroup =
 
 export interface NonLocalizedUserPyramidGroup {
 	name: string;
-	requirements: UserPyramidRequirements;
+	requirements: UserRequirements;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,36 +67,11 @@ export function isNonLocalizedUserPyramidGroup(obj: any): obj is NonLocalizedUse
 
 export interface LocalizedUserPyramidGroup {
 	i18nKey: string;
-	requirements: UserPyramidRequirements;
+	requirements: UserRequirements;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isLocalizedUserPyramidGroup(obj: any): obj is LocalizedUserPyramidGroup {
 	return typeof obj.i18nKey === "string"
 		&& typeof obj.requirements === "object";
-}
-
-export interface UserPyramidRequirements {
-	registrationStatus?: "registered" | "anon",
-	registrationAgeAtLeast?: number;
-	registrationAgeAtMost?: number;
-	userGroups?: ("bot" | "bureaucrat" | "checkuser"
-		| "editor" | "flow-bot" | "interface-admin"
-		| "interface-editor" | "sysop"
-		| "templateeditor" | "trusted")[];
-	totalEditsAtLeast?: number | UserEditsInTime;
-	totalEditsAtMost?: number | UserEditsInTime;
-	inPeriodEditsAtLeast?: UserEditsInPeriod;
-	inPeriodEditsAtMost?: UserEditsInPeriod;
-}
-
-export interface UserEditsInTime {
-	edits: number;
-	epoch: number;
-}
-
-export interface UserEditsInPeriod {
-	edits: number;
-	period: number;
-	epoch?: number;
 }
