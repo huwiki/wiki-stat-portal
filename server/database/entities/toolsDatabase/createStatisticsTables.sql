@@ -14,8 +14,8 @@ CREATE TABLE `huwiki_actor_v2` (
   `is_registered` tinyint(1) NOT NULL,
   `registration_timestamp` datetime DEFAULT NULL,
   `is_registration_timestamp_from_first_edit` tinyint(1) DEFAULT NULL,
-  `first_edit_timestamp` date NOT NULL,
-  `last_edit_timestamp` date NOT NULL,
+  `first_edit_timestamp` datetime NOT NULL,
+  `last_edit_timestamp` datetime NOT NULL,
   PRIMARY KEY (`actor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -60,8 +60,8 @@ CREATE TABLE `huwiki_actor_log_stats_by_nsct_v2` (
   `log_type` varbinary(32) NOT NULL,
   `log_action` varbinary(32) NOT NULL,
   `date` date NOT NULL,
-  `daily_actions` int(11) NOT NULL,
-  `actions_to_date` int(11) NOT NULL,
+  `daily_log_events` int(11) NOT NULL,
+  `log_events_to_date` int(11) NOT NULL,
   PRIMARY KEY (`actor_id`,`namespace`,`log_type`,`log_action`,`date`),
   CONSTRAINT `huwiki_actor_log_stats_by_nsct_v2_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiki_actor_v2` (`actor_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   INDEX `huwiki_actor_log_stats_by_nsct_v2_by_ns` (`actor_id`, `namespace`, `date`),
@@ -79,8 +79,8 @@ CREATE TABLE `huwikisource_actor_v2` (
   `is_registered` tinyint(1) NOT NULL,
   `registration_timestamp` datetime DEFAULT NULL,
   `is_registration_timestamp_from_first_edit` tinyint(1) DEFAULT NULL,
-  `first_edit_timestamp` date NOT NULL,
-  `last_edit_timestamp` date NOT NULL,
+  `first_edit_timestamp` datetime NOT NULL,
+  `last_edit_timestamp` datetime NOT NULL,
   PRIMARY KEY (`actor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -125,8 +125,8 @@ CREATE TABLE `huwikisource_actor_log_stats_by_nsct_v2` (
   `log_type` varbinary(32) NOT NULL,
   `log_action` varbinary(32) NOT NULL,
   `date` date NOT NULL,
-  `daily_actions` int(11) NOT NULL,
-  `actions_to_date` int(11) NOT NULL,
+  `daily_log_events` int(11) NOT NULL,
+  `log_events_to_date` int(11) NOT NULL,
   PRIMARY KEY (`actor_id`,`namespace`,`log_type`,`log_action`,`date`),
   CONSTRAINT `huwikisource_actor_log_stats_by_nsct_v2_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwikisource_actor_v2` (`actor_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   INDEX `huwikisource_actor_log_stats_by_nsct_v2_by_ns` (`actor_id`, `namespace`, `date`),
@@ -144,8 +144,8 @@ CREATE TABLE `huwikiquote_actor_v2` (
   `is_registered` tinyint(1) NOT NULL,
   `registration_timestamp` datetime DEFAULT NULL,
   `is_registration_timestamp_from_first_edit` tinyint(1) DEFAULT NULL,
-  `first_edit_timestamp` date NOT NULL,
-  `last_edit_timestamp` date NOT NULL,
+  `first_edit_timestamp` datetime NOT NULL,
+  `last_edit_timestamp` datetime NOT NULL,
   PRIMARY KEY (`actor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -190,8 +190,8 @@ CREATE TABLE `huwikiquote_actor_log_stats_by_nsct_v2` (
   `log_type` varbinary(32) NOT NULL,
   `log_action` varbinary(32) NOT NULL,
   `date` date NOT NULL,
-  `daily_actions` int(11) NOT NULL,
-  `actions_to_date` int(11) NOT NULL,
+  `daily_log_events` int(11) NOT NULL,
+  `log_events_to_date` int(11) NOT NULL,
   PRIMARY KEY (`actor_id`,`namespace`,`log_type`,`log_action`,`date`),
   CONSTRAINT `huwikiquote_actor_log_stats_by_nsct_v2_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwikiquote_actor_v2` (`actor_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   INDEX `huwikiquote_actor_log_stats_by_nsct_v2_by_ns` (`actor_id`, `namespace`, `date`),
@@ -209,8 +209,8 @@ CREATE TABLE `huwiktionary_actor_v2` (
   `is_registered` tinyint(1) NOT NULL,
   `registration_timestamp` datetime DEFAULT NULL,
   `is_registration_timestamp_from_first_edit` tinyint(1) DEFAULT NULL,
-  `first_edit_timestamp` date NOT NULL,
-  `last_edit_timestamp` date NOT NULL,
+  `first_edit_timestamp` datetime NOT NULL,
+  `last_edit_timestamp` datetime NOT NULL,
   PRIMARY KEY (`actor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -255,8 +255,8 @@ CREATE TABLE `huwiktionary_actor_log_stats_by_nsct_v2` (
   `log_type` varbinary(32) NOT NULL,
   `log_action` varbinary(32) NOT NULL,
   `date` date NOT NULL,
-  `daily_actions` int(11) NOT NULL,
-  `actions_to_date` int(11) NOT NULL,
+  `daily_log_events` int(11) NOT NULL,
+  `log_events_to_date` int(11) NOT NULL,
   PRIMARY KEY (`actor_id`,`namespace`,`log_type`,`log_action`,`date`),
   CONSTRAINT `huwiktionary_actor_log_stats_by_nsct_v2_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiktionary_actor_v2` (`actor_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   INDEX `huwiktionary_actor_log_stats_by_nsct_v2_by_ns` (`actor_id`, `namespace`, `date`),

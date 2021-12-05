@@ -514,16 +514,16 @@ export class WikiEditCacher {
 		const existingActor = await em.getRepository(this.wikiStatisticsEntities.actor)
 			.findOne({ where: { actorId: actorStat.actorId } });
 
-		const firstEditDate = actorStat.editsByDate[0].date;
-
 		if (existingActor) {
 			await this.updateActorInDatabase(actorStat, existingActor, em);
 		} else {
-			await this.createActorInDatabase(actorStat, firstEditDate, em);
+			await this.createActorInDatabase(actorStat, em);
 		}
 	}
 
-	private async createActorInDatabase(actorStat: StatsByActor, firstEditDate: Date, em: EntityManager) {
+	private async createActorInDatabase(actorStat: StatsByActor, em: EntityManager) {
+		const firstEditDate = actorStat.editsByDate.length > 0 ? actorStat.editsByDate[0].date : undefined;
+
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] createActorInDatabase: Creating actor for '${actorStat.actorName}'`);
 		await em.createQueryBuilder()
 			.insert()
@@ -531,13 +531,15 @@ export class WikiEditCacher {
 			.values({
 				actorId: actorStat.actorId,
 				actorName: actorStat.actorName,
+				firstEditTimestamp: actorStat.firstEditTimestamp?.toDate() ?? undefined,
+				lastEditTimestamp: actorStat.lastEditTimestamp?.toDate() ?? undefined,
 				isRegistered: !!actorStat.actor.user,
 				isRegistrationTimestampFromFirstEdit: actorStat.actor.user
 					? actorStat.actor.user.registrationTimestamp == null
 					: null,
 				registrationTimestamp: actorStat.actor.user
 					? (actorStat.actor.user.registrationTimestamp == null
-						? firstEditDate
+						? (firstEditDate ?? null)
 						: actorStat.actor.user.registrationTimestamp)
 					: null,
 			})
@@ -550,6 +552,13 @@ export class WikiEditCacher {
 			return;
 
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] createActorInDatabase: Updating first/last edit statistics for '${actorStat.actorName}'`);
+
+		const isRegistrationTimestampFromFirstEdit = existingActor.registrationTimestamp != null
+			? existingActor.isRegistrationTimestampFromFirstEdit
+			: true;
+		const actorRegistrationTimestamp = existingActor.registrationTimestamp != null
+			? existingActor.registrationTimestamp
+			: actorStat.firstEditTimestamp;
 
 		const firstEditTimestamp =
 			existingActor.firstEditTimestamp == null && actorStat.firstEditTimestamp == null ? undefined
@@ -567,7 +576,9 @@ export class WikiEditCacher {
 			.update(this.wikiStatisticsEntities.actor)
 			.set({
 				firstEditTimestamp: firstEditTimestamp,
-				lastEditTimestamp: lastEditTimestamp
+				lastEditTimestamp: lastEditTimestamp,
+				registrationTimestamp: actorRegistrationTimestamp,
+				isRegistrationTimestampFromFirstEdit: isRegistrationTimestampFromFirstEdit,
 			})
 			.where("actorId = :actorId", { actorId: actorStat.actorId })
 			.execute();
@@ -749,7 +760,15 @@ export class WikiEditCacher {
 		for (const editsByNs of actorStat.logEntriesByDateNsAndCt) {
 			for (const editByDateNsAndCt of editsByNs.editsByDate) {
 				const existingStat = await em.getRepository(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndChangeTag)
-					.findOne({ where: { actorId: actorStat.actorId, namespace: editsByNs.namespace, date: editByDateNsAndCt.date } });
+					.findOne({
+						where: {
+							actorId: actorStat.actorId,
+							namespace: editsByNs.namespace,
+							logAction: editsByNs.logAction,
+							logType: editsByNs.logType,
+							date: editByDateNsAndCt.date
+						}
+					});
 
 				if (existingStat) {
 					await em
@@ -777,6 +796,8 @@ export class WikiEditCacher {
 							where: {
 								actorId: actorStat.actorId,
 								namespace: editsByNs.namespace,
+								logAction: editsByNs.logAction,
+								logType: editsByNs.logType,
 								date: LessThan(editByDateNsAndCt.date)
 							},
 							order: {
@@ -791,7 +812,8 @@ export class WikiEditCacher {
 							actorId: actorStat.actorId,
 							date: editByDateNsAndCt.date,
 							namespace: editsByNs.namespace,
-							dailyLogEvents: editByDateNsAndCt.events,
+							logAction: editsByNs.logAction,
+							logType: editsByNs.logType,
 							logEventsToDate: previousDay
 								? previousDay.logEventsToDate + previousDay.logEventsToDate
 								: 0
