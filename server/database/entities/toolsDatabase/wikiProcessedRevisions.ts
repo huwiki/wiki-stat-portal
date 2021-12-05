@@ -1,14 +1,18 @@
 import { Column, Entity, PrimaryColumn } from "typeorm";
 
-@Entity()
+@Entity("wiki_processed_revisions_v2")
 export class WikiProcessedRevisions {
-	// wiki varchar(30) PK 
+	// wiki varchar(30) PK
 	@PrimaryColumn({ type: "varchar", length: 30 })
 	public wiki: string;
 
 	// last_processed_revision_id int(8)
 	@Column({ name: "last_processed_revision_id", type: "int", unsigned: true })
 	public lastProcessedRevisionId: number;
+
+	// last_processed_revision_id int(8)
+	@Column({ name: "last_processed_log_id", type: "int", unsigned: true })
+	public lastProcessedLogId: number;
 
 	// last_actor_update datetime
 	@Column({ name: "last_actor_update", type: "datetime" })

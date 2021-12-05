@@ -23,19 +23,36 @@ export class ActorGroupTypeModel {
 	public groupName: string;
 }
 
-export class ActorStatisticsTypeModel {
+export class ActorEditStatisticsTypeModel {
 	public actorId: number;
 	public date: Date;
 	public dailyEdits: number;
 	public editsToDate: number;
 }
 
-export class ActorStatisticsByNamespaceTypeModel {
+export class ActorEditStatisticsByNamespaceTypeModel {
 	public actorId: number;
 	public namespace: number;
 	public date: Date;
 	public dailyEdits: number;
 	public editsToDate: number;
+}
+
+export class ActorLogStatisticsTypeModel {
+	public actorId: number;
+	public date: Date;
+	public dailyLogEvents: number;
+	public logEventsToDate: number;
+}
+
+export class ActorLogStatisticsByNamespaceAndChangeTagTypeModel {
+	public actorId: number;
+	public namespace: number;
+	public logType: string;
+	public logAction: string;
+	public date: Date;
+	public dailyLogEvents: number;
+	public logEventsToDate: number;
 }
 
 export interface WikiStatisticsTypesResult {
@@ -44,17 +61,25 @@ export interface WikiStatisticsTypesResult {
 	 */
 	actor: typeof ActorTypeModel,
 	/**
-	 * 
+	 *
 	 */
 	actorGroup: typeof ActorGroupTypeModel,
 	/**
 	 * Entity representing a daily edit statistics of an actor on a wiki.
 	 */
-	actorStatistics: typeof ActorStatisticsTypeModel,
+	actorEditStatistics: typeof ActorEditStatisticsTypeModel,
 	/**
 	 * Entity representing a daily edit statistics for a given namespace of an actor on a wiki.
 	 */
-	actorStatisticsByNamespace: typeof ActorStatisticsByNamespaceTypeModel,
+	actorEditStatisticsByNamespace: typeof ActorEditStatisticsByNamespaceTypeModel,
+	/**
+	 * Entity representing a daily log statistics of an actor on a wiki.
+	 */
+	actorLogStatistics: typeof ActorLogStatisticsTypeModel,
+	/**
+	 * Entity representing a daily log statistics for a given namespace and change tag of an actor on a wiki.
+	 */
+	actorLogStatisticsByNamespaceAndChangeTag: typeof ActorLogStatisticsByNamespaceAndChangeTagTypeModel,
 }
 
 const ENTITY_CACHE_BY_WIKI: { [index: string]: WikiStatisticsTypesResult } = {};
@@ -69,10 +94,12 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 	if (ENTITY_CACHE_BY_WIKI[wikiId])
 		return ENTITY_CACHE_BY_WIKI[wikiId];
 
-	const actorTableName = `${wikiId}_actor`;
-	const actorGroupTableName = `${wikiId}_actor_groups`;
-	const actorStatisticsTableName = `${wikiId}_actor_stats`;
-	const actorStatisticsByNamespaceTableName = `${wikiId}_actor_stats_by_ns`;
+	const actorTableName = `${wikiId}_actor_v2`;
+	const actorGroupTableName = `${wikiId}_actor_groups_v2`;
+	const actorEditStatisticsTableName = `${wikiId}_actor_edit_stats_v2`;
+	const actorEditStatisticsByNamespaceTableName = `${wikiId}_actor_edit_stats_by_ns_v2`;
+	const actorLogStatisticsTableName = `${wikiId}_actor_log_stats_v2`;
+	const actorLogStatisticsByNamespaceAndChangeTagTableName = `${wikiId}_actor_log_stats_by_nsct_v2`;
 
 	@Entity({ name: actorTableName })
 	class Actor {
@@ -108,8 +135,8 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		public groupName: string;
 	}
 
-	@Entity({ name: actorStatisticsTableName })
-	class ActorStatistics {
+	@Entity({ name: actorEditStatisticsTableName })
+	class ActorEditStatistics {
 		@PrimaryColumn({ name: "actor_id", type: "bigint" })
 		public actorId: number;
 
@@ -123,8 +150,8 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		public editsToDate: number;
 	}
 
-	@Entity({ name: actorStatisticsByNamespaceTableName })
-	class ActorStatisticsByNamespace {
+	@Entity({ name: actorEditStatisticsByNamespaceTableName })
+	class ActorEditStatisticsByNamespace {
 		@PrimaryColumn({ name: "actor_id", type: "bigint" })
 		public actorId: number;
 
@@ -141,11 +168,52 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		public editsToDate: number;
 	}
 
+	@Entity({ name: actorLogStatisticsTableName })
+	class ActorLogStatistics {
+		@PrimaryColumn({ name: "actor_id", type: "bigint" })
+		public actorId: number;
+
+		@PrimaryColumn({ type: "date" })
+		public date: Date;
+
+		@Column({ name: "daily_log_events", type: "int" })
+		public dailyLogEvents: number;
+
+		@Column({ name: "log_events_to_date", type: "int" })
+		public logEventsToDate: number;
+	}
+
+	@Entity({ name: actorLogStatisticsByNamespaceAndChangeTagTableName })
+	class ActorLogStatisticsByNamespaceAndChangeTag {
+		@PrimaryColumn({ name: "actor_id", type: "bigint" })
+		public actorId: number;
+
+		@PrimaryColumn({ type: "int" })
+		public namespace: number;
+
+		@PrimaryColumn({ name: "log_type", type: "varbinary", length: 32, transformer: bufferToStringTransformer })
+		public logType: string;
+
+		@PrimaryColumn({ name: "log_action", type: "varbinary", length: 32, transformer: bufferToStringTransformer })
+		public logAction: string;
+
+		@PrimaryColumn({ type: "date" })
+		public date: Date;
+
+		@Column({ name: "daily_log_events", type: "int" })
+		public dailyLogEvents: number;
+
+		@Column({ name: "log_events_to_date", type: "int" })
+		public logEventsToDate: number;
+	}
+
 	const ret: WikiStatisticsTypesResult = {
 		actor: Actor,
 		actorGroup: ActorGroup,
-		actorStatistics: ActorStatistics,
-		actorStatisticsByNamespace: ActorStatisticsByNamespace,
+		actorEditStatistics: ActorEditStatistics,
+		actorEditStatisticsByNamespace: ActorEditStatisticsByNamespace,
+		actorLogStatistics: ActorLogStatistics,
+		actorLogStatisticsByNamespaceAndChangeTag: ActorLogStatisticsByNamespaceAndChangeTag,
 	};
 
 	ENTITY_CACHE_BY_WIKI[wikiId] = ret;

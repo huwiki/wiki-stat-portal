@@ -6,7 +6,6 @@ import { createConnectionToUserDatabase } from "./database/connectionManager";
 import { KnownWiki } from "./interfaces/knownWiki";
 import { createWikiStatLogger } from "./loggingHelper";
 
-
 export class AppRunningContext {
 	public readonly isValid: boolean = false;
 	public readonly logger: Logger;
