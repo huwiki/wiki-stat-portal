@@ -4,23 +4,5 @@
 		"domain": "hu.wikipedia.org",
 		"replicaDatabaseName": "huwiki_p",
 		"timeZone": "Europe/Budapest"
-	},
-	{
-		"id": "huwikiquote",
-		"domain": "hu.wikiquote.org",
-		"replicaDatabaseName": "huwikiquote_p",
-		"timeZone": "Europe/Budapest"
-	},
-	{
-		"id": "huwikisource",
-		"domain": "hu.wikisource.org",
-		"replicaDatabaseName": "huwikisource_p",
-		"timeZone": "Europe/Budapest"
-	},
-	{
-		"id": "huwiktionary",
-		"domain": "hu.wiktionary.org",
-		"replicaDatabaseName": "huwiktionary_p",
-		"timeZone": "Europe/Budapest"
 	}
 ]

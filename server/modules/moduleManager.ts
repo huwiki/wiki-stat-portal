@@ -36,9 +36,7 @@ class ModuleManager {
 	public initializeModules(): void {
 		this.allModules = [
 			new UserPyramidsModule(this.logger),
-			new TopListsModule(this.logger),
-			//new AnotherModule(this.logger),
-			//new ThirdModule(this.logger)
+			new TopListsModule(this.logger)
 		];
 
 		for (const module of this.allModules) {
