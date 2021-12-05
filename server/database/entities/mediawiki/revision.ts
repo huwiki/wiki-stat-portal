@@ -1,6 +1,7 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { bufferToDateTimeTransformer, bufferToStringTransformer, intToBooleanTransformer } from "../../transformers";
 import { Actor } from "./actor";
+import { ChangeTag } from "./changeTag";
 import { Comment } from "./comment";
 import { Page } from "./page";
 
@@ -57,11 +58,14 @@ export class Revision {
 	public parentRevisionId: number;
 
 	// rev_parent_id int(8) UN
-	@ManyToOne(() => Revision, revision => revision.id)
+	@OneToOne(() => Revision, revision => revision.id)
 	@JoinColumn({ name: "rev_parent_id" })
 	public parentRevision: Revision;
 
 	// rev_sha1 varbinary(32)
 	@Column({ name: "rev_sha1", type: "varbinary", length: 32, transformer: bufferToStringTransformer })
 	public sha1: string;
+
+	@OneToMany(() => ChangeTag, changeTag => changeTag.revision)
+	public changeTags: ChangeTag[];
 }

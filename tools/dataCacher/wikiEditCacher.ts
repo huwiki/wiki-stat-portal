@@ -170,6 +170,7 @@ export class WikiEditCacher {
 			.leftJoinAndSelect("rev.comment", "comm")
 			.leftJoinAndSelect("act.user", "usr")
 			.leftJoinAndSelect("rev.parentRevision", "p")
+			.leftJoinAndSelect("rev.changeTags", "ctags")
 			.where("rev.id > :lastProcessedRevisionId", { lastProcessedRevisionId: this.lastProcessedRevisionId })
 			//.andWhere("rev.rev_timestamp > :baseTimestamp", { baseTimestamp: BASE_TIMESTAMP })
 			.orderBy("rev.id", "ASC")
