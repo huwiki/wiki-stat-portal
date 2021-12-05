@@ -14,6 +14,8 @@ export class ActorTypeModel {
 	public isRegistered: boolean;
 	public registrationTimestamp: Date | null;
 	public isRegistrationTimestampFromFirstEdit: boolean | null;
+	public firstEditTimestamp: Date;
+	public lastEditTimestamp: Date;
 	public actorGroups: ActorGroupTypeModel[];
 }
 
@@ -117,6 +119,12 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 		@Column({ name: "is_registration_timestamp_from_first_edit", type: "boolean", transformer: intToBooleanTransformer })
 		public isRegistrationTimestampFromFirstEdit: boolean | null;
+
+		@Column({ name: "first_edit_timestamp", type: "datetime" })
+		public firstEditTimestamp: Date;
+
+		@Column({ name: "last_edit_timestamp", type: "datetime" })
+		public lastEditTimestamp: Date;
 
 		@OneToMany(() => ActorGroup, actorGroup => actorGroup.actor)
 		public actorGroups: ActorGroup[];

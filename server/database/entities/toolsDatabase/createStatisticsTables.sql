@@ -13,6 +13,8 @@ CREATE TABLE `huwiki_actor_v2` (
   `is_registered` tinyint(1) NOT NULL,
   `registration_timestamp` datetime DEFAULT NULL,
   `is_registration_timestamp_from_first_edit` tinyint(1) DEFAULT NULL,
+  `first_edit_timestamp` date NOT NULL,
+  `last_edit_timestamp` date NOT NULL,
   PRIMARY KEY (`actor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -76,6 +78,8 @@ CREATE TABLE `huwikisource_actor_v2` (
   `is_registered` tinyint(1) NOT NULL,
   `registration_timestamp` datetime DEFAULT NULL,
   `is_registration_timestamp_from_first_edit` tinyint(1) DEFAULT NULL,
+  `first_edit_timestamp` date NOT NULL,
+  `last_edit_timestamp` date NOT NULL,
   PRIMARY KEY (`actor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -139,6 +143,8 @@ CREATE TABLE `huwikiquote_actor_v2` (
   `is_registered` tinyint(1) NOT NULL,
   `registration_timestamp` datetime DEFAULT NULL,
   `is_registration_timestamp_from_first_edit` tinyint(1) DEFAULT NULL,
+  `first_edit_timestamp` date NOT NULL,
+  `last_edit_timestamp` date NOT NULL,
   PRIMARY KEY (`actor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -202,6 +208,8 @@ CREATE TABLE `huwiktionary_actor_v2` (
   `is_registered` tinyint(1) NOT NULL,
   `registration_timestamp` datetime DEFAULT NULL,
   `is_registration_timestamp_from_first_edit` tinyint(1) DEFAULT NULL,
+  `first_edit_timestamp` date NOT NULL,
+  `last_edit_timestamp` date NOT NULL,
   PRIMARY KEY (`actor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
