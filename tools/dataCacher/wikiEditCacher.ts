@@ -16,12 +16,6 @@ import { ActorTypeModel, createActorEntitiesForWiki, WikiStatisticsTypesResult }
 import { WikiProcessedRevisions } from "../../server/database/entities/toolsDatabase/wikiProcessedRevisions";
 import { KnownWiki } from "../../server/interfaces/knownWiki";
 
-const REVISIONS_PROCESSED_AT_ONCE: number = 10000;
-const LOG_ENTRIES_PROCESSED_AT_ONCE: number = 10000;
-const MAXIMUM_PROCESSED_REVISIONS_AT_ONCE: number = 500000;
-const MAXIMUM_LOG_ENTRIES_PROCESSED_AT_ONCE: number = 500000;
-const MAXIMUM_PROCESSED_ACTORS_AT_ONCE: number = 100000;
-
 interface WikiEditCacherOptions {
 	appCtx: AppRunningContext;
 	wiki: KnownWiki;
@@ -99,7 +93,7 @@ export class WikiEditCacher {
 			if (!(await this.tryProcessNextRevisionBatch()))
 				break;
 
-			if (this.totalProcessedRevisions >= MAXIMUM_PROCESSED_REVISIONS_AT_ONCE)
+			if (this.totalProcessedRevisions >= this.appConfig.dataCacher.maxRevisionsProcessedInASingleRun)
 				break;
 		}
 
@@ -107,7 +101,7 @@ export class WikiEditCacher {
 			if (!(await this.tryProcessNextLogBatch()))
 				break;
 
-			if (this.totalProcessedRevisions >= MAXIMUM_LOG_ENTRIES_PROCESSED_AT_ONCE)
+			if (this.totalProcessedRevisions >= this.appConfig.dataCacher.maxLogEntriesProcessedInASingleRun)
 				break;
 		}
 
@@ -136,7 +130,7 @@ export class WikiEditCacher {
 	}
 
 	private async tryProcessNextRevisionBatch(): Promise<boolean> {
-		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Getting at most ${REVISIONS_PROCESSED_AT_ONCE} revisions starting at revision ${this.lastProcessedRevisionId + 1}...`);
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Getting at most ${this.appConfig.dataCacher.revisionsProcessedAtOnce} revisions starting at revision ${this.lastProcessedRevisionId + 1}...`);
 
 		const revisions = await this.replicatedDatabaseConnection.getRepository(Revision)
 			.createQueryBuilder("rev")
@@ -146,7 +140,7 @@ export class WikiEditCacher {
 			.leftJoinAndSelect("act.user", "usr")
 			.where("rev.id > :lastProcessedRevisionId", { lastProcessedRevisionId: this.lastProcessedRevisionId })
 			.orderBy("rev.id", "ASC")
-			.limit(REVISIONS_PROCESSED_AT_ONCE)
+			.limit(this.appConfig.dataCacher.revisionsProcessedAtOnce)
 			.getMany();
 
 		if (!revisions || revisions.length == 0) {
@@ -231,7 +225,7 @@ export class WikiEditCacher {
 	}
 
 	private async tryProcessNextLogBatch(): Promise<boolean> {
-		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Getting at most ${LOG_ENTRIES_PROCESSED_AT_ONCE} log entries starting at id ${this.lastProcessedLogId + 1}...`);
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Getting at most ${this.appConfig.dataCacher.logEntriesProcessedAtOnce} log entries starting at id ${this.lastProcessedLogId + 1}...`);
 
 		const logEntries = await this.replicatedDatabaseConnection.getRepository(LogEntry)
 			.createQueryBuilder("log")
@@ -239,7 +233,7 @@ export class WikiEditCacher {
 			.leftJoinAndSelect("act.user", "usr")
 			.where("log.id > :lastProcessedLogId", { lastProcessedLogId: this.lastProcessedLogId })
 			.orderBy("log.id", "ASC")
-			.limit(LOG_ENTRIES_PROCESSED_AT_ONCE)
+			.limit(this.appConfig.dataCacher.logEntriesProcessedAtOnce)
 			.getMany();
 
 		if (!logEntries || logEntries.length == 0) {
@@ -405,8 +399,8 @@ export class WikiEditCacher {
 
 		const connMan = getManager(this.toolsConnection.name);
 		await connMan.transaction(async (em: EntityManager) => {
-			const updatedActors = this.actorsToUpdate.length > MAXIMUM_PROCESSED_ACTORS_AT_ONCE
-				? this.actorsToUpdate.slice(0, MAXIMUM_PROCESSED_ACTORS_AT_ONCE)
+			const updatedActors = this.actorsToUpdate.length > this.appConfig.dataCacher.maxActorsProcessedInASingleRun
+				? this.actorsToUpdate.slice(0, this.appConfig.dataCacher.maxActorsProcessedInASingleRun)
 				: this.actorsToUpdate;
 
 			for (const actorToUpdate of updatedActors) {

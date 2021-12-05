@@ -7,4 +7,12 @@ export interface ApplicationConfiguration {
 
 	toolsDbHost: string;
 	toolsDbPort: number;
+
+	dataCacher: {
+		revisionsProcessedAtOnce: number,
+		logEntriesProcessedAtOnce: number,
+		maxRevisionsProcessedInASingleRun: number;
+		maxLogEntriesProcessedInASingleRun: number;
+		maxActorsProcessedInASingleRun: number;
+	}
 }

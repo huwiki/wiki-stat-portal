@@ -6,6 +6,7 @@ import { getResourcesBasePath } from "../helpers/i18nServer";
 import { fileExists, readFileLines } from "../helpers/ioUtils";
 import { KnownWiki } from "../interfaces/knownWiki";
 import { ApplicationConfiguration } from "./applicationConfiguration";
+import { DATACACHER_LOG_ENTRIES_PROCESSED_AT_ONCE, DATACACHER_MAXIMUM_ACTORS_PROCESSED_IN_A_SINGLE_RUN, DATACACHER_MAXIMUM_PROCESSED_REVISIONS_IN_A_SINGLE_RUN, DATACACHER_REVISIONS_PROCESSED_AT_ONCE } from "./configurationDefaults";
 
 export const readJsonSchema = <T>(schemaFileName: string): JSONSchemaType<T> => {
 	const schemaPath = path.join(getResourcesBasePath(), "schemas", schemaFileName);
@@ -21,18 +22,30 @@ export const readApplicationConfiguration = (): ApplicationConfiguration | strin
 
 	try {
 		const fileContent = fs.readFileSync(configPath, { encoding: "utf-8" });
-		const fileData = JSON.parse(fileContent) as ApplicationConfiguration;
+		const configuration = JSON.parse(fileContent) as ApplicationConfiguration;
 
-		const configValidationResult = isApplicationConfigurationValid(fileData);
+		const configValidationResult = isApplicationConfigurationValid(configuration);
 		if (configValidationResult.valid === false) {
 			return configValidationResult.validationError;
 		}
 
-		return fileData;
+		fillConfigurationWithDefaults(configuration);
+
+		return configuration;
 	}
 	catch (err) {
 		return `[readApplicationConfiguration] Error while reading wikiStatConfig.json: ${err}`;
 	}
+};
+
+const fillConfigurationWithDefaults = (configuration: ApplicationConfiguration): void => {
+	configuration.dataCacher = {
+		revisionsProcessedAtOnce: configuration.dataCacher?.revisionsProcessedAtOnce ?? DATACACHER_REVISIONS_PROCESSED_AT_ONCE,
+		logEntriesProcessedAtOnce: configuration.dataCacher?.logEntriesProcessedAtOnce ?? DATACACHER_LOG_ENTRIES_PROCESSED_AT_ONCE,
+		maxRevisionsProcessedInASingleRun: configuration.dataCacher?.maxRevisionsProcessedInASingleRun ?? DATACACHER_MAXIMUM_PROCESSED_REVISIONS_IN_A_SINGLE_RUN,
+		maxLogEntriesProcessedInASingleRun: configuration.dataCacher?.maxLogEntriesProcessedInASingleRun ?? DATACACHER_MAXIMUM_PROCESSED_REVISIONS_IN_A_SINGLE_RUN,
+		maxActorsProcessedInASingleRun: configuration.dataCacher?.maxActorsProcessedInASingleRun ?? DATACACHER_MAXIMUM_ACTORS_PROCESSED_IN_A_SINGLE_RUN,
+	};
 };
 
 
@@ -58,6 +71,36 @@ const isApplicationConfigurationValid = (config: ApplicationConfiguration): Appl
 		return { valid: false, validationError: "Tools (user) database host is required and must be a string" };
 	if (!config.toolsDbPort || typeof config.toolsDbPort !== "number" || config.toolsDbPort <= 0 || isInteger(config.toolsDbPort) === false)
 		return { valid: false, validationError: "Tools (user) database port is required and it must be a positive integer" };
+
+	if (typeof config.dataCacher !== "undefined") {
+		if (typeof config.dataCacher !== "object")
+			return { valid: false, validationError: "DataCacher property must be an object" };
+
+		if (typeof config.dataCacher.revisionsProcessedAtOnce !== "number"
+			|| Number.isInteger(config.dataCacher.revisionsProcessedAtOnce) === false
+			|| config.dataCacher.revisionsProcessedAtOnce <= 0)
+			return { valid: false, validationError: "dataCacher.revisionsProcessedAtOnce must be a non-zero integer number" };
+
+		if (typeof config.dataCacher.logEntriesProcessedAtOnce !== "number"
+			|| Number.isInteger(config.dataCacher.logEntriesProcessedAtOnce) === false
+			|| config.dataCacher.logEntriesProcessedAtOnce <= 0)
+			return { valid: false, validationError: "dataCacher.logEntriesProcessedAtOnce must be a non-zero integer number" };
+
+		if (typeof config.dataCacher.maxRevisionsProcessedInASingleRun !== "number"
+			|| Number.isInteger(config.dataCacher.maxRevisionsProcessedInASingleRun) === false
+			|| config.dataCacher.maxRevisionsProcessedInASingleRun <= 0)
+			return { valid: false, validationError: "dataCacher.maxRevisionsProcessedInASingleRun must be a non-zero integer number" };
+
+		if (typeof config.dataCacher.maxLogEntriesProcessedInASingleRun !== "number"
+			|| Number.isInteger(config.dataCacher.maxLogEntriesProcessedInASingleRun) === false
+			|| config.dataCacher.maxLogEntriesProcessedInASingleRun <= 0)
+			return { valid: false, validationError: "dataCacher.maxLogEntriesProcessedInASingleRun must be a non-zero integer number" };
+
+		if (typeof config.dataCacher.maxActorsProcessedInASingleRun !== "number"
+			|| Number.isInteger(config.dataCacher.maxActorsProcessedInASingleRun) === false
+			|| config.dataCacher.maxActorsProcessedInASingleRun <= 0)
+			return { valid: false, validationError: "dataCacher.maxProcessedActorsInASingleRun must be a non-zero integer number" };
+	}
 
 	return { valid: true };
 };
@@ -94,3 +137,4 @@ export const readFlaglessBotList = (wiki: KnownWiki): string[] => {
 
 	return readFileLines(listPath).filter(x => typeof x === "string" && x.length > 0 && x[0] !== "#");
 };
+

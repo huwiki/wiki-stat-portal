@@ -1,6 +1,7 @@
 import { Connection, createConnection } from "typeorm";
 import { ApplicationConfiguration } from "../configuration/applicationConfiguration";
 import { Actor, Comment, Page, Revision, User, UserGroup } from "./entities/mediawiki";
+import { LogEntry } from "./entities/mediawiki/logEntry";
 import { createActorEntitiesForWiki } from "./entities/toolsDatabase/actorByWiki";
 import { WikiProcessedRevisions } from "./entities/toolsDatabase/wikiProcessedRevisions";
 
@@ -54,6 +55,7 @@ export const createConnectionToMediaWikiReplica = async (appConfig: ApplicationC
 		entities: [
 			Actor,
 			Comment,
+			LogEntry,
 			Page,
 			Revision,
 			User,
