@@ -16,14 +16,14 @@ It requires a `service.template` file with the following configuration:
 backend: kubernetes
 cpu: 1
 mem: 2Gi
-type: node10
+type: node12
 ```
 
-To run the webservice, run: `webservice --backend=kubernetes node10 start`
+To run the webservice, run: `webservice --backend=kubernetes node12 start`
 
-To stop the webservice, run: `webservice --backend=kubernetes node10 stop`
+To stop the webservice, run: `webservice --backend=kubernetes node12 stop`
 
-For a webservice shell you can use: `webservice --backend=kubernetes node10 shell`.
+For a webservice shell you can use: `webservice --backend=kubernetes node12 shell`.
 Use this to install dependencies using `npm install` (yarn is not available). For the normal project account, node.js 10 is not available.
 
 # Setting up continuous job
