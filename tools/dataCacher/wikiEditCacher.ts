@@ -49,6 +49,8 @@ interface StatsByActor {
 	actorId: number;
 	actor: Actor;
 	actorName: string;
+	firstEditTimestamp: moment.Moment | null;
+	lastEditTimestamp: moment.Moment | null;
 	editsByDate: CounterByDate[];
 	editsByDateAndNs: EditsByDateAndNs[];
 	logEntriesByDate: CounterByDate[];
@@ -176,6 +178,7 @@ export class WikiEditCacher {
 			const actor = revision.actor;
 
 			const editDate = this.getStartOfDayAsPlainDate(revision.timestamp);
+			const currentEditTimestamp = moment(revision.timestamp);
 
 			let statsByActor = this.statsByActorDict[actor.id];
 			if (!statsByActor) {
@@ -183,6 +186,8 @@ export class WikiEditCacher {
 					actor: actor,
 					actorId: actor.id,
 					actorName: actor.user ? actor.user.name : actor.name,
+					firstEditTimestamp: currentEditTimestamp,
+					lastEditTimestamp: currentEditTimestamp,
 					editsByDate: [{ date: editDate, events: 1 }],
 					editsByDateAndNs: [{
 						namespace: revision.page.namespace,
@@ -194,6 +199,12 @@ export class WikiEditCacher {
 				this.statsByActorList.push(statsByActor);
 				this.statsByActorDict[actor.id] = statsByActor;
 			} else {
+				if (statsByActor.firstEditTimestamp?.isAfter(currentEditTimestamp))
+					statsByActor.firstEditTimestamp = currentEditTimestamp;
+
+				if (statsByActor.lastEditTimestamp?.isBefore(currentEditTimestamp))
+					statsByActor.lastEditTimestamp = currentEditTimestamp;
+
 				const dailyBucket = statsByActor.editsByDate.find(x => isSameDay(x.date, editDate));
 				if (!dailyBucket) {
 					statsByActor.editsByDate.push({ date: editDate, events: 1 });
@@ -262,6 +273,8 @@ export class WikiEditCacher {
 					actor: actor,
 					actorId: actor.id,
 					actorName: actor.user ? actor.user.name : actor.name,
+					firstEditTimestamp: null,
+					lastEditTimestamp: null,
 					editsByDate: [],
 					editsByDateAndNs: [],
 					logEntriesByDate: [{ date: editDate, events: 1 }],
@@ -509,10 +522,15 @@ export class WikiEditCacher {
 
 		const firstEditDate = actorStat.editsByDate[0].date;
 
-		if (existingActor)
-			return;
+		if (existingActor) {
+			await this.updateActorInDatabase(actorStat, existingActor, em);
+		} else {
+			await this.createActorInDatabase(actorStat, firstEditDate, em);
+		}
+	}
 
-		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] saveActorStatistics: Creating actor for '${actorStat.actorName}'`);
+	private async createActorInDatabase(actorStat: StatsByActor, firstEditDate: Date, em: EntityManager) {
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] createActorInDatabase: Creating actor for '${actorStat.actorName}'`);
 		await em.createQueryBuilder()
 			.insert()
 			.into(this.wikiStatisticsEntities.actor)
@@ -529,6 +547,35 @@ export class WikiEditCacher {
 						: actorStat.actor.user.registrationTimestamp)
 					: null,
 			})
+			.execute();
+	}
+
+	private async updateActorInDatabase(actorStat: StatsByActor, existingActor: ActorTypeModel, em: EntityManager): Promise<void> {
+		if (existingActor.firstEditTimestamp == null && actorStat.firstEditTimestamp == null
+			&& existingActor.lastEditTimestamp == null && actorStat.lastEditTimestamp == null)
+			return;
+
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] createActorInDatabase: Updating first/last edit statistics for '${actorStat.actorName}'`);
+
+		const firstEditTimestamp =
+			existingActor.firstEditTimestamp == null && actorStat.firstEditTimestamp == null ? undefined
+				: actorStat.firstEditTimestamp == null ? existingActor.firstEditTimestamp
+					: existingActor.firstEditTimestamp == null ? actorStat.firstEditTimestamp.toDate()
+						: actorStat.firstEditTimestamp.isBefore(moment(existingActor.firstEditTimestamp)) ? actorStat.firstEditTimestamp.toDate() : existingActor.firstEditTimestamp;
+		const lastEditTimestamp =
+			existingActor.lastEditTimestamp == null && actorStat.lastEditTimestamp == null ? undefined
+				: actorStat.lastEditTimestamp == null ? existingActor.lastEditTimestamp
+					: existingActor.lastEditTimestamp == null ? actorStat.lastEditTimestamp.toDate()
+						: actorStat.lastEditTimestamp.isAfter(moment(existingActor.lastEditTimestamp)) ? actorStat.lastEditTimestamp.toDate() : existingActor.lastEditTimestamp;
+
+		await em
+			.createQueryBuilder()
+			.update(this.wikiStatisticsEntities.actor)
+			.set({
+				firstEditTimestamp: firstEditTimestamp,
+				lastEditTimestamp: lastEditTimestamp
+			})
+			.where("actorId = :actorId", { actorId: actorStat.actorId })
 			.execute();
 	}
 
