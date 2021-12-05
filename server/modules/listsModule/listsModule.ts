@@ -29,7 +29,7 @@ export class ListsModule extends ModuleBase {
 				this.logger.warn(`[ListsModule.initializeModuleSpecificSettingsFromConfiguration] ${configOrError}`);
 				this.lists.push({ wiki: wiki, valid: false, validationError: configOrError });
 			} else {
-				this.logger.info(`[ListsModule.initializeModuleSpecificSettingsFromConfiguration] Successfully loaded ${configOrError.length} group(s) for ${wiki}`);
+				this.logger.info(`[ListsModule.initializeModuleSpecificSettingsFromConfiguration] Successfully loaded ${configOrError.length} list(s) for ${wiki}`);
 				this.lists.push({ wiki: wiki, valid: true, lists: configOrError });
 			}
 		}
@@ -48,7 +48,11 @@ export class ListsModule extends ModuleBase {
 			const fileContent = fs.readFileSync(listsConfigPath, { encoding: "utf-8" });
 			const fileData = JSON.parse(fileContent);
 
-			const ajv = new Ajv();
+			const ajv = new Ajv({
+				schemas: {
+					"common.json": readJsonSchema("common.json")
+				}
+			});
 			const validator = ajv.compile(schema);
 			if (validator(fileData)) {
 				if (typeof fileData.use !== "undefined") {

@@ -48,7 +48,11 @@ export class UserPyramidsModule extends ModuleBase {
 			const fileContent = fs.readFileSync(pyramidConfigPath, { encoding: "utf-8" });
 			const fileData = JSON.parse(fileContent);
 
-			const ajv = new Ajv();
+			const ajv = new Ajv({
+				schemas: {
+					"common.json": readJsonSchema("common.json")
+				}
+			});
 			const validator = ajv.compile(schema);
 			if (validator(fileData)) {
 				if (typeof fileData.use !== "undefined") {
