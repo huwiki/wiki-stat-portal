@@ -7,7 +7,8 @@
 		"build": "next build",
 		"lint": "eslint . --ext .ts,.tsx",
 		"start": "next start -p $PORT",
-		"build:tools": "cd tools && tsc; cd .."
+		"build:tools": "cd tools && tsc; cd ..",
+		"run:dataCacher": " node tools-out/tools/dataCacher/dataCacher"
 	},
 	"dependencies": {
 		"@babel/plugin-proposal-class-properties": "^7.12.1",
