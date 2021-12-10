@@ -1,12 +1,13 @@
 {
 	"lists": [
 		{
-			"id": "byUserCount",
+			"id": "byEditCount",
 			"groupId": "topLists",
-			"i18nKey": "list.byUserCount",
+			"i18nKey": "lists.list.topLists.byEditCount",
 			"itemCount": 500,
 			"columns": [
 				{
+					"columnId": "test",
 					"type": "counter"
 				},
 				{
@@ -44,6 +45,353 @@
 				},
 				{
 					"type": "averageEditsPerDayInPeriod"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "byEditCountInPeriod",
+			"groupId": "topLists",
+			"i18nKey": "lists.list.topLists.byEditCountInPeriod",
+			"itemCount": 500,
+			"columns": [
+				{
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "checkuserByCheckCount",
+			"groupId": "topLists",
+			"i18nKey": "lists.list.topLists.checkuserByCheckCount",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "checkuserByCheckCountInPeriod",
+			"groupId": "topLists",
+			"i18nKey": "lists.list.topLists.checkuserByCheckCountInPeriod",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "botsByEditCount",
+			"groupId": "topLists",
+			"i18nKey": "lists.list.topLists.botsByEditCount",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "botsByEditCountInPeriod",
+			"groupId": "topLists",
+			"i18nKey": "lists.list.topLists.botsByEditCountInPeriod",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "usersWithAtLeast100Edits",
+			"groupId": "fullUserLists",
+			"i18nKey": "lists.list.fullUserLists.usersWithAtLeast100Edits",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "anonsWithAtLeast100Edits",
+			"groupId": "fullUserLists",
+			"i18nKey": "lists.list.fullUserLists.anonsWithAtLeast100Edits",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "first1000RegisteredUsers",
+			"groupId": "fullUserLists",
+			"i18nKey": "lists.list.fullUserLists.first1000RegisteredUsers",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "newUsers",
+			"groupId": "newUsers",
+			"i18nKey": "lists.list.newUsers.newUsers",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "usersToWelcome",
+			"groupId": "newUsers",
+			"i18nKey": "lists.list.newUsers.usersToWelcome",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "newcomersToCelebrate",
+			"groupId": "newUsers",
+			"i18nKey": "lists.list.newUsers.newcomersToCelebrate",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "goodNewcomers",
+			"groupId": "newUsers",
+			"i18nKey": "lists.list.newUsers.goodNewcomers",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "thankedNewcomers",
+			"groupId": "newUsers",
+			"i18nKey": "lists.list.newUsers.thankedNewcomers",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "inactiveSysops",
+			"groupId": "activity",
+			"i18nKey": "lists.list.activity.inactiveSysops",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "inactiveBureaucrats",
+			"groupId": "activity",
+			"i18nKey": "lists.list.activity.inactiveBureaucrats",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "inactiveInterfaceEditors",
+			"groupId": "activity",
+			"i18nKey": "lists.list.activity.inactiveInterfaceEditors",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "inactiveInterfaceAdmins",
+			"groupId": "activity",
+			"i18nKey": "lists.list.activity.inactiveInterfaceAdmins",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "inactiveBots",
+			"groupId": "activity",
+			"i18nKey": "lists.list.activity.inactiveBots",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
+				}
+			]
+		},
+		{
+			"id": "inactiveUsers",
+			"groupId": "activity",
+			"i18nKey": "lists.list.activity.inactiveUsers",
+			"itemCount": 500,
+			"columns": [
+				{
+					"columnId": "test",
+					"type": "counter"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "test",
+					"direction": "ascending"
 				}
 			]
 		}

@@ -18,9 +18,11 @@ import { IPyramidGroup, PyramidVisualization } from "../../client/components/use
 import { NextBasePage } from "../../client/helpers/nextBasePage";
 import { SelectableValue } from "../../client/models/selectableValue";
 import { CommonPageProps } from "../../common/interfaces/commonPageProps";
+import { MODULE_ICONS } from "../../common/modules/moduleIcons";
+import { ModuleIdType, MODULE_IDENTIFIERS } from "../../common/modules/moduleIdentifiers";
 import { isLocalizedUserPyramidConfiguration, isLocalizedUserPyramidGroup, UserPyramidGroup, WikiUserPyramidConfigurations } from "../../common/modules/userPyramids/userPyramidConfiguration";
 import { withCommonServerSideProps } from "../../server/helpers/serverSidePageHelpers";
-import { GetServerSidePropsResult } from "../../server/interfaces/getServerSidePropsResult";
+import { GetPortalServerSidePropsResult } from "../../server/interfaces/getPortalServerSidePropsResult";
 import { moduleManager } from "../../server/modules/moduleManager";
 import { UserPyramidsModule } from "../../server/modules/userPyramidsModule/userPyramidsModule";
 import userPyramidsStyles from "./userPyramids.module.scss";
@@ -28,7 +30,7 @@ import userPyramidsStyles from "./userPyramids.module.scss";
 interface UserPyramidModulePageProps extends CommonPageProps {
 	supportedWikis: string[];
 	moduleFound: boolean;
-	moduleId: string | null;
+	moduleId: ModuleIdType | null;
 	moduleIcon: IconName | null;
 	userPyramids: WikiUserPyramidConfigurations[];
 }
@@ -108,7 +110,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 		}
 
 		return <PageFrame
-			icon="horizontal-bar-chart-desc"
+			icon={MODULE_ICONS[MODULE_IDENTIFIERS.userPyramids]}
 			title={this.t("module.userPyramids")}
 			router={this.props.router}
 			i18nProvider={this.i18nProvider}>
@@ -160,7 +162,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 		/>;
 	}
 
-	createGroupsForPyramidVisualization(groups: UserPyramidGroup[]): IPyramidGroup[] {
+	private createGroupsForPyramidVisualization(groups: UserPyramidGroup[]): IPyramidGroup[] {
 		const ret: IPyramidGroup[] = [];
 
 
@@ -549,11 +551,11 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 	}
 }
 
-export const getServerSideProps = async (ctx: NextPageContext): Promise<GetServerSidePropsResult<UserPyramidModulePageProps>> => {
-	const userPyramidsModule = moduleManager.getModuleById<UserPyramidsModule>("userPyramids");
+export const getServerSideProps = async (ctx: NextPageContext): Promise<GetPortalServerSidePropsResult<UserPyramidModulePageProps>> => {
+	const userPyramidsModule = moduleManager.getModuleById<UserPyramidsModule>(MODULE_IDENTIFIERS.userPyramids);
 
 	return await withCommonServerSideProps<UserPyramidModulePageProps>(ctx, {
-		supportedWikis: userPyramidsModule?.availableAt || [],
+		supportedWikis: userPyramidsModule?.availableAt ?? [],
 		moduleFound: !!userPyramidsModule,
 		moduleId: userPyramidsModule?.identifier,
 		moduleIcon: userPyramidsModule?.icon,

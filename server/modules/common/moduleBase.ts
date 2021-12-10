@@ -1,11 +1,12 @@
 import { IconName } from "@blueprintjs/core";
 import { isArray } from "util";
 import { Logger } from "winston";
+import { ModuleIdType } from "../../../common/modules/moduleIdentifiers";
 import { ModuleJsonConfiguration } from "./moduleJsonConfiguration";
 
 interface ModuleInitializationSettings {
 	logger: Logger;
-	identifier: string;
+	identifier: ModuleIdType;
 	icon: IconName;
 }
 
@@ -18,7 +19,7 @@ export abstract class ModuleBase {
 		return this._isInitialized;
 	}
 
-	public get identifier(): string {
+	public get identifier(): ModuleIdType {
 		return this.settings.identifier;
 	}
 	public get icon(): IconName {

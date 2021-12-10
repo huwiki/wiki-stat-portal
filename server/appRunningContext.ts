@@ -18,7 +18,10 @@ export class AppRunningContext {
 		return this.knownWikisConfiguration.map(knownWiki => ({ ...knownWiki }));
 	}
 
-	public getKnownWikiById(wikiId: string): KnownWiki | null {
+	public getKnownWikiById(wikiId?: string): KnownWiki | null {
+		if (!wikiId)
+			return null;
+
 		const knownWiki = this.knownWikisConfiguration.find(x => x.id === wikiId);
 		if (!knownWiki)
 			return null;

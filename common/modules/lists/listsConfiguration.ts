@@ -7,11 +7,11 @@ export interface ListsConfigurationFile {
 
 export type WikiListConfigurations =
 	{
-		wiki: string;
+		wikiId: string;
 		valid: false;
 		validationError: string;
 	} | {
-		wiki: string;
+		wikiId: string;
 		valid: true;
 		lists: ListConfiguration[];
 	};
@@ -28,6 +28,7 @@ export interface NonLocalizedListConfiguration {
 	userRequirements: UserRequirements;
 	isTimeless: boolean;
 	columns: ListColumn[];
+	orderBy: ListOrderBy[];
 }
 
 export function isNonLocalizedListConfiguration(obj: unknown): obj is NonLocalizedListConfiguration {
@@ -35,7 +36,8 @@ export function isNonLocalizedListConfiguration(obj: unknown): obj is NonLocaliz
 		&& obj != null
 		&& typeof obj["id"] === "string"
 		&& typeof obj["groupId"] === "string"
-		&& typeof obj["name"] === "string";
+		&& typeof obj["name"] === "string"
+		&& typeof obj["orderBy"] === "object";
 }
 
 
@@ -47,6 +49,7 @@ export interface LocalizedListConfiguration {
 	isTimeless: boolean;
 	userRequirements: UserRequirements;
 	columns: ListColumn[];
+	orderBy: ListOrderBy[];
 }
 
 export function isLocalizedListConfiguration(obj: unknown): obj is LocalizedListConfiguration {
@@ -54,7 +57,8 @@ export function isLocalizedListConfiguration(obj: unknown): obj is LocalizedList
 		&& obj != null
 		&& typeof obj["id"] === "string"
 		&& typeof obj["groupId"] === "string"
-		&& typeof obj["i18nKey"] === "string";
+		&& typeof obj["i18nKey"] === "string"
+		&& typeof obj["orderBy"] === "object";
 }
 
 export type ListColumn =
@@ -108,6 +112,7 @@ const columnsWithLogTypeParameter = [
 export type ListColumnTypesWithLogTypeParameter = typeof columnsWithLogTypeParameter[number];
 
 export interface ParameterlessListColumn {
+	columnId: string;
 	type: ParameterlessListColumnTypes;
 }
 
@@ -118,6 +123,7 @@ export function isParameterlessListColumn(obj: unknown): obj is ParameterlessLis
 }
 
 export interface UserNameListColumn {
+	columnId: string;
 	type: "userName";
 	showUserLinks?: boolean;
 }
@@ -129,6 +135,7 @@ export function isUserNameListColumn(obj: unknown): obj is UserNameListColumn {
 }
 
 export interface ListColumnWithNamespaceParameter {
+	columnId: string;
 	type: ListColumnTypesWithNamespaceParameter;
 	namespace: number;
 }
@@ -141,6 +148,7 @@ export function isListColumnWithNamespaceParameter(obj: unknown): obj is ListCol
 }
 
 export interface ListColumnWithLogTypeParameter {
+	columnId: string;
 	type: ListColumnTypesWithLogTypeParameter;
 	logType: string;
 }
@@ -152,28 +160,7 @@ export function isListColumnWithLogTypeParameter(obj: unknown): obj is ListColum
 		&& typeof (obj["logType"]) === "string";
 }
 
-export interface LogEventsInPeriodByTypeListColumn {
-	type: "logEventsInPeriodByType";
-	logType: string;
+export interface ListOrderBy {
+	columnId: string;
+	direction: "ascending" | "descending"
 }
-
-export function isLogEventsInPeriodInNamespaceListColumn(obj: unknown): obj is LogEventsInPeriodByTypeListColumn {
-	return typeof obj === "object"
-		&& obj != null
-		&& obj["type"] === "logEventsInPeriodByType";
-}
-
-export interface LogEventsSinceRegistrationByTypeListColumn {
-	type: "logEventsSinceRegistrationByType";
-	logType: string;
-}
-
-export function isLogEventsSinceRegistrationByTypeListColumn(obj: unknown): obj is LogEventsSinceRegistrationByTypeListColumn {
-	return typeof obj === "object"
-		&& obj != null
-		&& obj["type"] === "logEventsSinceRegistrationByType";
-}
-
-
-
-

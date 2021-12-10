@@ -2,6 +2,8 @@ import Ajv, { JSONSchemaType } from "ajv";
 import fs from "fs";
 import path from "path";
 import { Logger } from "winston";
+import { MODULE_ICONS } from "../../../common/modules/moduleIcons";
+import { MODULE_IDENTIFIERS } from "../../../common/modules/moduleIdentifiers";
 import { UserPyramidConfiguration, UserPyramidConfigurationFile, WikiUserPyramidConfigurations } from "../../../common/modules/userPyramids/userPyramidConfiguration";
 import { readJsonSchema } from "../../configuration/configurationReader";
 import { getResourcesBasePath } from "../../helpers/i18nServer";
@@ -15,8 +17,8 @@ export class UserPyramidsModule extends ModuleBase {
 	constructor(logger: Logger) {
 		super({
 			logger: logger,
-			identifier: "userPyramids",
-			icon: "horizontal-bar-chart-desc"
+			identifier: MODULE_IDENTIFIERS.userPyramids,
+			icon: MODULE_ICONS[MODULE_IDENTIFIERS.userPyramids]
 		});
 	}
 

@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		? rawLanguageCode
 		: "en";
 
-	const wikiLists = listsModule.lists.find(x => x.wiki === wikiId);
+	const wikiLists = listsModule.lists.find(x => x.wikiId === wikiId);
 
 	if (listsModule.availableAt.indexOf(wikiId) === -1
 		|| !wikiLists

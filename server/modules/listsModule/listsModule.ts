@@ -3,6 +3,8 @@ import fs from "fs";
 import path from "path";
 import { Logger } from "winston";
 import { ListConfiguration, ListsConfigurationFile, WikiListConfigurations } from "../../../common/modules/lists/listsConfiguration";
+import { MODULE_ICONS } from "../../../common/modules/moduleIcons";
+import { MODULE_IDENTIFIERS } from "../../../common/modules/moduleIdentifiers";
 import { readJsonSchema } from "../../configuration/configurationReader";
 import { getResourcesBasePath } from "../../helpers/i18nServer";
 import { fileExists } from "../../helpers/ioUtils";
@@ -15,9 +17,36 @@ export class ListsModule extends ModuleBase {
 	constructor(logger: Logger) {
 		super({
 			logger: logger,
-			identifier: "lists",
-			icon: "numbered-list"
+			identifier: MODULE_IDENTIFIERS.lists,
+			icon: MODULE_ICONS[MODULE_IDENTIFIERS.lists]
 		});
+	}
+
+	public getListsByWikiId(wikiId?: string): ListConfiguration[] | null {
+		if (!wikiId)
+			return null;
+
+		const wikiLists = this.lists.find(x => x.wikiId == wikiId);
+		if (!wikiLists || wikiLists.valid !== true || wikiLists.lists.length === 0)
+			return null;
+
+		return wikiLists.lists;
+	}
+
+	public getListByFullId(wikiId?: string, fullListId?: string): ListConfiguration | null {
+		if (!wikiId || !fullListId)
+			return null;
+
+		const wikiLists = this.lists.find(x => x.wikiId == wikiId);
+		if (!wikiLists || wikiLists.valid !== true || wikiLists.lists.length === 0)
+			return null;
+
+		const firstDotIndex = fullListId.indexOf(".");
+		if (firstDotIndex <= 0 || firstDotIndex === fullListId.length - 1)
+			return null;
+		const groupId = fullListId.substring(0, firstDotIndex);
+		const listId = fullListId.substring(firstDotIndex + 1);
+		return wikiLists.lists.find(ele => ele.groupId == groupId && ele.id === listId) ?? null;
 	}
 
 	protected initializeModuleSpecificSettingsFromConfiguration(configuration: ModuleJsonConfiguration): boolean {
@@ -27,10 +56,10 @@ export class ListsModule extends ModuleBase {
 
 			if (typeof configOrError === "string") {
 				this.logger.warn(`[ListsModule.initializeModuleSpecificSettingsFromConfiguration] ${configOrError}`);
-				this.lists.push({ wiki: wiki, valid: false, validationError: configOrError });
+				this.lists.push({ wikiId: wiki, valid: false, validationError: configOrError });
 			} else {
 				this.logger.info(`[ListsModule.initializeModuleSpecificSettingsFromConfiguration] Successfully loaded ${configOrError.length} list(s) for ${wiki}`);
-				this.lists.push({ wiki: wiki, valid: true, lists: configOrError });
+				this.lists.push({ wikiId: wiki, valid: true, lists: configOrError });
 			}
 		}
 

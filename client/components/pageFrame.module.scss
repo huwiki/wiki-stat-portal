@@ -17,14 +17,16 @@
 }
 
 .pageTitle {
-
-	.pageTitleContent,
-	.pageTitleIcon {
-		vertical-align: middle;
-	}
+	display: flex;
+	align-items: center;
 
 	.pageTitleIcon {
 		margin-right: 0.5em;
+		display: 0 0 auto;
+	}
+
+	.pageTitleContent {
+		flex: 1 1 auto;
 	}
 }
 

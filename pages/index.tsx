@@ -12,7 +12,7 @@ import { SelectableValue } from "../client/models/selectableValue";
 import { CommonPageProps } from "../common/interfaces/commonPageProps";
 import { ModuleDescriptor } from "../common/interfaces/moduleDescriptor";
 import { withCommonServerSideProps } from "../server/helpers/serverSidePageHelpers";
-import { GetServerSidePropsResult } from "../server/interfaces/getServerSidePropsResult";
+import { GetPortalServerSidePropsResult } from "../server/interfaces/getPortalServerSidePropsResult";
 import indexPageStyles from "../styles/indexPage.module.scss";
 
 const REQUIRED_LANGUAGE_GROUPS = [
@@ -131,7 +131,7 @@ class IndexPage extends NextBasePage<IndexPageProps> {
 
 }
 
-export const getServerSideProps = async (ctx: NextPageContext): Promise<GetServerSidePropsResult<IndexPageProps>> => {
+export const getServerSideProps = async (ctx: NextPageContext): Promise<GetPortalServerSidePropsResult<IndexPageProps>> => {
 	return await withCommonServerSideProps<IndexPageProps>(ctx, {}, REQUIRED_LANGUAGE_GROUPS);
 };
 

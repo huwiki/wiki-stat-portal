@@ -57,6 +57,9 @@
 				},
 				"columns": {
 					"$ref": "#/definitions/listColumnList"
+				},
+				"orderBy": {
+					"$ref": "#/definitions/listOrderByList"
 				}
 			},
 			"required": [
@@ -64,7 +67,8 @@
 				"groupId",
 				"name",
 				"itemCount",
-				"columns"
+				"columns",
+				"orderBy"
 			],
 			"additionalProperties": false
 		},
@@ -91,6 +95,9 @@
 				},
 				"columns": {
 					"$ref": "#/definitions/listColumnList"
+				},
+				"orderBy": {
+					"$ref": "#/definitions/listOrderByList"
 				}
 			},
 			"required": [
@@ -98,7 +105,8 @@
 				"groupId",
 				"i18nKey",
 				"itemCount",
-				"columns"
+				"columns",
+				"orderBy"
 			],
 			"additionalProperties": false
 		},
@@ -126,6 +134,9 @@
 			"type": "object",
 			"additionalProperties": false,
 			"properties": {
+				"columnId": {
+					"type": "string"
+				},
 				"type": {
 					"type": "string",
 					"enum": [
@@ -166,6 +177,9 @@
 			"type": "object",
 			"additionalProperties": false,
 			"properties": {
+				"columnId": {
+					"type": "string"
+				},
 				"type": {
 					"type": "string",
 					"pattern": "userName"
@@ -182,6 +196,9 @@
 			"type": "object",
 			"additionalProperties": false,
 			"properties": {
+				"columnId": {
+					"type": "string"
+				},
 				"type": {
 					"type": "string",
 					"enum": [
@@ -205,6 +222,9 @@
 			"type": "object",
 			"additionalProperties": false,
 			"properties": {
+				"columnId": {
+					"type": "string"
+				},
 				"type": {
 					"type": "string",
 					"enum": [
@@ -218,6 +238,33 @@
 			},
 			"required": [
 				"type"
+			]
+		},
+		"listOrderByList": {
+			"type": "array",
+			"items": {
+				"$ref": "#/definitions/listOrderBy"
+			},
+			"minItems": 1
+		},
+		"listOrderBy": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"columnId": {
+					"type": "string"
+				},
+				"direction": {
+					"type": "string",
+					"enum": [
+						"ascending",
+						"descending"
+					]
+				}
+			},
+			"required": [
+				"columnId",
+				"direction"
 			]
 		}
 	}

@@ -1,4 +1,4 @@
-import { Button, Icon, IconName, Menu, MenuItem, Navbar, NavbarDivider, NavbarGroup, NavbarHeading, Popover, Tooltip } from "@blueprintjs/core";
+import { Button, Classes, Icon, IconName, Menu, MenuItem, Navbar, NavbarDivider, NavbarGroup, NavbarHeading, Popover, Tooltip } from "@blueprintjs/core";
 import Head from "next/head";
 import { NextRouter } from "next/router";
 import { setCookie } from "nookies";
@@ -8,8 +8,14 @@ import { SupportedLanguages } from "../../common/interfaces/I18nCommon";
 import { I18nProvider } from "../helpers/i18nClient";
 import styles from "./pageFrame.module.scss";
 
+interface PageParent {
+	content: React.ReactNode;
+	routeLink: string;
+}
+
 interface PageFrameProps {
-	title: string;
+	parents?: PageParent[];
+	title: React.ReactNode;
 	icon: IconName;
 	children?: React.ReactNode;
 
@@ -23,18 +29,35 @@ export class PageFrame extends React.Component<PageFrameProps> {
 	}
 
 	public render(): JSX.Element {
+		const { title, icon, parents } = this.props;
+
 		return <div className={styles.pageContentContainer}>
 			<Head>
-				<title>{this.props.title} – {this.t("siteTitle")}</title>
+				<title>{title} – {this.t("siteTitle")}</title>
 			</Head>
 			{this.renderNavbar()}
 			<h2 className={styles.pageTitle}>
-				<Icon className={styles.pageTitleIcon} icon={this.props.icon} iconSize={24} />
-				<span className={styles.pageTitleContent}>{this.props.title}</span>
+				<Icon className={styles.pageTitleIcon} icon={icon} iconSize={24} />
+				<ul className={Classes.BREADCRUMBS}>
+					{parents && parents.length > 0 && this.renderParents(parents)}
+					<li className={styles.pageTitleContent}>{title}</li>
+				</ul>
 			</h2>
 			{this.props.children}
 			{this.renderFooter()}
 		</div>;
+	}
+
+	private renderParents(parents: PageParent[]): JSX.Element[] {
+		return parents.map((ele, index) => <li key={index.toString()}>
+			<a onClick={this.goToParentLink(ele.routeLink)}>{ele.content}</a>
+		</li>);
+	}
+
+	private goToParentLink(link: string) {
+		return () => {
+			this.props.router.push(link);
+		};
 	}
 
 	private renderNavbar() {
