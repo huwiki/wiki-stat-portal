@@ -40,6 +40,9 @@
 				"id": {
 					"type": "string"
 				},
+				"groupId": {
+					"type": "string"
+				},
 				"name": {
 					"type": "string"
 				},
@@ -58,6 +61,7 @@
 			},
 			"required": [
 				"id",
+				"groupId",
 				"name",
 				"itemCount",
 				"columns"
@@ -68,6 +72,9 @@
 			"type": "object",
 			"properties": {
 				"id": {
+					"type": "string"
+				},
+				"groupId": {
 					"type": "string"
 				},
 				"i18nKey": {
@@ -88,6 +95,7 @@
 			},
 			"required": [
 				"id",
+				"groupId",
 				"i18nKey",
 				"itemCount",
 				"columns"
@@ -124,21 +132,29 @@
 						"counter",
 						"userRoles",
 						"editsInPeriod",
+						"editsInPeriodPercentage",
 						"editsSinceRegistration",
+						"editsSinceRegistrationPercentage",
 						"revertedEditsInPeriod",
 						"revertedEditsSinceRegistration",
 						"firstEditDate",
 						"lastEditDate",
 						"logEventsInPeriod",
+						"logEventsInPeriodPercentage",
 						"logEventsSinceRegistration",
+						"logEventsSinceRegistrationPercentage",
 						"thanksInPeriod",
 						"thanksSinceRegistration",
 						"registrationDate",
 						"daysSinceRegistration",
+						"daysBetweenFirstAndLastEdit",
 						"activeDaysSinceRegistration",
 						"activeDaysInPeriod",
 						"averageEditsPerDaySinceRegistration",
-						"averageEditsPerDayInPeriod"
+						"averageEditsPerDayInPeriod",
+						"levelAtPeriodStart",
+						"levelAtPeriodEnd",
+						"levelAtPeriodEndWithChange"
 					]
 				}
 			},

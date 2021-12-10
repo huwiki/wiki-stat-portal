@@ -22,6 +22,7 @@ export type ListConfiguration =
 
 export interface NonLocalizedListConfiguration {
 	id: string;
+	groupId: string;
 	name: string;
 	itemCount: number;
 	userRequirements: UserRequirements;
@@ -32,12 +33,15 @@ export interface NonLocalizedListConfiguration {
 export function isNonLocalizedListConfiguration(obj: unknown): obj is NonLocalizedListConfiguration {
 	return typeof obj === "object"
 		&& obj != null
+		&& typeof obj["id"] === "string"
+		&& typeof obj["groupId"] === "string"
 		&& typeof obj["name"] === "string";
 }
 
 
 export interface LocalizedListConfiguration {
 	id: string;
+	groupId: string;
 	i18nKey: string;
 	itemCount: number;
 	isTimeless: boolean;
@@ -48,6 +52,8 @@ export interface LocalizedListConfiguration {
 export function isLocalizedListConfiguration(obj: unknown): obj is LocalizedListConfiguration {
 	return typeof obj === "object"
 		&& obj != null
+		&& typeof obj["id"] === "string"
+		&& typeof obj["groupId"] === "string"
 		&& typeof obj["i18nKey"] === "string";
 }
 
@@ -61,21 +67,29 @@ const parameterlessListColumnTypes = [
 	"counter",
 	"userRoles",
 	"editsInPeriod",
+	"editsInPeriodPercentage",
 	"editsSinceRegistration",
+	"editsSinceRegistrationPercentage",
 	"revertedEditsInPeriod",
 	"revertedEditsSinceRegistration",
 	"firstEditDate",
 	"lastEditDate",
 	"logEventsInPeriod",
+	"logEventsInPeriodPercentage",
 	"logEventsSinceRegistration",
+	"logEventsSinceRegistrationPercentage",
 	"thanksInPeriod",
 	"thanksSinceRegistration",
 	"registrationDate",
 	"daysSinceRegistration",
+	"daysBetweenFirstAndLastEdit",
 	"activeDaysSinceRegistration",
 	"activeDaysInPeriod",
 	"averageEditsPerDaySinceRegistration",
-	"averageEditsPerDayInPeriod"
+	"averageEditsPerDayInPeriod",
+	"levelAtPeriodStart",
+	"levelAtPeriodEnd",
+	"levelAtPeriodEndWithChange"
 ] as const;
 export type ParameterlessListColumnTypes = typeof parameterlessListColumnTypes[number];
 

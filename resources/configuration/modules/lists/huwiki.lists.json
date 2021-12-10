@@ -2,6 +2,7 @@
 	"lists": [
 		{
 			"id": "byUserCount",
+			"groupId": "topLists",
 			"i18nKey": "list.byUserCount",
 			"itemCount": 500,
 			"columns": [
