@@ -40,7 +40,6 @@ export function isNonLocalizedListConfiguration(obj: unknown): obj is NonLocaliz
 		&& typeof obj["orderBy"] === "object";
 }
 
-
 export interface LocalizedListConfiguration {
 	id: string;
 	groupId: string;
