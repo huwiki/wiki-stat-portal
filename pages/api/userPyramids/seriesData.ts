@@ -1,9 +1,10 @@
-import { addDays, parse, startOfDay, subDays } from "date-fns";
+import { parse, startOfDay } from "date-fns";
 import { isArray } from "lodash";
 import { NextApiRequest, NextApiResponse } from "next";
 import { isLocalizedUserPyramidGroup, UserPyramidConfiguration } from "../../../common/modules/userPyramids/userPyramidConfiguration";
 import { AppRunningContext } from "../../../server/appRunningContext";
 import { createActorEntitiesForWiki } from "../../../server/database/entities/toolsDatabase/actorByWiki";
+import { createStatisticsQuery } from "../../../server/database/statisticsQueryBuilder";
 import { getLocalizedString, hasLanguage, initializeI18nData } from "../../../server/helpers/i18nServer";
 import { KnownWiki } from "../../../server/interfaces/knownWiki";
 import { moduleManager } from "../../../server/modules/moduleManager";
@@ -58,172 +59,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 			appCtx.logger.info(`[api/userPyramids/seriesData] running query for '${pyramid.id}', group #${groupIndex}`);
 
-			let query = conn.getRepository(wikiEntities.actor)
-				.createQueryBuilder("actor")
-				.select("actor.actorId", "aId");
-
-			const reqs = userGroup.requirements;
-			let needsRegDateFilter = false;
-
-			// Manage required joins
-			if (typeof reqs.totalEditsAtLeast !== "undefined") {
-				query = query.leftJoin(wikiEntities.actorDailyStatistics, "totalEditsAtLeast", "totalEditsAtLeast.actorId = actor.actorId");
-			}
-
-			if (typeof reqs.totalEditsAtMost !== "undefined") {
-				query = query.leftJoin(wikiEntities.actorDailyStatistics, "totalEditsAtMost", "totalEditsAtMost.actorId = actor.actorId");
-			}
-
-			if (typeof reqs.inPeriodEditsAtLeast !== "undefined") {
-				const periodEditsCalculationStartDate = typeof reqs.inPeriodEditsAtLeast.epoch === "number"
-					? subDays(epochDate, reqs.inPeriodEditsAtLeast.period + reqs.inPeriodEditsAtLeast.epoch * -1)
-					: subDays(epochDate, reqs.inPeriodEditsAtLeast.period);
-				const periodEditsCalculationEndDate = typeof reqs.inPeriodEditsAtLeast.epoch === "number"
-					? subDays(epochDate, reqs.inPeriodEditsAtLeast.epoch * -1)
-					: epochDate;
-
-				query = query.leftJoin(qb => {
-					return qb.subQuery()
-						.select("peal.actorId", "actorId")
-						.addSelect("SUM(peal.dailyEdits)", "periodEdits")
-						.from(wikiEntities.actorDailyStatistics, "peal")
-						.where(
-							"peal.date >= :startDate AND peal.date <= :endDate",
-							{ startDate: periodEditsCalculationStartDate, endDate: periodEditsCalculationEndDate }
-						)
-						.groupBy("peal.actorId");
-				}, "periodEditsAtLeast", "periodEditsAtLeast.actorId = actor.actorId");
-			}
-
-			if (typeof reqs.inPeriodEditsAtMost !== "undefined") {
-				const periodEditsCalculationStartDate = typeof reqs.inPeriodEditsAtMost.epoch === "number"
-					? subDays(epochDate, reqs.inPeriodEditsAtMost.period + reqs.inPeriodEditsAtMost.epoch * -1)
-					: subDays(epochDate, reqs.inPeriodEditsAtMost.period);
-				const periodEditsCalculationEndDate = typeof reqs.inPeriodEditsAtMost.epoch === "number"
-					? subDays(epochDate, reqs.inPeriodEditsAtMost.epoch * -1)
-					: epochDate;
-
-				query = query.leftJoin(qb => {
-					return qb.subQuery()
-						.select("peam.actorId", "actorId")
-						.addSelect("SUM(peam.dailyEdits)", "periodEdits")
-						.from(wikiEntities.actorDailyStatistics, "peam")
-						.where(
-							"peam.date >= :startDate AND peam.date <= :endDate",
-							{ startDate: periodEditsCalculationStartDate, endDate: periodEditsCalculationEndDate }
-						)
-						.groupBy("peam.actorId");
-				}, "periodEditsAtMost", "periodEditsAtMost.actorId = actor.actorId");
-			}
-
-			// Registration status filter
-			if (reqs.registrationStatus === "anon") {
-				query = query.andWhere("actor.isRegistered = :isRegistered", { isRegistered: 0 });
-			} else if (reqs.registrationStatus === "registered") {
-				query = query.andWhere("actor.isRegistered = :isRegistered", { isRegistered: 1 });
-				needsRegDateFilter = true;
-			}
-
-			// Registration age at least
-			if (typeof reqs.registrationAgeAtLeast === "number") {
-				query = query.andWhere(
-					"DATEDIFF(:epoch, actor.registrationTimestamp) >= :registrationAgeAtLeast",
-					{ epoch: epochDate, registrationAgeAtLeast: reqs.registrationAgeAtLeast }
-				);
-				needsRegDateFilter = true;
-			}
-
-			// Registration age at most
-			if (typeof reqs.registrationAgeAtMost === "number") {
-				query = query.andWhere(
-					"DATEDIFF(:epoch, actor.registrationTimestamp) <= :registrationAgeAtMost",
-					{ epoch: epochDate, registrationAgeAtMost: reqs.registrationAgeAtMost }
-				);
-				needsRegDateFilter = true;
-			}
-
-			if (needsRegDateFilter) {
-				query = query.andWhere("actor.registrationTimestamp < :nextDate", { nextDate: addDays(epochDate, 1) });
-			}
-
-			// User groups
-			if (typeof reqs.userGroups !== "undefined") {
-				for (const groupName of reqs.userGroups) {
-					query = query.andWhere(qb => {
-						const subQuery = qb.subQuery()
-							.select("1")
-							.from(wikiEntities.actorGroup, "gr")
-							.where("gr.actor_id = actor.actorId")
-							.andWhere("gr.group_name = :groupName", { groupName: groupName })
-							.getQuery();
-
-						return `EXISTS(${subQuery})`;
-					});
-				}
-			}
-
-
-			// Total edits at least
-			if (typeof reqs.totalEditsAtLeast !== "undefined") {
-				const totalEditsEpochDate = typeof reqs.totalEditsAtLeast === "number"
-					? epochDate
-					: subDays(epochDate, reqs.totalEditsAtLeast.epoch * -1);
-
-				query = query.andWhere(qb => {
-					const subQuery = qb.subQuery()
-						.select("MAX(iats.date)")
-						.from(wikiEntities.actorDailyStatistics, "iats")
-						.where("iats.date <= :date", { date: totalEditsEpochDate })
-						.andWhere("iats.actorId = actor.actorId")
-						.getQuery();
-
-					return "totalEditsAtLeast.date = " + subQuery;
-				});
-
-				const editsAtLeast = typeof reqs.totalEditsAtLeast === "number"
-					? reqs.totalEditsAtLeast
-					: reqs.totalEditsAtLeast.edits;
-
-				query = query.andWhere("totalEditsAtLeast.editsToDate + totalEditsAtLeast.dailyEdits >= :edits", { edits: editsAtLeast });
-			}
-
-			// Total edits at most
-			if (typeof reqs.totalEditsAtMost !== "undefined") {
-				const totalEditsEpochDate = typeof reqs.totalEditsAtMost === "number"
-					? epochDate
-					: subDays(epochDate, reqs.totalEditsAtMost.epoch * -1);
-
-				query = query.andWhere(qb => {
-					const subQuery = qb.subQuery()
-						.select("MAX(iats.date)")
-						.from(wikiEntities.actorDailyStatistics, "iats")
-						.where("iats.date <= :date", { date: totalEditsEpochDate })
-						.andWhere("iats.actorId = actor.actorId")
-						.getQuery();
-
-					return "totalEditsAtMost.date = " + subQuery;
-				});
-
-				const editsAtLeast = typeof reqs.totalEditsAtMost === "number"
-					? reqs.totalEditsAtMost
-					: reqs.totalEditsAtMost.edits;
-
-				query = query.andWhere("totalEditsAtMost.editsToDate + totalEditsAtMost.dailyEdits <= :edits", { edits: editsAtLeast });
-			}
-
-			// Period edits at least
-			if (typeof reqs.inPeriodEditsAtLeast !== "undefined") {
-				query = query.andWhere("periodEditsAtLeast.periodEdits >= :editsAtLeast", { editsAtLeast: reqs.inPeriodEditsAtLeast.edits });
-			}
-
-			// Period edits at most
-			if (typeof reqs.inPeriodEditsAtMost !== "undefined") {
-				query = query.andWhere("periodEditsAtMost.periodEdits >= :editsAtMost", { editsAtMost: reqs.inPeriodEditsAtMost.edits });
-			}
-
-			appCtx.logger.info(`[api/userPyramids/seriesData] SQL: ${query.getSql()}`);
-
-			const users = await query.getRawMany<{ aId: number }>();
+			const users = await createStatisticsQuery({
+				appCtx: appCtx,
+				toolsDbConnection: conn,
+				wikiEntities,
+				userRequirements: userGroup.requirements,
+				endDate: epochDate,
+			});
 
 			const usersInThisGroup = new Set<number>(users.map(x => x.aId));
 
