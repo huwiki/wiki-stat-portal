@@ -147,20 +147,33 @@
 						"editsSinceRegistration",
 						"editsSinceRegistrationPercentage",
 						"revertedEditsInPeriod",
+						"revertedEditsInPeriodPercentage",
 						"revertedEditsSinceRegistration",
+						"revertedEditsSinceRegistrationPercentage",
 						"firstEditDate",
 						"lastEditDate",
+						"daysBetweenFirstAndLastEdit",
+						"characterChangesInPeriod",
+						"characterChangesInPeriodPercentage",
+						"characterChangesSinceRegistration",
+						"characterChangesSinceRegistrationPercentage",
+						"thanksInPeriod",
+						"thanksInPeriodPercentage",
+						"thanksSinceRegistration",
+						"thanksSinceRegistrationPercentage",
 						"logEventsInPeriod",
 						"logEventsInPeriodPercentage",
 						"logEventsSinceRegistration",
 						"logEventsSinceRegistrationPercentage",
-						"thanksInPeriod",
-						"thanksSinceRegistration",
+						"firstLogEventDate",
+						"lastLogEventDate",
+						"averageLogEventsPerDaySinceRegistration",
+						"averageLogEventsPerDayInPeriod",
 						"registrationDate",
 						"daysSinceRegistration",
-						"daysBetweenFirstAndLastEdit",
-						"activeDaysSinceRegistration",
+						"daysBetweenFirstAndLastLogEvent",
 						"activeDaysInPeriod",
+						"activeDaysSinceRegistration",
 						"averageEditsPerDaySinceRegistration",
 						"averageEditsPerDayInPeriod",
 						"levelAtPeriodStart",
@@ -202,10 +215,20 @@
 				"type": {
 					"type": "string",
 					"enum": [
-						"editsInPeriodInNamespace",
-						"editsSinceRegistrationInNamespace",
-						"revertedEditsInPeriodInNamespace",
-						"revertedEditsSinceRegistrationInNamespace"
+						"editsInNamespaceInPeriod",
+						"editsInNamespaceInPeriodPercentage",
+						"editsInNamespaceSinceRegistration",
+						"editsInNamespaceSinceRegistrationPercentage",
+						"revertedEditsInNamespaceInPeriod",
+						"revertedEditsInNamespaceInPeriodPercentage",
+						"revertedEditsInNamespaceSinceRegistration",
+						"revertedEditsInNamespaceSinceRegistrationPercentage",
+						"characterChangesInNamespaceInPeriod",
+						"characterChangesInNamespaceInPeriodPercentage",
+						"characterChangesInNamespaceSinceRegistration",
+						"characterChangesInNamespaceSinceRegistrationPercentage",
+						"activeDaysInNamespaceInPeriod",
+						"activeDaysInNamespaceSinceRegistration"
 					]
 				},
 				"namespace": {
@@ -234,10 +257,24 @@
 				},
 				"logType": {
 					"type": "string"
+				},
+				"logAction": {
+					"type": "string"
 				}
 			},
-			"required": [
-				"type"
+			"anyOf": [
+				{
+					"required": [
+						"type",
+						"logType"
+					]
+				},
+				{
+					"required": [
+						"type",
+						"logAction"
+					]
+				}
 			]
 		},
 		"listOrderByList": {

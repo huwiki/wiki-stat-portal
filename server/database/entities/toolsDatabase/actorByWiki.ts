@@ -56,23 +56,31 @@ export class ActorDailyStatisticsTypeModel {
 	public logEventsToDate: number;
 }
 
-export class EditStatisticsByNamespaceTypeModel {
+export class DailyStatisticsByNamespaceTypeModel {
 	public namespace: number;
 	public date: Date;
 	public dailyEdits: number;
 	public editsToDate: number;
+	public dailyRevertedEdits: number;
+	public revertedEditsToDate: number;
 	public dailyCharacterChanges: number;
 	public characterChangesToDate: number;
+	public dailyLogEvents: number;
+	public logEventsToDate: number;
 }
 
-export class ActorEditStatisticsByNamespaceTypeModel {
+export class ActorDailyStatisticsByNamespaceTypeModel {
 	public actorId: number;
 	public namespace: number;
 	public date: Date;
 	public dailyEdits: number;
 	public editsToDate: number;
+	public dailyRevertedEdits: number;
+	public revertedEditsToDate: number;
 	public dailyCharacterChanges: number;
 	public characterChangesToDate: number;
+	public dailyLogEvents: number;
+	public logEventsToDate: number;
 }
 
 export class EditStatisticsByNamespaceAndChangeTagTypeModel {
@@ -135,11 +143,11 @@ export interface WikiStatisticsTypesResult {
 	/**
 	 * Entity representing daily edit statistics for a given namespace on a wiki.
 	 */
-	editStatisticsByNamespace: typeof EditStatisticsByNamespaceTypeModel,
+	dailyStatisticsByNamespace: typeof DailyStatisticsByNamespaceTypeModel,
 	/**
 	 * Entity representing a daily edit statistics for a given namespace of an actor on a wiki.
 	 */
-	actorEditStatisticsByNamespace: typeof ActorEditStatisticsByNamespaceTypeModel,
+	actorDailyStatisticsByNamespace: typeof ActorDailyStatisticsByNamespaceTypeModel,
 	/**
 	 * Entity representing a daily edit statistics for a given namespace and change tag on a wiki.
 	 */
@@ -176,8 +184,8 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 	const dailyStatisticsTableName = `${wikiId}_daily_stats_v2`;
 	const actorDailyStatisticsTableName = `${wikiId}_actor_daily_stats_v2`;
 
-	const editStatisticsByNamespaceTableName = `${wikiId}_edit_stats_by_ns_v2`;
-	const actorEditStatisticsByNamespaceTableName = `${wikiId}_actor_edit_stats_by_ns_v2`;
+	const dailyStatisticsByNamespaceTableName = `${wikiId}_daily_stats_by_ns_v2`;
+	const actorDailyStatisticsByNamespaceTableName = `${wikiId}_actor_daily_stats_by_ns_v2`;
 
 	const editStatisticsByNamespaceAndChangeTagTableName = `${wikiId}_edit_stats_by_nsct_v2`;
 	const actorEditStatisticsByNamespaceAndChangeTagTableName = `${wikiId}_actor_edit_stats_by_nsct_v2`;
@@ -190,7 +198,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@PrimaryColumn({ name: "actor_id", type: "bigint", unsigned: true })
 		public actorId: number;
 
-		@Column({ name: "actor_name", type: "varbinary", length: 255, transformer: bufferToStringTransformer })
+		@Column({ name: "actor_name", type: "varchar", length: 255, charset: "utf8" })
 		public actorName: string;
 
 		@Column({ name: "is_registered", type: "tinyint", transformer: intToBooleanTransformer })
@@ -306,8 +314,8 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		public logEventsToDate: number;
 	}
 
-	@Entity({ name: editStatisticsByNamespaceTableName })
-	class EditStatisticsByNamespace {
+	@Entity({ name: dailyStatisticsByNamespaceTableName })
+	class DailyStatisticsByNamespace {
 		@PrimaryColumn({ type: "int" })
 		public namespace: number;
 
@@ -320,15 +328,27 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@Column({ name: "edits_to_date", type: "int" })
 		public editsToDate: number;
 
+		@Column({ name: "daily_reverted_edits", type: "int" })
+		public dailyRevertedEdits: number;
+
+		@Column({ name: "reverted_edits_to_date", type: "int" })
+		public revertedEditsToDate: number;
+
 		@Column({ name: "daily_character_changes", type: "int" })
 		public dailyCharacterChanges: number;
 
 		@Column({ name: "character_changes_to_date", type: "int" })
 		public characterChangesToDate: number;
+
+		@Column({ name: "daily_log_events", type: "int" })
+		public dailyLogEvents: number;
+
+		@Column({ name: "log_events_to_date", type: "int" })
+		public logEventsToDate: number;
 	}
 
-	@Entity({ name: actorEditStatisticsByNamespaceTableName })
-	class ActorEditStatisticsByNamespace {
+	@Entity({ name: actorDailyStatisticsByNamespaceTableName })
+	class ActorDailyStatisticsByNamespace {
 		@PrimaryColumn({ name: "actor_id", type: "bigint" })
 		public actorId: number;
 
@@ -344,11 +364,23 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@Column({ name: "edits_to_date", type: "int" })
 		public editsToDate: number;
 
+		@Column({ name: "daily_reverted_edits", type: "int" })
+		public dailyRevertedEdits: number;
+
+		@Column({ name: "reverted_edits_to_date", type: "int" })
+		public revertedEditsToDate: number;
+
 		@Column({ name: "daily_character_changes", type: "int" })
 		public dailyCharacterChanges: number;
 
 		@Column({ name: "character_changes_to_date", type: "int" })
 		public characterChangesToDate: number;
+
+		@Column({ name: "daily_log_events", type: "int" })
+		public dailyLogEvents: number;
+
+		@Column({ name: "log_events_to_date", type: "int" })
+		public logEventsToDate: number;
 	}
 
 	@Entity({ name: editStatisticsByNamespaceAndChangeTagTableName })
@@ -452,8 +484,8 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		actorGroup: ActorGroup,
 		dailyStatistics: DailyStatistics,
 		actorDailyStatistics: ActorDailyStatistics,
-		editStatisticsByNamespace: EditStatisticsByNamespace,
-		actorEditStatisticsByNamespace: ActorEditStatisticsByNamespace,
+		dailyStatisticsByNamespace: DailyStatisticsByNamespace,
+		actorDailyStatisticsByNamespace: ActorDailyStatisticsByNamespace,
 		editStatisticsByNamespaceAndChangeTag: EditStatisticsByNamespaceAndChangeTag,
 		actorEditStatisticsByNamespaceAndChangeTag: ActorEditStatisticsByNamespaceAndChangeTag,
 		logStatisticsByNamespaceAndLogType: LogStatisticsByNamespaceAndLogType,

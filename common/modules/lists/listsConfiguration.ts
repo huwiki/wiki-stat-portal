@@ -69,27 +69,46 @@ export type ListColumn =
 const parameterlessListColumnTypes = [
 	"counter",
 	"userRoles",
-	"editsInPeriod",
-	"editsInPeriodPercentage",
-	"editsSinceRegistration",
-	"editsSinceRegistrationPercentage",
-	"revertedEditsInPeriod",
-	"revertedEditsSinceRegistration",
-	"firstEditDate",
-	"lastEditDate",
-	"logEventsInPeriod",
-	"logEventsInPeriodPercentage",
-	"logEventsSinceRegistration",
-	"logEventsSinceRegistrationPercentage",
-	"thanksInPeriod",
-	"thanksSinceRegistration",
-	"registrationDate",
-	"daysSinceRegistration",
-	"daysBetweenFirstAndLastEdit",
-	"activeDaysSinceRegistration",
-	"activeDaysInPeriod",
-	"averageEditsPerDaySinceRegistration",
-	"averageEditsPerDayInPeriod",
+
+	"editsInPeriod", // OK
+	"editsInPeriodPercentage", // OK
+	"editsSinceRegistration", // OK
+	"editsSinceRegistrationPercentage", // OK
+	"revertedEditsInPeriod", // OK
+	"revertedEditsInPeriodPercentage", // OK
+	"revertedEditsSinceRegistration", // OK
+	"revertedEditsSinceRegistrationPercentage", // OK
+	"firstEditDate", // OK
+	"lastEditDate", // OK
+	"daysBetweenFirstAndLastEdit", // OK
+	"averageEditsPerDaySinceRegistration", // OK
+	"averageEditsPerDayInPeriod", // OK
+
+	"characterChangesInPeriod", // OK
+	"characterChangesInPeriodPercentage", // OK
+	"characterChangesSinceRegistration", // OK
+	"characterChangesSinceRegistrationPercentage", // OK
+
+	"thanksInPeriod", // OK
+	"thanksInPeriodPercentage", // OK
+	"thanksSinceRegistration", // OK
+	"thanksSinceRegistrationPercentage", // OK
+
+	"logEventsInPeriod", // OK
+	"logEventsInPeriodPercentage", // OK
+	"logEventsSinceRegistration", // OK
+	"logEventsSinceRegistrationPercentage", // OK
+	"firstLogEventDate", // OK
+	"lastLogEventDate", // OK
+	"daysBetweenFirstAndLastLogEvent", // OK
+	"averageLogEventsPerDaySinceRegistration", // OK
+	"averageLogEventsPerDayInPeriod", // OK
+
+	"registrationDate", // OK
+	"daysSinceRegistration", // OK
+	"activeDaysInPeriod", // OK
+	"activeDaysSinceRegistration", // OK
+
 	"levelAtPeriodStart",
 	"levelAtPeriodEnd",
 	"levelAtPeriodEndWithChange"
@@ -97,12 +116,22 @@ const parameterlessListColumnTypes = [
 export type ParameterlessListColumnTypes = typeof parameterlessListColumnTypes[number];
 
 const columnsWithNamespaceParameter = [
-	"editsInPeriodInNamespace",
-	"editsSinceRegistrationInNamespace",
-	"revertedEditsInPeriodInNamespace",
-	"revertedEditsSinceRegistrationInNamespace"
+	"editsInNamespaceInPeriod", // OK
+	"editsInNamespaceInPeriodPercentage", // OK
+	"editsInNamespaceSinceRegistration", // OK
+	"editsInNamespaceSinceRegistrationPercentage", // OK
+	"revertedEditsInNamespaceInPeriod", // OK
+	"revertedEditsInNamespaceInPeriodPercentage", // OK
+	"revertedEditsInNamespaceSinceRegistration", // OK
+	"revertedEditsInNamespaceSinceRegistrationPercentage", // OK
+	"characterChangesInNamespaceInPeriod", // OK
+	"characterChangesInNamespaceInPeriodPercentage", // OK
+	"characterChangesInNamespaceSinceRegistration", // OK
+	"characterChangesInNamespaceSinceRegistrationPercentage", // OK
+	"activeDaysInNamespaceInPeriod", // OK
+	"activeDaysInNamespaceSinceRegistration", // OK
 ] as const;
-export type ListColumnTypesWithNamespaceParameter = typeof parameterlessListColumnTypes[number];
+export type ListColumnTypesWithNamespaceParameter = typeof columnsWithNamespaceParameter[number];
 
 const columnsWithLogTypeParameter = [
 	"logEventsInPeriodByType",
@@ -123,7 +152,7 @@ export function isParameterlessListColumn(obj: unknown): obj is ParameterlessLis
 
 export interface UserNameListColumn {
 	columnId: string;
-	type: "userName";
+	type: "userName"; // OK
 	showUserLinks?: boolean;
 }
 
@@ -149,6 +178,7 @@ export function isListColumnWithNamespaceParameter(obj: unknown): obj is ListCol
 export interface ListColumnWithLogTypeParameter {
 	columnId: string;
 	type: ListColumnTypesWithLogTypeParameter;
+	logAction: string;
 	logType: string;
 }
 
@@ -163,3 +193,9 @@ export interface ListOrderBy {
 	columnId: string;
 	direction: "ascending" | "descending"
 }
+
+export type AllColumnTypes =
+	ParameterlessListColumnTypes
+	| ListColumnTypesWithNamespaceParameter
+	| ListColumnTypesWithLogTypeParameter
+	| "userName";

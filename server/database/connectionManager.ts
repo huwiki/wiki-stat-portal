@@ -22,8 +22,8 @@ export const createConnectionToUserDatabase = async (appConfig: ApplicationConfi
 			entities.actorGroup,
 			entities.dailyStatistics,
 			entities.actorDailyStatistics,
-			entities.editStatisticsByNamespace,
-			entities.actorEditStatisticsByNamespace,
+			entities.dailyStatisticsByNamespace,
+			entities.actorDailyStatisticsByNamespace,
 			entities.editStatisticsByNamespaceAndChangeTag,
 			entities.actorEditStatisticsByNamespaceAndChangeTag,
 			entities.logStatisticsByNamespaceAndLogType,
@@ -41,6 +41,7 @@ export const createConnectionToUserDatabase = async (appConfig: ApplicationConfi
 		database: databaseName,
 		synchronize: false,
 		logging: false,
+		timezone: "Z",
 		entities: [
 			WikiProcessedRevisions,
 			...items

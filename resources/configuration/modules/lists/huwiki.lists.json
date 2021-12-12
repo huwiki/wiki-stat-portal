@@ -1,6 +1,223 @@
 {
 	"lists": [
 		{
+			"id": "test1",
+			"groupId": "tests",
+			"name": "Tesztlista API teszteléshez",
+			"itemCount": 500,
+			"columns": [
+				{
+					"type": "userName",
+					"showUserLinks": true
+				},
+				{
+					"columnId": "editsInPeriod",
+					"type": "editsInPeriod"
+				},
+				{
+					"type": "editsInPeriodPercentage"
+				},
+				{
+					"type": "editsSinceRegistration"
+				},
+				{
+					"type": "editsSinceRegistrationPercentage"
+				},
+				{
+					"type": "editsInNamespaceInPeriod",
+					"namespace": 0
+				},
+				{
+					"type": "editsInNamespaceInPeriodPercentage",
+					"namespace": 0
+				},
+				{
+					"type": "editsInNamespaceSinceRegistration",
+					"namespace": 0
+				},
+				{
+					"type": "editsInNamespaceSinceRegistrationPercentage",
+					"namespace": 0
+				},
+				{
+					"type": "editsInNamespaceInPeriod",
+					"namespace": 4
+				},
+				{
+					"type": "editsInNamespaceInPeriodPercentage",
+					"namespace": 4
+				},
+				{
+					"type": "editsInNamespaceSinceRegistration",
+					"namespace": 4
+				},
+				{
+					"type": "editsInNamespaceSinceRegistrationPercentage",
+					"namespace": 4
+				},
+				{
+					"type": "firstEditDate"
+				},
+				{
+					"type": "lastEditDate"
+				},
+				{
+					"type": "daysBetweenFirstAndLastEdit"
+				},
+				{
+					"type": "averageEditsPerDayInPeriod"
+				},
+				{
+					"type": "averageEditsPerDaySinceRegistration"
+				},
+				{
+					"type": "revertedEditsInPeriod"
+				},
+				{
+					"type": "revertedEditsInPeriodPercentage"
+				},
+				{
+					"type": "revertedEditsSinceRegistration"
+				},
+				{
+					"type": "revertedEditsSinceRegistrationPercentage"
+				},
+				{
+					"type": "revertedEditsInNamespaceInPeriod",
+					"namespace": 0
+				},
+				{
+					"type": "revertedEditsInNamespaceInPeriodPercentage",
+					"namespace": 0
+				},
+				{
+					"type": "revertedEditsInNamespaceSinceRegistration",
+					"namespace": 0
+				},
+				{
+					"type": "revertedEditsInNamespaceSinceRegistrationPercentage",
+					"namespace": 0
+				},
+				{
+					"type": "revertedEditsInNamespaceInPeriod",
+					"namespace": 4
+				},
+				{
+					"type": "revertedEditsInNamespaceInPeriodPercentage",
+					"namespace": 4
+				},
+				{
+					"type": "revertedEditsInNamespaceSinceRegistration",
+					"namespace": 4
+				},
+				{
+					"type": "revertedEditsInNamespaceSinceRegistrationPercentage",
+					"namespace": 4
+				},
+				{
+					"type": "characterChangesInPeriod"
+				},
+				{
+					"type": "characterChangesInPeriodPercentage"
+				},
+				{
+					"type": "characterChangesSinceRegistration"
+				},
+				{
+					"type": "characterChangesSinceRegistrationPercentage"
+				},
+				{
+					"type": "characterChangesInNamespaceInPeriod",
+					"namespace": 0
+				},
+				{
+					"type": "characterChangesInNamespaceInPeriodPercentage",
+					"namespace": 0
+				},
+				{
+					"type": "characterChangesInNamespaceSinceRegistration",
+					"namespace": 0
+				},
+				{
+					"type": "characterChangesInNamespaceSinceRegistrationPercentage",
+					"namespace": 0
+				},
+				{
+					"type": "characterChangesInNamespaceInPeriod",
+					"namespace": 4
+				},
+				{
+					"type": "characterChangesInNamespaceInPeriodPercentage",
+					"namespace": 4
+				},
+				{
+					"type": "characterChangesInNamespaceSinceRegistration",
+					"namespace": 4
+				},
+				{
+					"type": "characterChangesInNamespaceSinceRegistrationPercentage",
+					"namespace": 4
+				},
+				{
+					"type": "thanksInPeriod"
+				},
+				{
+					"type": "thanksInPeriodPercentage"
+				},
+				{
+					"type": "thanksSinceRegistration"
+				},
+				{
+					"type": "thanksSinceRegistrationPercentage"
+				},
+				{
+					"type": "logEventsInPeriod"
+				},
+				{
+					"type": "logEventsInPeriodPercentage"
+				},
+				{
+					"type": "logEventsSinceRegistration"
+				},
+				{
+					"type": "logEventsSinceRegistrationPercentage"
+				},
+				{
+					"type": "firstLogEventDate"
+				},
+				{
+					"type": "lastLogEventDate"
+				},
+				{
+					"type": "daysBetweenFirstAndLastLogEvent"
+				},
+				{
+					"type": "averageLogEventsPerDaySinceRegistration"
+				},
+				{
+					"type": "averageLogEventsPerDayInPeriod"
+				},
+				{
+					"type": "registrationDate"
+				},
+				{
+					"type": "daysSinceRegistration"
+				},
+				{
+					"type": "activeDaysInPeriod"
+				},
+				{
+					"type": "activeDaysSinceRegistration"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "editsInPeriod",
+					"direction": "descending"
+				}
+			]
+		},
+		{
 			"id": "byEditCount",
 			"groupId": "topLists",
 			"i18nKey": "lists.list.topLists.byEditCount",
@@ -21,14 +238,14 @@
 					"type": "editsSinceRegistration"
 				},
 				{
-					"type": "editsSinceRegistrationInNamespace",
+					"type": "editsInNamespaceSinceRegistration",
 					"namespace": 0
 				},
 				{
 					"type": "editsInPeriod"
 				},
 				{
-					"type": "editsInPeriodInNamespace",
+					"type": "editsInNamespaceInPeriod",
 					"namespace": 0
 				},
 				{
