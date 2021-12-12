@@ -13,6 +13,6 @@ export interface ApplicationConfiguration {
 		logEntriesProcessedAtOnce: number,
 		maxRevisionsProcessedInASingleRun: number;
 		maxLogEntriesProcessedInASingleRun: number;
-		maxActorsProcessedInASingleRun: number;
+		maxNewActorsProcessedInASingleRun: number;
 	}
 }

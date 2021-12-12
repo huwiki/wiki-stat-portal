@@ -44,7 +44,7 @@ const fillConfigurationWithDefaults = (configuration: ApplicationConfiguration):
 		logEntriesProcessedAtOnce: configuration.dataCacher?.logEntriesProcessedAtOnce ?? DATACACHER_LOG_ENTRIES_PROCESSED_AT_ONCE,
 		maxRevisionsProcessedInASingleRun: configuration.dataCacher?.maxRevisionsProcessedInASingleRun ?? DATACACHER_MAXIMUM_PROCESSED_REVISIONS_IN_A_SINGLE_RUN,
 		maxLogEntriesProcessedInASingleRun: configuration.dataCacher?.maxLogEntriesProcessedInASingleRun ?? DATACACHER_MAXIMUM_PROCESSED_REVISIONS_IN_A_SINGLE_RUN,
-		maxActorsProcessedInASingleRun: configuration.dataCacher?.maxActorsProcessedInASingleRun ?? DATACACHER_MAXIMUM_ACTORS_PROCESSED_IN_A_SINGLE_RUN,
+		maxNewActorsProcessedInASingleRun: configuration.dataCacher?.maxNewActorsProcessedInASingleRun ?? DATACACHER_MAXIMUM_ACTORS_PROCESSED_IN_A_SINGLE_RUN,
 	};
 };
 
@@ -96,9 +96,9 @@ const isApplicationConfigurationValid = (config: ApplicationConfiguration): Appl
 			|| config.dataCacher.maxLogEntriesProcessedInASingleRun <= 0)
 			return { valid: false, validationError: "dataCacher.maxLogEntriesProcessedInASingleRun must be a non-zero integer number" };
 
-		if (typeof config.dataCacher.maxActorsProcessedInASingleRun !== "number"
-			|| Number.isInteger(config.dataCacher.maxActorsProcessedInASingleRun) === false
-			|| config.dataCacher.maxActorsProcessedInASingleRun <= 0)
+		if (typeof config.dataCacher.maxNewActorsProcessedInASingleRun !== "number"
+			|| Number.isInteger(config.dataCacher.maxNewActorsProcessedInASingleRun) === false
+			|| config.dataCacher.maxNewActorsProcessedInASingleRun <= 0)
 			return { valid: false, validationError: "dataCacher.maxProcessedActorsInASingleRun must be a non-zero integer number" };
 	}
 
