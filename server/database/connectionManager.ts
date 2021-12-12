@@ -62,6 +62,7 @@ export const createConnectionToMediaWikiReplica = async (appConfig: ApplicationC
 		database: databaseName,
 		synchronize: false,
 		logging: false,
+		timezone: "Z",
 		extra: {
 			connectionLimit: 1
 		},

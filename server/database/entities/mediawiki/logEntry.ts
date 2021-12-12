@@ -1,5 +1,5 @@
 import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
-import { bufferToDateTimeTransformer, bufferToStringTransformer, intToBooleanTransformer } from "../../transformers";
+import { bufferToDateTransformer, bufferToStringTransformer, intToBooleanTransformer } from "../../transformers";
 import { Actor } from "./actor";
 
 @Entity({ name: "logging" })
@@ -17,7 +17,7 @@ export class LogEntry {
 	public action: string;
 
 	// log_timestamp varbinary(14)
-	@Column({ name: "log_timestamp", type: "varbinary", length: 14, scale: 0, transformer: bufferToDateTimeTransformer })
+	@Column({ name: "log_timestamp", type: "varbinary", length: 14, scale: 0, transformer: bufferToDateTransformer })
 	public timestamp: Date;
 
 	// log_actor decimal(20,0)

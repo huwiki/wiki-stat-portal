@@ -1,10 +1,10 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
-import { bufferToDateTimeTransformer, bufferToStringTransformer } from "../../transformers";
+import { bufferToDateTransformer, bufferToStringTransformer } from "../../transformers";
 import { User } from "./user";
 
 @Entity({ name: "user_groups" })
 export class UserGroup {
-	// ug_user int(5) UN 
+	// ug_user int(5) UN
 	@PrimaryColumn({ name: "ug_user", type: "int", unsigned: true })
 	public userId: number;
 
@@ -17,7 +17,7 @@ export class UserGroup {
 	@PrimaryColumn({ name: "ug_group", type: "varbinary", transformer: bufferToStringTransformer })
 	public groupName: string;
 
-	// ug_expiry varbinary(14) 
-	@Column({ name: "ug_expiry", type: "varbinary", length: 14, transformer: bufferToDateTimeTransformer })
+	// ug_expiry varbinary(14)
+	@Column({ name: "ug_expiry", type: "varbinary", length: 14, transformer: bufferToDateTransformer })
 	public expirationTimestamp: Date;
 }

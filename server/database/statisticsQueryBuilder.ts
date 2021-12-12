@@ -57,12 +57,10 @@ export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEnt
 		}
 	};
 
-
-
 	let query = toolsDbConnection.getRepository(wikiEntities.actor)
 		.createQueryBuilder("actor")
-		.select("actor.actorId", "aId");
-	// .leftJoinAndSelect("actor.actorGroups", "groups");
+		.select("actor.actorId", "aId")
+		.leftJoinAndSelect("actor.actorGroups", "groups");
 
 	// Manage selects from column definitions
 	query = addColumSelects(ctx, query, columns);

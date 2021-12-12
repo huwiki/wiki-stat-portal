@@ -1,5 +1,5 @@
 import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
-import { bufferToDateTimeTransformer, bufferToStringTransformer, intToBooleanTransformer } from "../../transformers";
+import { bufferToDateTransformer, bufferToStringTransformer, intToBooleanTransformer } from "../../transformers";
 import { Actor } from "./actor";
 import { ChangeTag } from "./changeTag";
 import { Comment } from "./comment";
@@ -38,7 +38,7 @@ export class Revision {
 	public actor: Actor;
 
 	// rev_timestamp varbinary(14)
-	@Column({ name: "rev_timestamp", type: "varbinary", length: 14, transformer: bufferToDateTimeTransformer })
+	@Column({ name: "rev_timestamp", type: "varbinary", length: 14, transformer: bufferToDateTransformer })
 	public timestamp: Date;
 
 	// rev_minor_edit tinyint(1) UN
