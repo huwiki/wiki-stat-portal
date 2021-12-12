@@ -895,9 +895,9 @@ export class WikiEditCacher {
 							editsToDate: previousDay
 								? previousDay.editsToDate + previousDay.dailyEdits
 								: 0,
-							dailyRevertedEdits: editByDateAndNs.edits,
+							dailyRevertedEdits: editByDateAndNs.revertedEdits,
 							revertedEditsToDate: previousDay
-								? previousDay.editsToDate + previousDay.dailyEdits
+								? previousDay.revertedEditsToDate + previousDay.dailyRevertedEdits
 								: 0,
 							dailyCharacterChanges: editByDateAndNs.characterChanges,
 							characterChangesToDate: previousDay
@@ -975,9 +975,9 @@ export class WikiEditCacher {
 							editsToDate: previousDay
 								? previousDay.editsToDate + previousDay.dailyEdits
 								: 0,
-							dailyRevertedEdits: editByDateAndNs.edits,
+							dailyRevertedEdits: editByDateAndNs.revertedEdits,
 							revertedEditsToDate: previousDay
-								? previousDay.editsToDate + previousDay.dailyEdits
+								? previousDay.revertedEditsToDate + previousDay.dailyRevertedEdits
 								: 0,
 							dailyCharacterChanges: editByDateAndNs.characterChanges,
 							characterChangesToDate: previousDay

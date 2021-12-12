@@ -952,11 +952,10 @@ function addColumnJoins(
 		if (namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0) {
 			query = query.leftJoin(qb => {
 				let subQuery = qb.subQuery()
-					.select("adsn.actorId", "actorId")
-					.addSelect("adsn.date", "date");
+					.select("adsn.actorId", "actorId");
 
 				if (namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics.indexOf("editsInNamespaceSinceRegistrationPercentage") !== -1) {
-					subQuery = subQuery.addSelect("SUM(adsn.revertedEditsToDate + adsn.dailyRevertedEdits)", "totalEdits");
+					subQuery = subQuery.addSelect("SUM(adsn.editsToDate + adsn.dailyEdits)", "totalEdits");
 				}
 
 				if (namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics.indexOf("revertedEditsInNamespaceSinceRegistrationPercentage") !== -1) {
@@ -970,7 +969,7 @@ function addColumnJoins(
 				subQuery = subQuery
 					.from(wikiEntities.actorDailyStatisticsByNamespace, "adsn");
 
-				subQuery = subQuery.where(qb => {
+				subQuery = subQuery.andWhere(qb => {
 					let lastDateSubQuery = qb.subQuery()
 						.select("MAX(adsnLastDate.date)", "lastDate")
 						.from(wikiEntities.actorDailyStatisticsByNamespace, "adsnLastDate")
@@ -984,21 +983,22 @@ function addColumnJoins(
 
 				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "adsn");
 
+				subQuery.groupBy("adsn.actorId");
+
 				return subQuery;
 			}, `ns${namespaceKey}SinceRegistrationActorStatistics`, `ns${namespaceKey}SinceRegistrationActorStatistics.actorId = actor.actorId`);
 		}
 
 		if (namespaceCollection.requiredColumnsForSinceRegisteredWikiStatistics.length > 0) {
 			query = query.leftJoin(qb => {
-				let subQuery = qb.subQuery()
-					.select("dsn.date", "date");
+				let subQuery = qb.subQuery();
 
 				if (arrayHasAny(
 					namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics,
 					"editsInNamespaceSinceRegistration",
 					"editsInNamespaceSinceRegistrationPercentage")
 				) {
-					subQuery = subQuery.addSelect("SUM(dsn.revertedEditsToDate + dsn.dailyRevertedEdits)", "totalEdits");
+					subQuery = subQuery.addSelect("SUM(dsn.editsToDate + dsn.dailyEdits)", "totalEdits");
 				}
 
 				if (arrayHasAny(
@@ -1120,15 +1120,15 @@ function createNamespaceWhereClauseFromNamespaceDefinition(
 ) {
 	if (typeof namespaceCollection.namespace === "number") {
 		queryBuilder = queryBuilder.andWhere(
-			`${tableAlias}.namespace = :namespace`,
-			{ namespace: namespaceCollection.namespace }
+			`${tableAlias}.namespace = :namespace${namespaceCollection.namespace}`,
+			{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
 		);
 	} else {
 		const whereParameters = {};
 		const whereClause = namespaceCollection.namespace
-			.map((ele, idx) => {
-				whereParameters[`namespace${idx}`] = ele;
-				return `${tableAlias}.namespace = :namespace${idx}`;
+			.map((ele: number): string => {
+				whereParameters[`namespace${ele}`] = ele;
+				return `${tableAlias}.namespace = :namespace${ele}`;
 			})
 			.join(" OR ");
 
