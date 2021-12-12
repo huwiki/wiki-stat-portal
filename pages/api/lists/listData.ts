@@ -5,9 +5,10 @@ import { ListConfiguration } from "../../../common/modules/lists/listsConfigurat
 import { MODULE_IDENTIFIERS } from "../../../common/modules/moduleIdentifiers";
 import { AppRunningContext } from "../../../server/appRunningContext";
 import { createActorEntitiesForWiki } from "../../../server/database/entities/toolsDatabase/actorByWiki";
-import { createStatisticsQuery } from "../../../server/database/statisticsQueryBuilder";
+import { ActorLike, createStatisticsQuery } from "../../../server/database/statisticsQueryBuilder";
 import { hasLanguage, initializeI18nData } from "../../../server/helpers/i18nServer";
 import { KnownWiki } from "../../../server/interfaces/knownWiki";
+import { ServiceAwardLevelDefinition } from "../../../server/interfaces/serviceAwardLevelDefinition";
 import { ListsModule } from "../../../server/modules/listsModule/listsModule";
 import { moduleManager } from "../../../server/modules/moduleManager";
 
@@ -81,16 +82,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		console.log(users.length);
 
 		for (const user of users) {
+			console.log(user);
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const columns: any[] = [];
 
-			for (let columnIndex = 0; columnIndex < list.columns.length; columnIndex++) {
+			let columnIndex = 0;
+			for (const columnDefinition of list.columns) {
 				const dataFromQuery = user[`column${columnIndex}`];
-				if (isDate(dataFromQuery)) {
-					columns.push([list.columns[columnIndex].type, [dataFromQuery.getFullYear(), dataFromQuery.getMonth(), dataFromQuery.getDate()]]);
+
+				if (columnDefinition.type === "levelAtPeriodStart") {
+					const startLevel = getUserLevel(wiki.serviceAwardLevels, user, columnIndex, "start");
+					if (startLevel) {
+						columns.push([startLevel.id, startLevel.label]);
+					} else {
+						columns.push(null);
+					}
+				} else if (columnDefinition.type === "levelAtPeriodEnd") {
+					const endLevel = getUserLevel(wiki.serviceAwardLevels, user, columnIndex, "end");
+					if (endLevel) {
+						columns.push([endLevel.id, endLevel.label]);
+					} else {
+						columns.push(null);
+					}
+				} else if (columnDefinition.type === "levelAtPeriodEndWithChange") {
+					const startLevel = getUserLevel(wiki.serviceAwardLevels, user, columnIndex, "start");
+					const endLevel = getUserLevel(wiki.serviceAwardLevels, user, columnIndex, "end");
+					if (endLevel) {
+						columns.push([endLevel.id, endLevel.label, startLevel === null || startLevel.id !== endLevel.id]);
+					} else {
+						columns.push(null);
+					}
+				} else if (isDate(dataFromQuery)) {
+					columns.push([dataFromQuery.getFullYear(), dataFromQuery.getMonth(), dataFromQuery.getDate()]);
 				} else {
-					columns.push([list.columns[columnIndex].type, dataFromQuery ?? null]);
+					columns.push(dataFromQuery ?? null);
 				}
+
+				columnIndex++;
 			}
 
 			listData.results.push({
@@ -214,4 +242,23 @@ const processParameters = (
 	};
 };
 
+function getUserLevel(serviceAwardLevels: ServiceAwardLevelDefinition[] | null, user: ActorLike, columnIndex: number, where: "start" | "end") {
+	if (!serviceAwardLevels)
+		return null;
+
+	const edits = user[`column${columnIndex}_${where}Edits`];
+	// TODO: do something with log events
+	//const logEntries = user[`column${columnIndex}_${where}LogEvents`];
+	const activeDays = user[`column${columnIndex}_${where}ActiveDays`];
+
+	let matchingServiceAvardLevel: ServiceAwardLevelDefinition | null = null;
+	for (const serviceAwardLevel of serviceAwardLevels) {
+		if (edits > serviceAwardLevel.requiredEdits
+			&& activeDays > serviceAwardLevel.requiredActiveDays) {
+			matchingServiceAvardLevel = serviceAwardLevel;
+		}
+	}
+
+	return matchingServiceAvardLevel;
+}
 

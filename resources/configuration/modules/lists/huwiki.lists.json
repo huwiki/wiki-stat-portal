@@ -248,7 +248,7 @@
 		{
 			"id": "test2",
 			"groupId": "tests",
-			"name": "Tesztlista API teszteléshez 2",
+			"name": "Tesztlista API teszteléshez 2 (change tag & log type)",
 			"itemCount": 500,
 			"columns": [
 				{
@@ -379,6 +379,37 @@
 			"orderBy": [
 				{
 					"columnId": "editsInPeriod",
+					"direction": "descending"
+				}
+			]
+		},
+		{
+			"id": "test3",
+			"groupId": "tests",
+			"name": "Tesztlista API teszteléshez 3 (szintek)",
+			"itemCount": 500,
+			"columns": [
+				{
+					"type": "userName",
+					"showUserLinks": true
+				},
+				{
+					"columnId": "editsSinceRegistration",
+					"type": "editsSinceRegistration"
+				},
+				{
+					"type": "levelAtPeriodStart"
+				},
+				{
+					"type": "levelAtPeriodEnd"
+				},
+				{
+					"type": "levelAtPeriodEndWithChange"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "editsSinceRegistration",
 					"direction": "descending"
 				}
 			]

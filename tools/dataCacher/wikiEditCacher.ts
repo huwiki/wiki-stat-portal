@@ -324,6 +324,10 @@ export class WikiEditCacher {
 				continue;
 			}
 
+			if (logEntry.type === "newusers") {
+				continue;
+			}
+
 			const actor = logEntry.actor;
 
 			const logEntryDate = moment.utc(logEntry.timestamp).startOf("day");

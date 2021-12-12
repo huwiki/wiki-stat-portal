@@ -73,6 +73,7 @@ const parameterlessListColumnTypes = [
 
 	"editsInPeriod", // OK
 	"editsInPeriodPercentage", // OK
+	"editsAtPeriodStart", // OK, internal for now
 	"editsSinceRegistration", // OK
 	"editsSinceRegistrationPercentage", // OK
 	"revertedEditsInPeriod", // OK
@@ -97,6 +98,7 @@ const parameterlessListColumnTypes = [
 
 	"logEventsInPeriod", // OK
 	"logEventsInPeriodPercentage", // OK
+	"logEventsAtPeriodStart", // OK, internal for now
 	"logEventsSinceRegistration", // OK
 	"logEventsSinceRegistrationPercentage", // OK
 	"firstLogEventDate", // OK
@@ -108,11 +110,12 @@ const parameterlessListColumnTypes = [
 	"registrationDate", // OK
 	"daysSinceRegistration", // OK
 	"activeDaysInPeriod", // OK
+	"activeDaysAtPeriodStart", // OK, virtual for now
 	"activeDaysSinceRegistration", // OK
 
-	"levelAtPeriodStart",
-	"levelAtPeriodEnd",
-	"levelAtPeriodEndWithChange"
+	"levelAtPeriodStart", // OK
+	"levelAtPeriodEnd", // OK
+	"levelAtPeriodEndWithChange" // OK
 ] as const;
 export type ParameterlessListColumnTypes = typeof parameterlessListColumnTypes[number];
 

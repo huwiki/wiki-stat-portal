@@ -1,5 +1,12 @@
 [
 	{
+		"id": "Level0",
+		"label": "Wikiízlelő",
+		"requiredActiveDays": 2,
+		"requiredEdits": 100,
+		"requiredLogEntries": 0
+	},
+	{
 		"id": "Level1",
 		"label": "Wikisded",
 		"requiredActiveDays": 30,
