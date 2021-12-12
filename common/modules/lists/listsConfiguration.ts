@@ -165,7 +165,7 @@ export function isUserNameListColumn(obj: unknown): obj is UserNameListColumn {
 export interface ListColumnWithNamespaceParameter {
 	columnId: string;
 	type: ListColumnTypesWithNamespaceParameter;
-	namespace: number;
+	namespace: number | number[];
 }
 
 export function isListColumnWithNamespaceParameter(obj: unknown): obj is ListColumnWithNamespaceParameter {

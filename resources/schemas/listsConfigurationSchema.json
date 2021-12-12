@@ -232,8 +232,20 @@
 					]
 				},
 				"namespace": {
-					"type": "integer",
-					"minimum": 0
+					"anyOf": [
+						{
+							"type": "integer",
+							"minimum": 0
+						},
+						{
+							"type": "array",
+							"items": {
+								"type": "integer",
+								"minimum": 0
+							},
+							"minItems": 1
+						}
+					]
 				}
 			},
 			"required": [

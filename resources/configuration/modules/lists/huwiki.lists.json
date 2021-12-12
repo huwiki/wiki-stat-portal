@@ -56,6 +56,34 @@
 					"namespace": 4
 				},
 				{
+					"type": "editsInNamespaceInPeriod",
+					"namespace": [
+						0,
+						4
+					]
+				},
+				{
+					"type": "editsInNamespaceInPeriodPercentage",
+					"namespace": [
+						0,
+						4
+					]
+				},
+				{
+					"type": "editsInNamespaceSinceRegistration",
+					"namespace": [
+						0,
+						4
+					]
+				},
+				{
+					"type": "editsInNamespaceSinceRegistrationPercentage",
+					"namespace": [
+						0,
+						4
+					]
+				},
+				{
 					"type": "firstEditDate"
 				},
 				{

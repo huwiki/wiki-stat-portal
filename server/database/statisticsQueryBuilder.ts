@@ -3,8 +3,8 @@ import { Connection, SelectQueryBuilder } from "typeorm";
 import { UserRequirements } from "../../common/modules/commonConfiguration";
 import { AllColumnTypes, ListColumn, ListOrderBy } from "../../common/modules/lists/listsConfiguration";
 import { AppRunningContext } from "../appRunningContext";
-import { arrayHasAny } from "../helpers/collectionUtils";
-import { ActorTypeModel, DailyStatisticsTypeModel, WikiStatisticsTypesResult } from "./entities/toolsDatabase/actorByWiki";
+import { arrayHasAny, sequenceEqual } from "../helpers/collectionUtils";
+import { ActorTypeModel, DailyStatisticsByNamespaceTypeModel, DailyStatisticsTypeModel, WikiStatisticsTypesResult } from "./entities/toolsDatabase/actorByWiki";
 
 type RequiredColumns = {
 	requiredColumnsForSelectedPeriodActorStatistics: AllColumnTypes[];
@@ -15,7 +15,7 @@ type RequiredColumns = {
 
 
 type NamespaceRequiredColumns = RequiredColumns & {
-	namespace: number;
+	namespace: number | number[];
 };
 
 type LogTypeStatisticsRequiredColumns = RequiredColumns & {
@@ -71,7 +71,6 @@ export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEnt
 
 	// Manage required filterings
 	query = addUserRequirementFilters(query, wikiEntities, userRequirements, endDate);
-	query = addColumnFilters(ctx, query, wikiEntities, columns, startDate, endDate);
 
 	query = addOrderBy(query, columns, orderBy);
 
@@ -315,19 +314,20 @@ function addSingleColumSelect(
 			break;
 
 		case "editsInNamespaceInPeriod":
-			query = query.addSelect(`IFNULL(ns${column.namespace}PeriodActorStatistics.actorEditsInPeriod, 0)`, selectedColumnName);
+			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorEditsInPeriod, 0)`, selectedColumnName);
 			break;
 		case "editsInNamespaceInPeriodPercentage":
-			query = query.addSelect(`IFNULL(ns${column.namespace}PeriodActorStatistics.actorEditsInPeriod / ns${column.namespace}PeriodWikiStatistics.wikiEditsInPeriod * 100, 0)`, selectedColumnName);
+			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorEditsInPeriod`
+				+ ` / ns${formatNamespaceParameter(column.namespace)}PeriodWikiStatistics.wikiEditsInPeriod * 100, 0)`, selectedColumnName);
 			break;
 		case "editsInNamespaceSinceRegistration":
-			query = query.addSelect(`IFNULL(ns${column.namespace}SinceRegistrationActorStatistics.editsToDate + ns${column.namespace}SinceRegistrationActorStatistics.dailyEdits, 0)`, selectedColumnName);
+			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalEdits, 0)`, selectedColumnName);
 			break;
 		case "editsInNamespaceSinceRegistrationPercentage":
 			query = query.addSelect(
-				`IFNULL((ns${column.namespace}SinceRegistrationActorStatistics.editsToDate + ns${column.namespace}SinceRegistrationActorStatistics.dailyEdits)`
+				`IFNULL((ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalEdits)`
 				+ " / "
-				+ `(ns${column.namespace}SinceStartWikiStatistics.editsToDate + ns${column.namespace}SinceStartWikiStatistics.dailyEdits) * 100, 0)`, selectedColumnName);
+				+ `(ns${formatNamespaceParameter(column.namespace)}SinceStartWikiStatistics.totalEdits) * 100, 0)`, selectedColumnName);
 			break;
 
 		case "revertedEditsInPeriod":
@@ -347,19 +347,19 @@ function addSingleColumSelect(
 			break;
 
 		case "revertedEditsInNamespaceInPeriod":
-			query = query.addSelect(`IFNULL(ns${column.namespace}PeriodActorStatistics.actorRevertedEditsInPeriod, 0)`, selectedColumnName);
+			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorRevertedEditsInPeriod, 0)`, selectedColumnName);
 			break;
 		case "revertedEditsInNamespaceInPeriodPercentage":
-			query = query.addSelect(`IFNULL(ns${column.namespace}PeriodActorStatistics.actorRevertedEditsInPeriod / ns${column.namespace}PeriodWikiStatistics.wikiRevertedEditsInPeriod * 100, 0)`, selectedColumnName);
+			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorRevertedEditsInPeriod / ns${formatNamespaceParameter(column.namespace)}PeriodWikiStatistics.wikiRevertedEditsInPeriod * 100, 0)`, selectedColumnName);
 			break;
 		case "revertedEditsInNamespaceSinceRegistration":
-			query = query.addSelect(`IFNULL(ns${column.namespace}SinceRegistrationActorStatistics.revertedEditsToDate + ns${column.namespace}SinceRegistrationActorStatistics.dailyRevertedEdits, 0)`, selectedColumnName);
+			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalRevertedEdits, 0)`, selectedColumnName);
 			break;
 		case "revertedEditsInNamespaceSinceRegistrationPercentage":
 			query = query.addSelect(
-				`IFNULL((ns${column.namespace}SinceRegistrationActorStatistics.revertedEditsToDate + ns${column.namespace}SinceRegistrationActorStatistics.dailyRevertedEdits)`
+				`IFNULL((ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalRevertedEdits)`
 				+ " / "
-				+ `(ns${column.namespace}SinceStartWikiStatistics.revertedEditsToDate + ns${column.namespace}SinceStartWikiStatistics.dailyRevertedEdits) * 100, 0)`, selectedColumnName);
+				+ `(ns${formatNamespaceParameter(column.namespace)}SinceStartWikiStatistics.totalRevertedEdits) * 100, 0)`, selectedColumnName);
 			break;
 
 		case "firstEditDate":
@@ -398,19 +398,19 @@ function addSingleColumSelect(
 			break;
 
 		case "characterChangesInNamespaceInPeriod":
-			query = query.addSelect(`IFNULL(ns${column.namespace}PeriodActorStatistics.actorCharacterChangesInPeriod, 0)`, selectedColumnName);
+			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorCharacterChangesInPeriod, 0)`, selectedColumnName);
 			break;
 		case "characterChangesInNamespaceInPeriodPercentage":
-			query = query.addSelect(`IFNULL(ns${column.namespace}PeriodActorStatistics.actorCharacterChangesInPeriod / ns${column.namespace}PeriodWikiStatistics.wikiCharacterChangesInPeriod * 100, 0)`, selectedColumnName);
+			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorCharacterChangesInPeriod / ns${formatNamespaceParameter(column.namespace)}PeriodWikiStatistics.wikiCharacterChangesInPeriod * 100, 0)`, selectedColumnName);
 			break;
 		case "characterChangesInNamespaceSinceRegistration":
-			query = query.addSelect(`IFNULL(ns${column.namespace}SinceRegistrationActorStatistics.characterChangesToDate + ns${column.namespace}SinceRegistrationActorStatistics.dailyCharacterChanges, 0)`, selectedColumnName);
+			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalCharacterChanges, 0)`, selectedColumnName);
 			break;
 		case "characterChangesInNamespaceSinceRegistrationPercentage":
 			query = query.addSelect(
-				`IFNULL((ns${column.namespace}SinceRegistrationActorStatistics.characterChangesToDate + ns${column.namespace}SinceRegistrationActorStatistics.dailyCharacterChanges)`
+				`IFNULL((ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalCharacterChanges)`
 				+ " / "
-				+ `(ns${column.namespace}SinceStartWikiStatistics.characterChangesToDate + ns${column.namespace}SinceStartWikiStatistics.dailyCharacterChanges) * 100, 0)`, selectedColumnName);
+				+ `(ns${formatNamespaceParameter(column.namespace)}SinceStartWikiStatistics.totalCharacterChanges) * 100, 0)`, selectedColumnName);
 			break;
 
 		case "thanksInPeriod":
@@ -869,6 +869,8 @@ function addColumnJoins(
 	}
 
 	for (const namespaceCollection of ctx.columns.requiredNamespaceStatisticsColumns) {
+		const namespaceKey = formatNamespaceParameter(namespaceCollection.namespace);
+
 		if (namespaceCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
 			if (!startDate) {
 				// TODO: error out
@@ -901,18 +903,17 @@ function addColumnJoins(
 					subQuery = subQuery.addSelect("SUM(pas.dailyCharacterChanges)", "actorCharacterChangesInPeriod");
 				}
 
-				return subQuery
+				subQuery = subQuery
 					.from(wikiEntities.actorDailyStatisticsByNamespace, "pas")
 					.where(
 						"pas.date >= :startDate AND pas.date <= :endDate",
 						{ startDate: startDate, endDate: endDate }
-					)
-					.andWhere(
-						"pas.namespace = :namespace",
-						{ namespace: namespaceCollection.namespace }
-					)
-					.groupBy("pas.actorId");
-			}, `ns${namespaceCollection.namespace}PeriodActorStatistics`, `ns${namespaceCollection.namespace}PeriodActorStatistics.actorId = actor.actorId`);
+					);
+
+				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "pas");
+
+				return subQuery.groupBy("pas.actorId");
+			}, `ns${namespaceKey}PeriodActorStatistics`, `ns${namespaceKey}PeriodActorStatistics.actorId = actor.actorId`);
 		}
 
 		if (namespaceCollection.requiredColumnsForSelectedPeriodWikiStatistics.length > 0) {
@@ -921,7 +922,7 @@ function addColumnJoins(
 			}
 
 			query = query.leftJoin(qb => {
-				let subQuery: SelectQueryBuilder<DailyStatisticsTypeModel> = qb.subQuery();
+				let subQuery: SelectQueryBuilder<DailyStatisticsByNamespaceTypeModel> = qb.subQuery();
 
 				if (namespaceCollection.requiredColumnsForSelectedPeriodWikiStatistics.indexOf("editsInNamespaceInPeriodPercentage") !== -1) {
 					subQuery = subQuery.addSelect("SUM(pws.dailyEdits)", "wikiEditsInPeriod");
@@ -935,55 +936,105 @@ function addColumnJoins(
 					subQuery = subQuery.addSelect("SUM(pws.dailyCharacterChanges)", "wikiCharacterChangesInPeriod");
 				}
 
-				return subQuery
+				subQuery = subQuery
 					.from(wikiEntities.dailyStatisticsByNamespace, "pws")
 					.where(
 						"pws.date >= :startDate AND pws.date <= :endDate",
 						{ startDate: startDate, endDate: endDate }
-					)
-					.andWhere(
-						"pws.namespace = :namespace",
-						{ namespace: namespaceCollection.namespace }
 					);
-			}, `ns${namespaceCollection.namespace}PeriodWikiStatistics`, "true");
+
+				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "pws");
+
+				return subQuery;
+			}, `ns${namespaceKey}PeriodWikiStatistics`, "true");
 		}
 
 		if (namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0) {
 			query = query.leftJoin(qb => {
-				return qb.subQuery()
-					.select("lads.actorId", "actorId")
-					.addSelect("MAX(lads.date)", "lastDate")
-					.from(wikiEntities.actorDailyStatisticsByNamespace, "lads")
-					.where("lads.date <= :date", { date: endDate })
-					.andWhere("lads.namespace = :namespace", { namespace: namespaceCollection.namespace });
-			}, `ns${namespaceCollection.namespace}LastKnownDailyStatisticsDateByActor`, `ns${namespaceCollection.namespace}LastKnownDailyStatisticsDateByActor.actorId = actor.actorId`);
+				let subQuery = qb.subQuery()
+					.select("adsn.actorId", "actorId")
+					.addSelect("adsn.date", "date");
 
-			query = query.leftJoin(
-				wikiEntities.actorDailyStatisticsByNamespace,
-				`ns${namespaceCollection.namespace}SinceRegistrationActorStatistics`,
-				`ns${namespaceCollection.namespace}SinceRegistrationActorStatistics.actorId = actor.actorId `
-				+ ` AND ns${namespaceCollection.namespace}SinceRegistrationActorStatistics.namespace = :namespace `
-				+ ` AND ns${namespaceCollection.namespace}SinceRegistrationActorStatistics.date = ns${namespaceCollection.namespace}LastKnownDailyStatisticsDateByActor.lastDate`,
-				{ namespace: namespaceCollection.namespace }
-			);
+				if (namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics.indexOf("editsInNamespaceSinceRegistrationPercentage") !== -1) {
+					subQuery = subQuery.addSelect("SUM(adsn.revertedEditsToDate + adsn.dailyRevertedEdits)", "totalEdits");
+				}
+
+				if (namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics.indexOf("revertedEditsInNamespaceSinceRegistrationPercentage") !== -1) {
+					subQuery = subQuery.addSelect("SUM(adsn.revertedEditsToDate + adsn.dailyRevertedEdits)", "totalRevertedEdits");
+				}
+
+				if (namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics.indexOf("characterChangesInNamespaceSinceRegistrationPercentage") !== -1) {
+					subQuery = subQuery.addSelect("SUM(adsn.characterChangesToDate + adsn.dailyCharacterChanges)", "totalCharacterChanges");
+				}
+
+				subQuery = subQuery
+					.from(wikiEntities.actorDailyStatisticsByNamespace, "adsn");
+
+				subQuery = subQuery.where(qb => {
+					let lastDateSubQuery = qb.subQuery()
+						.select("MAX(adsnLastDate.date)", "lastDate")
+						.from(wikiEntities.actorDailyStatisticsByNamespace, "adsnLastDate")
+						.where("adsnLastDate.actorId = adsn.actorId")
+						.andWhere("adsnLastDate.date <= :date", { date: endDate });
+
+					lastDateSubQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, lastDateSubQuery, "adsnLastDate");
+
+					return "adsn.date = " + lastDateSubQuery.getQuery();
+				});
+
+				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "adsn");
+
+				return subQuery;
+			}, `ns${namespaceKey}SinceRegistrationActorStatistics`, `ns${namespaceKey}SinceRegistrationActorStatistics.actorId = actor.actorId`);
 		}
 
 		if (namespaceCollection.requiredColumnsForSinceRegisteredWikiStatistics.length > 0) {
 			query = query.leftJoin(qb => {
-				return qb.subQuery()
-					.select("MAX(lwds.date)", "lastDate")
-					.from(wikiEntities.dailyStatisticsByNamespace, "lwds")
-					.where("lwds.date <= :date", { date: endDate })
-					.andWhere("lwds.namespace = :namespace", { namespace: namespaceCollection.namespace });
-			}, `ns${namespaceCollection.namespace}LastKnownDailyStatisticsDateByWiki`, "true");
+				let subQuery = qb.subQuery()
+					.select("dsn.date", "date");
 
-			query = query.leftJoin(
-				wikiEntities.dailyStatisticsByNamespace,
-				`ns${namespaceCollection.namespace}SinceStartWikiStatistics`,
-				`ns${namespaceCollection.namespace}SinceStartWikiStatistics.date = ns${namespaceCollection.namespace}LastKnownDailyStatisticsDateByWiki.lastDate`
-				+ ` AND ns${namespaceCollection.namespace}SinceStartWikiStatistics.namespace = :namespace `,
-				{ namespace: namespaceCollection.namespace }
-			);
+				if (arrayHasAny(
+					namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics,
+					"editsInNamespaceSinceRegistration",
+					"editsInNamespaceSinceRegistrationPercentage")
+				) {
+					subQuery = subQuery.addSelect("SUM(dsn.revertedEditsToDate + dsn.dailyRevertedEdits)", "totalEdits");
+				}
+
+				if (arrayHasAny(
+					namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics,
+					"revertedEditsInNamespaceSinceRegistration",
+					"revertedEditsInNamespaceSinceRegistrationPercentage")
+				) {
+					subQuery = subQuery.addSelect("SUM(dsn.revertedEditsToDate + dsn.dailyRevertedEdits)", "totalRevertedEdits");
+				}
+
+				if (arrayHasAny(
+					namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics,
+					"characterChangesInNamespaceSinceRegistration",
+					"characterChangesInNamespaceSinceRegistrationPercentage")
+				) {
+					subQuery = subQuery.addSelect("SUM(dsn.characterChangesToDate + dsn.dailyCharacterChanges)", "totalCharacterChanges");
+				}
+
+				subQuery = subQuery
+					.from(wikiEntities.dailyStatisticsByNamespace, "dsn");
+
+				subQuery = subQuery.andWhere(qb => {
+					let lastDateSubQuery = qb.subQuery()
+						.select("MAX(dsnLastDate.date)", "lastDate")
+						.from(wikiEntities.dailyStatisticsByNamespace, "dsnLastDate")
+						.where("dsnLastDate.date <= :date", { date: endDate });
+
+					lastDateSubQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, lastDateSubQuery, "dsnLastDate");
+
+					return "dsn.date = " + lastDateSubQuery.getQuery();
+				});
+
+				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "dsn");
+
+				return subQuery;
+			}, `ns${namespaceKey}SinceStartWikiStatistics`, "true");
 		}
 	}
 
@@ -1061,20 +1112,33 @@ function addColumnJoins(
 	return query;
 }
 
-function addColumnFilters(
-	ctx: StatisticsQueryBuildingContext,
-	query: SelectQueryBuilder<ActorTypeModel>,
-	wikiEntities: WikiStatisticsTypesResult,
-	columns: ListColumn[] | undefined,
-	startDate: Date | undefined,
-	endDate: Date
-): SelectQueryBuilder<ActorTypeModel> {
-	if (!columns || columns.length == 0)
-		return query;
+function createNamespaceWhereClauseFromNamespaceDefinition(
+	namespaceCollection: NamespaceRequiredColumns,
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	queryBuilder: SelectQueryBuilder<any>,
+	tableAlias: string
+) {
+	if (typeof namespaceCollection.namespace === "number") {
+		queryBuilder = queryBuilder.andWhere(
+			`${tableAlias}.namespace = :namespace`,
+			{ namespace: namespaceCollection.namespace }
+		);
+	} else {
+		const whereParameters = {};
+		const whereClause = namespaceCollection.namespace
+			.map((ele, idx) => {
+				whereParameters[`namespace${idx}`] = ele;
+				return `${tableAlias}.namespace = :namespace${idx}`;
+			})
+			.join(" OR ");
 
-	return query;
+		queryBuilder = queryBuilder.andWhere(
+			`(${whereClause})`,
+			whereParameters
+		);
+	}
+	return queryBuilder;
 }
-
 
 function addOrderBy(
 	query: SelectQueryBuilder<ActorTypeModel>,
@@ -1110,8 +1174,12 @@ function addOrderBy(
 	return query;
 }
 
-function getOrCreateNamespaceCollector(ctx: StatisticsQueryBuildingContext, namespace: number): NamespaceRequiredColumns {
-	let existingCollector = ctx.columns.requiredNamespaceStatisticsColumns.find(x => x.namespace === namespace);
+function getOrCreateNamespaceCollector(ctx: StatisticsQueryBuildingContext, namespace: number | number[]): NamespaceRequiredColumns {
+	let existingCollector = ctx.columns.requiredNamespaceStatisticsColumns.find(x =>
+		typeof (x.namespace) === "object"
+			? sequenceEqual(x.namespace, namespace)
+			: x.namespace === namespace);
+
 	if (!existingCollector) {
 		existingCollector = {
 			namespace: namespace,
@@ -1126,6 +1194,11 @@ function getOrCreateNamespaceCollector(ctx: StatisticsQueryBuildingContext, name
 	return existingCollector;
 }
 
+function formatNamespaceParameter(namespace: number | number[]): string {
+	return Array.isArray(namespace)
+		? namespace.join("_")
+		: namespace.toString();
+}
 
 function getOrCreateLogTypeCollector(ctx: StatisticsQueryBuildingContext, logType: string | null, logAction: string | null): LogTypeStatisticsRequiredColumns {
 	const normalizedLogType = logType ?? null;
@@ -1146,3 +1219,4 @@ function getOrCreateLogTypeCollector(ctx: StatisticsQueryBuildingContext, logTyp
 
 	return existingCollector;
 }
+
