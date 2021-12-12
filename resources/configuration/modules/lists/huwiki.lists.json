@@ -246,6 +246,144 @@
 			]
 		},
 		{
+			"id": "test2",
+			"groupId": "tests",
+			"name": "Tesztlista API teszteléshez 2",
+			"itemCount": 500,
+			"columns": [
+				{
+					"type": "userName",
+					"showUserLinks": true
+				},
+				{
+					"columnId": "editsInPeriod",
+					"type": "editsInPeriod"
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"logFilter": {
+						"logAction": "create",
+						"logType": "create"
+					}
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"logFilter": {
+						"logAction": "create"
+					}
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"logFilter": {
+						"logType": "create"
+					}
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"logFilter": [
+						{
+							"logAction": "create",
+							"logType": "create"
+						},
+						{
+							"logAction": "delete",
+							"lgType": "delete"
+						}
+					]
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"logFilter": {
+						"logAction": "create",
+						"logType": "create"
+					}
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"logFilter": {
+						"logAction": "create"
+					}
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"logFilter": {
+						"logType": "create"
+					}
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"logFilter": [
+						{
+							"logAction": "create",
+							"logType": "create"
+						},
+						{
+							"logAction": "delete",
+							"lgType": "delete"
+						}
+					]
+				},
+				{
+					"type": "editsInPeriodByChangeTag",
+					"changeTag": {
+						"changeTagId": 1
+					}
+				},
+				{
+					"type": "editsInPeriodByChangeTag",
+					"changeTag": {
+						"changeTagId": 1,
+						"namespace": 0
+					}
+				},
+				{
+					"type": "editsSinceRegistrationByChangeTag",
+					"changeTag": {
+						"changeTagId": 1
+					}
+				},
+				{
+					"type": "editsSinceRegistrationByChangeTag",
+					"changeTag": {
+						"changeTagId": 1,
+						"namespace": 0
+					}
+				},
+				{
+					"type": "characterChangesInPeriodByChangeTag",
+					"changeTag": {
+						"changeTagId": 1
+					}
+				},
+				{
+					"type": "characterChangesInPeriodByChangeTag",
+					"changeTag": {
+						"changeTagId": 1,
+						"namespace": 0
+					}
+				},
+				{
+					"type": "characterChangesSinceRegistrationByChangeTag",
+					"changeTag": {
+						"changeTagId": 1
+					}
+				},
+				{
+					"type": "characterChangesSinceRegistrationByChangeTag",
+					"changeTag": {
+						"changeTagId": 1,
+						"namespace": 0
+					}
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "editsInPeriod",
+					"direction": "descending"
+				}
+			]
+		},
+		{
 			"id": "byEditCount",
 			"groupId": "topLists",
 			"i18nKey": "lists.list.topLists.byEditCount",

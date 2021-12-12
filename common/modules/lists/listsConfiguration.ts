@@ -64,6 +64,7 @@ export type ListColumn =
 	ParameterlessListColumn
 	| UserNameListColumn
 	| ListColumnWithNamespaceParameter
+	| ListColumnWithChangeTagParameter
 	| ListColumnWithLogTypeParameter;
 
 const parameterlessListColumnTypes = [
@@ -133,9 +134,17 @@ const columnsWithNamespaceParameter = [
 ] as const;
 export type ListColumnTypesWithNamespaceParameter = typeof columnsWithNamespaceParameter[number];
 
+const columnsWithChangeTagParameter = [
+	"editsInPeriodByChangeTag", // OK
+	"editsSinceRegistrationByChangeTag", // OK
+	"characterChangesInPeriodByChangeTag", // OK
+	"characterChangesSinceRegistrationByChangeTag" // OK
+] as const;
+export type ListColumnTypesWithChangeTagParameter = typeof columnsWithChangeTagParameter[number];
+
 const columnsWithLogTypeParameter = [
-	"logEventsInPeriodByType",
-	"logEventsSinceRegistrationByType"
+	"logEventsInPeriodByType", // OK
+	"logEventsSinceRegistrationByType" // OK
 ] as const;
 export type ListColumnTypesWithLogTypeParameter = typeof columnsWithLogTypeParameter[number];
 
@@ -175,18 +184,40 @@ export function isListColumnWithNamespaceParameter(obj: unknown): obj is ListCol
 		&& typeof (obj["namespace"]) === "number";
 }
 
+export interface ListColumnWithChangeTagParameter {
+	columnId: string;
+	type: ListColumnTypesWithChangeTagParameter;
+	changeTag: ChangeTagFilterDefinition | ChangeTagFilterDefinition[];
+}
+
+export interface ChangeTagFilterDefinition {
+	namespace?: number;
+	changeTagId: number;
+}
+
+export function isListColumnWithChangeTagParameter(obj: unknown): obj is ListColumnWithChangeTagParameter {
+	return typeof obj === "object"
+		&& obj != null
+		&& columnsWithNamespaceParameter.indexOf(obj["type"]) !== -1
+		&& typeof (obj["changeTag"]) === "object";
+}
+
 export interface ListColumnWithLogTypeParameter {
 	columnId: string;
 	type: ListColumnTypesWithLogTypeParameter;
-	logAction: string;
-	logType: string;
+	logFilter: LogFilterDefinition | LogFilterDefinition[];
+}
+
+export interface LogFilterDefinition {
+	logType?: string;
+	logAction?: string;
 }
 
 export function isListColumnWithLogTypeParameter(obj: unknown): obj is ListColumnWithLogTypeParameter {
 	return typeof obj === "object"
 		&& obj != null
 		&& columnsWithNamespaceParameter.indexOf(obj["type"]) !== -1
-		&& typeof (obj["logType"]) === "string";
+		&& typeof (obj["logFilter"]) === "object";
 }
 
 export interface ListOrderBy {
@@ -198,4 +229,5 @@ export type AllColumnTypes =
 	ParameterlessListColumnTypes
 	| ListColumnTypesWithNamespaceParameter
 	| ListColumnTypesWithLogTypeParameter
+	| ListColumnTypesWithChangeTagParameter
 	| "userName";

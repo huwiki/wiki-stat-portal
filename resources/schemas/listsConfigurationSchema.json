@@ -124,6 +124,9 @@
 						"$ref": "#/definitions/columnWithNamespaceParameter"
 					},
 					{
+						"$ref": "#/definitions/columnWithNamespaceAndChangeTagParameter"
+					},
+					{
 						"$ref": "#/definitions/columnWithLogTypeParameter"
 					}
 				]
@@ -253,6 +256,58 @@
 				"namespace"
 			]
 		},
+		"columnWithNamespaceAndChangeTagParameter": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"columnId": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string",
+					"enum": [
+						"editsInPeriodByChangeTag",
+						"editsSinceRegistrationByChangeTag",
+						"characterChangesInPeriodByChangeTag",
+						"characterChangesSinceRegistrationByChangeTag"
+					]
+				},
+				"changeTag": {
+					"anyOf": [
+						{
+							"$ref": "#/definitions/changeTagFilterParameter"
+						},
+						{
+							"type": "array",
+							"items": {
+								"$ref": "#/definitions/changeTagFilterParameter"
+							},
+							"minItems": 1
+						}
+					]
+				}
+			},
+			"required": [
+				"type",
+				"changeTag"
+			]
+		},
+		"changeTagFilterParameter": {
+			"type": "object",
+			"properties": {
+				"changeTagId": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"namespace": {
+					"type": "integer",
+					"minimum": 0
+				}
+			},
+			"required": [
+				"changeTagId"
+			]
+		},
 		"columnWithLogTypeParameter": {
 			"type": "object",
 			"additionalProperties": false,
@@ -267,6 +322,29 @@
 						"logEventsSinceRegistrationByType"
 					]
 				},
+				"logFilter": {
+					"anyOf": [
+						{
+							"$ref": "#/definitions/logFilterParameter"
+						},
+						{
+							"type": "array",
+							"items": {
+								"$ref": "#/definitions/logFilterParameter"
+							},
+							"minItems": 1
+						}
+					]
+				}
+			},
+			"required": [
+				"type",
+				"logFilter"
+			]
+		},
+		"logFilterParameter": {
+			"type": "object",
+			"properties": {
 				"logType": {
 					"type": "string"
 				},
@@ -277,13 +355,11 @@
 			"anyOf": [
 				{
 					"required": [
-						"type",
 						"logType"
 					]
 				},
 				{
 					"required": [
-						"type",
 						"logAction"
 					]
 				}

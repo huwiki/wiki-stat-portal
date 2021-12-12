@@ -1,7 +1,7 @@
 import { addDays, subDays } from "date-fns";
 import { Connection, SelectQueryBuilder } from "typeorm";
 import { UserRequirements } from "../../common/modules/commonConfiguration";
-import { AllColumnTypes, ListColumn, ListOrderBy } from "../../common/modules/lists/listsConfiguration";
+import { AllColumnTypes, ChangeTagFilterDefinition, ListColumn, ListOrderBy, LogFilterDefinition } from "../../common/modules/lists/listsConfiguration";
 import { AppRunningContext } from "../appRunningContext";
 import { arrayHasAny, sequenceEqual } from "../helpers/collectionUtils";
 import { ActorTypeModel, DailyStatisticsByNamespaceTypeModel, DailyStatisticsTypeModel, WikiStatisticsTypesResult } from "./entities/toolsDatabase/actorByWiki";
@@ -19,14 +19,20 @@ type NamespaceRequiredColumns = RequiredColumns & {
 };
 
 type LogTypeStatisticsRequiredColumns = RequiredColumns & {
-	logType: string | null;
-	logAction: string | null;
+	serializedLogFilter: string;
+	logFilter: LogFilterDefinition | LogFilterDefinition[];
+};
+
+type ChangeTagStatisticsRequiredColumns = RequiredColumns & {
+	serializedChangeTagFilter: string;
+	changeTagFilter: ChangeTagFilterDefinition | ChangeTagFilterDefinition[];
 };
 
 interface StatisticsQueryBuildingContext {
 	columns: RequiredColumns & {
 		requiredNamespaceStatisticsColumns: NamespaceRequiredColumns[];
 		requiredLogTypeStatisticsColumns: LogTypeStatisticsRequiredColumns[];
+		requiredChangeTagStatisticsColumns: ChangeTagStatisticsRequiredColumns[];
 	};
 }
 
@@ -54,6 +60,7 @@ export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEnt
 			requiredColumnsForSinceRegisteredWikiStatistics: [],
 			requiredNamespaceStatisticsColumns: [],
 			requiredLogTypeStatisticsColumns: [],
+			requiredChangeTagStatisticsColumns: [],
 		}
 	};
 
@@ -330,6 +337,13 @@ function addSingleColumSelect(
 				+ `(ns${formatNamespaceParameter(column.namespace)}SinceStartWikiStatistics.totalEdits) * 100, 0)`, selectedColumnName);
 			break;
 
+		case "editsInPeriodByChangeTag":
+			query = query.addSelect(`IFNULL(ct${formatChangeTagFilterDefinitionCollection(column.changeTag)}PeriodActorStatistics.editsInPeriod, 0)`, selectedColumnName);
+			break;
+		case "editsSinceRegistrationByChangeTag":
+			query = query.addSelect(`IFNULL(ct${formatChangeTagFilterDefinitionCollection(column.changeTag)}SinceRegistrationActorStatistics.totalEdits, 0)`, selectedColumnName);
+			break;
+
 		case "revertedEditsInPeriod":
 			query = query.addSelect("IFNULL(periodActorStatistics.actorRevertedEditsInPeriod, 0)", selectedColumnName);
 			break;
@@ -413,6 +427,13 @@ function addSingleColumSelect(
 				+ `(ns${formatNamespaceParameter(column.namespace)}SinceStartWikiStatistics.totalCharacterChanges) * 100, 0)`, selectedColumnName);
 			break;
 
+		case "characterChangesInPeriodByChangeTag":
+			query = query.addSelect(`IFNULL(ct${formatChangeTagFilterDefinitionCollection(column.changeTag)}PeriodActorStatistics.characterChangesInPeriod, 0)`, selectedColumnName);
+			break;
+		case "characterChangesSinceRegistrationByChangeTag":
+			query = query.addSelect(`IFNULL(ct${formatChangeTagFilterDefinitionCollection(column.changeTag)}SinceRegistrationActorStatistics.totalCharacterChanges, 0)`, selectedColumnName);
+			break;
+
 		case "thanksInPeriod":
 			query = query.addSelect("IFNULL(periodActorStatistics.actorThanksInPeriod, 0)", selectedColumnName);
 			break;
@@ -443,6 +464,13 @@ function addSingleColumSelect(
 				"IFNULL((sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents)"
 				+ " / "
 				+ "(sinceStartWikiStatistics.logEventsToDate + sinceStartWikiStatistics.dailyLogEvents) * 100, 0)", selectedColumnName);
+			break;
+
+		case "logEventsInPeriodByType":
+			query = query.addSelect(`IFNULL(log${formatLogFilterDefinitionCollection(column.logFilter)}PeriodActorStatistics.logEventsInPeriod, 0)`, selectedColumnName);
+			break;
+		case "logEventsSinceRegistrationByType":
+			query = query.addSelect(`IFNULL(log${formatLogFilterDefinitionCollection(column.logFilter)}SinceRegistrationActorStatistics.totalLogEvents, 0)`, selectedColumnName);
 			break;
 
 		case "averageLogEventsPerDayInPeriod":
@@ -536,6 +564,18 @@ function addColumnJoins(
 				break;
 			}
 
+			case "editsInPeriodByChangeTag": {
+				const namespaceCollector = getOrCreateChangeTagCollector(ctx, column.changeTag);
+				namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
+				break;
+			}
+
+			case "editsSinceRegistrationByChangeTag": {
+				const namespaceCollector = getOrCreateChangeTagCollector(ctx, column.changeTag);
+				namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
+				break;
+			}
+
 			case "averageEditsPerDayInPeriod":
 				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push("editsInPeriod");
 				break;
@@ -619,6 +659,18 @@ function addColumnJoins(
 				break;
 			}
 
+			case "characterChangesInPeriodByChangeTag": {
+				const namespaceCollector = getOrCreateChangeTagCollector(ctx, column.changeTag);
+				namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
+				break;
+			}
+
+			case "characterChangesSinceRegistrationByChangeTag": {
+				const namespaceCollector = getOrCreateChangeTagCollector(ctx, column.changeTag);
+				namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
+				break;
+			}
+
 			case "thanksInPeriod":
 				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
 				break;
@@ -650,12 +702,12 @@ function addColumnJoins(
 				break;
 
 			case "logEventsInPeriodByType": {
-				const namespaceCollector = getOrCreateLogTypeCollector(ctx, column.logType, column.logAction);
+				const namespaceCollector = getOrCreateLogTypeCollector(ctx, column.logFilter);
 				namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
 				break;
 			}
 			case "logEventsSinceRegistrationByType": {
-				const namespaceCollector = getOrCreateLogTypeCollector(ctx, column.logType, column.logAction);
+				const namespaceCollector = getOrCreateLogTypeCollector(ctx, column.logFilter);
 				namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
 				break;
 			}
@@ -1038,8 +1090,78 @@ function addColumnJoins(
 		}
 	}
 
+	for (const changeTagCollection of ctx.columns.requiredChangeTagStatisticsColumns) {
+		const normalizedCtKey = changeTagCollection.serializedChangeTagFilter;
+
+		if (changeTagCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
+			if (!startDate) {
+				// TODO: error out
+			}
+
+			query = query.leftJoin(qb => {
+				let subQuery = qb.subQuery()
+					.select("pas.actorId", "actorId");
+
+				if (changeTagCollection.requiredColumnsForSelectedPeriodActorStatistics.indexOf("editsInPeriodByChangeTag") !== -1) {
+					subQuery = subQuery.addSelect("SUM(pas.dailyEdits)", "editsInPeriod");
+				}
+
+				if (changeTagCollection.requiredColumnsForSelectedPeriodActorStatistics.indexOf("characterChangesInPeriodByChangeTag") !== -1) {
+					subQuery = subQuery.addSelect("SUM(pas.dailyCharacterChanges)", "characterChangesInPeriod");
+				}
+
+				subQuery = subQuery
+					.from(wikiEntities.actorEditStatisticsByNamespaceAndChangeTag, "pas")
+					.where(
+						"pas.date >= :startDate AND pas.date <= :endDate",
+						{ startDate: startDate, endDate: endDate }
+					);
+
+				subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "pas");
+
+				return subQuery.groupBy("pas.actorId");
+			}, `ct${normalizedCtKey}PeriodActorStatistics`, `ct${normalizedCtKey}PeriodActorStatistics.actorId = actor.actorId`);
+		}
+
+		if (changeTagCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0) {
+			query = query.leftJoin(qb => {
+				let subQuery = qb.subQuery()
+					.select("adsn.actorId", "actorId");
+
+				if (changeTagCollection.requiredColumnsForSinceRegisteredActorStatistics.indexOf("editsSinceRegistrationByChangeTag") !== -1) {
+					subQuery = subQuery.addSelect("SUM(adsn.editsToDate + adsn.dailyEdits)", "totalEdits");
+				}
+
+				if (changeTagCollection.requiredColumnsForSinceRegisteredActorStatistics.indexOf("characterChangesSinceRegistrationByChangeTag") !== -1) {
+					subQuery = subQuery.addSelect("SUM(adsn.characterChangesToDate + adsn.dailyCharacterChanges)", "totalCharacterChanges");
+				}
+
+				subQuery = subQuery
+					.from(wikiEntities.actorEditStatisticsByNamespaceAndChangeTag, "adsn");
+
+				subQuery = subQuery.andWhere(qb => {
+					let lastDateSubQuery = qb.subQuery()
+						.select("MAX(adsnLastDate.date)", "lastDate")
+						.from(wikiEntities.actorEditStatisticsByNamespaceAndChangeTag, "adsnLastDate")
+						.where("adsnLastDate.actorId = adsn.actorId")
+						.andWhere("adsnLastDate.date <= :date", { date: endDate });
+
+					lastDateSubQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, lastDateSubQuery, "adsnLastDate");
+
+					return "adsn.date = " + lastDateSubQuery.getQuery();
+				});
+
+				subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "adsn");
+
+				subQuery.groupBy("adsn.actorId");
+
+				return subQuery;
+			}, `ct${normalizedCtKey}SinceRegistrationActorStatistics`, `ct${normalizedCtKey}SinceRegistrationActorStatistics.actorId = actor.actorId`);
+		}
+	}
+
 	for (const logTypeCollection of ctx.columns.requiredLogTypeStatisticsColumns) {
-		const normalizedLogKey = `${logTypeCollection.logType ?? "any"}_${logTypeCollection.logAction ?? "any"}`;
+		const normalizedLogKey = logTypeCollection.serializedLogFilter;
 
 		if (logTypeCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
 			if (!startDate) {
@@ -1050,14 +1172,9 @@ function addColumnJoins(
 				let subQuery = qb.subQuery()
 					.select("pas.actorId", "actorId");
 
-				// TODO: add needed columns
-				// if (arrayHasAny(
-				// 	logTypeCollection.requiredColumnsForSelectedPeriodActorStatistics,
-				// 	"editsInNamespaceInPeriod",
-				// 	"editsInNamespaceInPeriodPercentage"
-				// )) {
-				// 	subQuery = subQuery.addSelect("SUM(pas.dailyEdits)", "actorEditsInPeriod");
-				// }
+				if (logTypeCollection.requiredColumnsForSelectedPeriodActorStatistics.indexOf("logEventsInPeriodByType") !== -1) {
+					subQuery = subQuery.addSelect("SUM(pas.dailyLogEvents)", "logEventsInPeriod");
+				}
 
 				subQuery = subQuery
 					.from(wikiEntities.actorLogStatisticsByNamespaceAndLogType, "pas")
@@ -1066,46 +1183,42 @@ function addColumnJoins(
 						{ startDate: startDate, endDate: endDate }
 					);
 
-				if (logTypeCollection.logType) {
-					subQuery = subQuery.andWhere("lads.logType = :logType", { logType: logTypeCollection.logType });
-				}
-
-				if (logTypeCollection.logAction) {
-					subQuery = subQuery.andWhere("lads.logAction = :logAction", { logType: logTypeCollection.logAction });
-				}
+				subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "pas");
 
 				return subQuery.groupBy("pas.actorId");
-			}, `lt${normalizedLogKey}PeriodActorStatistics`, `lt${normalizedLogKey}PeriodActorStatistics.actorId = actor.actorId`);
+			}, `log${normalizedLogKey}PeriodActorStatistics`, `log${normalizedLogKey}PeriodActorStatistics.actorId = actor.actorId`);
 		}
 
 		if (logTypeCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0) {
 			query = query.leftJoin(qb => {
-				let sq = qb.subQuery()
-					.select("lads.actorId", "actorId")
-					.addSelect("MAX(lads.date)", "lastDate")
-					.from(wikiEntities.actorLogStatisticsByNamespaceAndLogType, "lads")
-					.where("lads.date <= :date", { date: endDate });
+				let subQuery = qb.subQuery()
+					.select("adsn.actorId", "actorId");
 
-				if (logTypeCollection.logType) {
-					sq = sq.andWhere("lads.logType = :logType", { logType: logTypeCollection.logType });
+				if (logTypeCollection.requiredColumnsForSinceRegisteredActorStatistics.indexOf("logEventsSinceRegistrationByType") !== -1) {
+					subQuery = subQuery.addSelect("SUM(adsn.logEventsToDate + adsn.dailyLogEvents)", "totalLogEvents");
 				}
 
-				if (logTypeCollection.logAction) {
-					sq = sq.andWhere("lads.logAction = :logAction", { logType: logTypeCollection.logAction });
-				}
+				subQuery = subQuery
+					.from(wikiEntities.actorLogStatisticsByNamespaceAndLogType, "adsn");
 
-				return sq;
-			}, `ns${normalizedLogKey}LastKnownDailyStatisticsDateByActor`, `ns${normalizedLogKey}LastKnownDailyStatisticsDateByActor.actorId = actor.actorId`);
+				subQuery = subQuery.andWhere(qb => {
+					let lastDateSubQuery = qb.subQuery()
+						.select("MAX(adsnLastDate.date)", "lastDate")
+						.from(wikiEntities.actorLogStatisticsByNamespaceAndLogType, "adsnLastDate")
+						.where("adsnLastDate.actorId = adsn.actorId")
+						.andWhere("adsnLastDate.date <= :date", { date: endDate });
 
-			// TODO: group by
-			// query = query.leftJoin(
-			// 	wikiEntities.actorLogStatisticsByNamespaceAndLogType,
-			// 	`lt${normalizedLogKey}SinceRegistrationActorStatistics`,
-			// 	`lt${normalizedLogKey}SinceRegistrationActorStatistics.actorId = actor.actorId `
-			// 	+ ` AND lt${normalizedLogKey}SinceRegistrationActorStatistics.namespace = :namespace `
-			// 	+ ` AND lt${normalizedLogKey}SinceRegistrationActorStatistics.date = ns${normalizedLogKey}LastKnownDailyStatisticsDateByActor.lastDate`,
-			// 	{ namespace: logTypeCollection.namespace }
-			// );
+					lastDateSubQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, lastDateSubQuery, "adsnLastDate");
+
+					return "adsn.date = " + lastDateSubQuery.getQuery();
+				});
+
+				subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "adsn");
+
+				subQuery.groupBy("adsn.actorId");
+
+				return subQuery;
+			}, `log${normalizedLogKey}SinceRegistrationActorStatistics`, `log${normalizedLogKey}SinceRegistrationActorStatistics.actorId = actor.actorId`);
 		}
 	}
 
@@ -1136,6 +1249,103 @@ function createNamespaceWhereClauseFromNamespaceDefinition(
 			`(${whereClause})`,
 			whereParameters
 		);
+	}
+	return queryBuilder;
+}
+
+function createChangeTagWhereClauseFromFilterDefinition(
+	namespaceCollection: ChangeTagStatisticsRequiredColumns,
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	queryBuilder: SelectQueryBuilder<any>,
+	tableAlias: string
+) {
+	if (Array.isArray(namespaceCollection.changeTagFilter)) {
+		const whereParameters = {};
+		const whereClause = namespaceCollection.changeTagFilter
+			.map((ele: ChangeTagFilterDefinition): string => {
+				let ret = `${tableAlias}.changeTagId = :changeTagId${ele.changeTagId}`;
+				whereParameters[`changeTagId${ele.changeTagId}`] = ele.changeTagId;
+
+				if (typeof ele.namespace === "number") {
+					ret = `(${ret} OR ${tableAlias}.namespace = :namespace${ele.namespace})`;
+					whereParameters[`namespace${ele.changeTagId}`] = ele.changeTagId;
+				}
+
+				return ret;
+			})
+			.join(" OR ");
+
+		queryBuilder = queryBuilder.andWhere(
+			`(${whereClause})`,
+			whereParameters
+		);
+
+	} else {
+		queryBuilder = queryBuilder.andWhere(
+			`${tableAlias}.changeTagId = :changeTagId${namespaceCollection.changeTagFilter.changeTagId}`,
+			{ [`changeTagId${namespaceCollection.changeTagFilter.changeTagId}`]: namespaceCollection.changeTagFilter.changeTagId }
+		);
+
+		if (typeof namespaceCollection.changeTagFilter.namespace === "number") {
+			queryBuilder = queryBuilder.andWhere(
+				`${tableAlias}.namespace = :namespace${namespaceCollection.changeTagFilter.namespace}`,
+				{ [`namespace${namespaceCollection.changeTagFilter.namespace}`]: namespaceCollection.changeTagFilter.namespace }
+			);
+		}
+	}
+	return queryBuilder;
+}
+
+function createLogWhereClauseFromFilterDefinition(
+	namespaceCollection: LogTypeStatisticsRequiredColumns,
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	queryBuilder: SelectQueryBuilder<any>,
+	tableAlias: string
+) {
+	if (Array.isArray(namespaceCollection.logFilter)) {
+		const whereParameters = {};
+		const whereClause = namespaceCollection.logFilter
+			.map((ele: LogFilterDefinition): string => {
+				let logActionClause: string | null = null;
+				let logTypeClause: string | null = null;
+
+				if (ele.logType) {
+					logTypeClause = `${tableAlias}.logType = :logType${ele.logType}`;
+					whereParameters[`logType${ele.logType}`] = ele.logType;
+				}
+
+				if (ele.logAction) {
+					logActionClause = `${tableAlias}.logAction = :logAction${ele.logAction}`;
+					whereParameters[`logAction${ele.logAction}`] = ele.logAction;
+				}
+
+				if (ele.logType && ele.logAction) {
+					return `(${logTypeClause} AND ${logActionClause})`;
+				}
+
+				return logTypeClause ?? logActionClause ?? "Should not happen";
+			})
+			.join(" OR ");
+
+		queryBuilder = queryBuilder.andWhere(
+			`(${whereClause})`,
+			whereParameters
+		);
+
+	} else {
+		if (namespaceCollection.logFilter.logType) {
+			queryBuilder = queryBuilder.andWhere(
+				`${tableAlias}.logType = :logType${namespaceCollection.logFilter.logType}`,
+				{ [`logType${namespaceCollection.logFilter.logType}`]: namespaceCollection.logFilter.logType }
+			);
+		}
+
+		if (namespaceCollection.logFilter.logAction) {
+			queryBuilder = queryBuilder.andWhere(
+				`${tableAlias}.logAction = :logAction${namespaceCollection.logFilter.logAction}`,
+				{ [`logAction${namespaceCollection.logFilter.logAction}`]: namespaceCollection.logFilter.logAction }
+			);
+		}
 	}
 	return queryBuilder;
 }
@@ -1200,15 +1410,47 @@ function formatNamespaceParameter(namespace: number | number[]): string {
 		: namespace.toString();
 }
 
-function getOrCreateLogTypeCollector(ctx: StatisticsQueryBuildingContext, logType: string | null, logAction: string | null): LogTypeStatisticsRequiredColumns {
-	const normalizedLogType = logType ?? null;
-	const normalizedLogAction = logAction ?? null;
+function getOrCreateChangeTagCollector(ctx: StatisticsQueryBuildingContext, changeTagFilter: ChangeTagFilterDefinition | ChangeTagFilterDefinition[]): ChangeTagStatisticsRequiredColumns {
+	const serializedChangeTagFilter = formatChangeTagFilterDefinitionCollection(changeTagFilter);
 
-	let existingCollector = ctx.columns.requiredLogTypeStatisticsColumns.find(x => x.logType === normalizedLogType && x.logAction === normalizedLogAction);
+	let existingCollector = ctx.columns.requiredChangeTagStatisticsColumns
+		.find(x => x.serializedChangeTagFilter === serializedChangeTagFilter);
+
 	if (!existingCollector) {
 		existingCollector = {
-			logType: logType,
-			logAction: logAction,
+			serializedChangeTagFilter: serializedChangeTagFilter,
+			changeTagFilter: changeTagFilter,
+			requiredColumnsForSelectedPeriodActorStatistics: [],
+			requiredColumnsForSelectedPeriodWikiStatistics: [],
+			requiredColumnsForSinceRegisteredActorStatistics: [],
+			requiredColumnsForSinceRegisteredWikiStatistics: []
+		};
+		ctx.columns.requiredChangeTagStatisticsColumns.push(existingCollector);
+	}
+
+	return existingCollector;
+}
+
+function formatChangeTagFilterDefinitionCollection(changeTagFilter: ChangeTagFilterDefinition | ChangeTagFilterDefinition[]): string {
+	return Array.isArray(changeTagFilter)
+		? changeTagFilter.map(x => serializeChangeTagFilterDefinition(x)).join("_")
+		: serializeChangeTagFilterDefinition(changeTagFilter).toString();
+}
+
+function serializeChangeTagFilterDefinition(changeTagFilter: ChangeTagFilterDefinition) {
+	return `${changeTagFilter.namespace ?? "any"}_${changeTagFilter.changeTagId}`;
+}
+
+function getOrCreateLogTypeCollector(ctx: StatisticsQueryBuildingContext, logFilter: LogFilterDefinition | LogFilterDefinition[]): LogTypeStatisticsRequiredColumns {
+	const serializedLogFilter = formatLogFilterDefinitionCollection(logFilter);
+
+	let existingCollector = ctx.columns.requiredLogTypeStatisticsColumns
+		.find(x => x.serializedLogFilter === serializedLogFilter);
+
+	if (!existingCollector) {
+		existingCollector = {
+			serializedLogFilter: serializedLogFilter,
+			logFilter: logFilter,
 			requiredColumnsForSelectedPeriodActorStatistics: [],
 			requiredColumnsForSelectedPeriodWikiStatistics: [],
 			requiredColumnsForSinceRegisteredActorStatistics: [],
@@ -1220,3 +1462,12 @@ function getOrCreateLogTypeCollector(ctx: StatisticsQueryBuildingContext, logTyp
 	return existingCollector;
 }
 
+function formatLogFilterDefinitionCollection(logFilter: LogFilterDefinition | LogFilterDefinition[]): string {
+	return Array.isArray(logFilter)
+		? logFilter.map(x => serializeLogFilterDefinition(x)).join("_")
+		: serializeLogFilterDefinition(logFilter).toString();
+}
+
+function serializeLogFilterDefinition(logFilter: LogFilterDefinition) {
+	return `${logFilter.logType ?? "any"}_${logFilter.logAction ?? "any"}`;
+}
