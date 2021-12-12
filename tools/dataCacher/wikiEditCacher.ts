@@ -160,10 +160,12 @@ export class WikiEditCacher {
 		this.logger.info(`[getAllWikiActors/${this.wiki.id}] updateActors: Getting actors from replica db`);
 		this.wikiActors = await this.replicatedDatabaseConnection.getRepository(Actor)
 			.createQueryBuilder("actor")
-			.innerJoinAndSelect("actor.user", "user")
+			.leftJoinAndSelect("actor.user", "user")
 			.leftJoinAndSelect("user.userGroups", "groups")
 			.getMany();
 		this.injectFlaglessBotInfo(this.wikiActors);
+
+		this.logger.info(`[getAllWikiActors/${this.wiki.id}] updateActors: ${this.wikiActors.length} actors fetched from replica db`);
 
 		for (const actor of this.wikiActors) {
 			const name = WikiEditCacher.getActorName(actor);
@@ -217,9 +219,7 @@ export class WikiEditCacher {
 
 			const actor = revision.actor;
 
-			//const editDate = this.getStartOfDayAsPlainDate(revision.timestamp);
 			const editDate = moment.utc(revision.timestamp).startOf("day");
-			console.log(editDate);
 			const currentEditTimestamp = moment.utc(revision.timestamp);
 			const characterChanges = revision.length - (revision.parentRevision?.length ?? 0);
 
@@ -325,9 +325,7 @@ export class WikiEditCacher {
 			}
 
 			const actor = logEntry.actor;
-			console.log(logEntry.timestamp, "lts");
 
-			//const logEntryDate = this.getStartOfDayAsPlainDate(logEntry.timestamp);
 			const logEntryDate = moment.utc(logEntry.timestamp).startOf("day");
 
 			this.processStandardLogEntry(actor, logEntry, logEntryDate);
@@ -423,20 +421,6 @@ export class WikiEditCacher {
 			dailyBucket.thanks++;
 		}
 	}
-
-	// private getStartOfDayAsPlainDate(timestamp: Date) {
-	// 	const ret = moment(
-	// 		moment.tz(timestamp, "UTC")
-	// 			.tz(this.wiki.timeZone, false)
-	// 			.startOf("day")
-	// 			.format("YYYY-MM-DDTHH:mm:ss"),
-	// 		"YYYY-MM-DDTHH:mm:ss"
-	// 	).toDate();
-	// 	console.log(timestamp, "ts");
-	// 	console.log(ret, "ret");
-
-	// 	return ret;
-	// }
 
 	private async getActorsToUpdate(): Promise<void> {
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] getActorsToUpdate: Getting actors from stat db`);
@@ -556,11 +540,14 @@ export class WikiEditCacher {
 	}
 
 	private async saveActorEntityToDatabase(actorStat: ActorStatisticsUpdateCollection, em: EntityManager) {
-		const existingActor = await em.getRepository(this.wikiStatisticsEntities.actor)
-			.findOne({ where: { actorId: actorStat.actorId } });
+		const existingActorArr = await em.getRepository(this.wikiStatisticsEntities.actor)
+			.createQueryBuilder("actor")
+			.leftJoinAndSelect("actor.actorGroups", "groups")
+			.where("actor.actorId = :actorId", { actorId: actorStat.actorId })
+			.getMany();
 
-		if (existingActor) {
-			await this.updateActorInDatabase(actorStat, existingActor, em);
+		if (existingActorArr && existingActorArr.length === 1) {
+			await this.updateActorInDatabase(actorStat, existingActorArr[0], em);
 		} else {
 			await this.createActorInDatabase(actorStat, em);
 		}
@@ -570,11 +557,11 @@ export class WikiEditCacher {
 		const firstEditDate = actorStat.dailyStatistics.length > 0 ? actorStat.dailyStatistics[0].date : undefined;
 		const mwDbActor = this.wikiActorsById.get(actorStat.actorId);
 		if (!mwDbActor) {
-			this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] createActorInDatabase: Failed to create actor for '${actorStat.actorName}', mediawiki actor not found`);
+			this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] createActorInDatabase: Failed to create actor for '${actorStat.actorId}/${actorStat.actorName}', mediawiki actor not found`);
 			return;
 		}
 
-		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] createActorInDatabase: Creating actor for '${actorStat.actorName}'`);
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] createActorInDatabase: Creating actor for '${actorStat.actorId}/${actorStat.actorName}'`);
 		await em.createQueryBuilder()
 			.insert()
 			.into(this.wikiStatisticsEntities.actor)
@@ -591,13 +578,13 @@ export class WikiEditCacher {
 					: null,
 				registrationTimestamp: actorStat.actor.user
 					? (actorStat.actor.user.registrationTimestamp == null
-						? (firstEditDate ?? null)
+						? (firstEditDate?.toDate() ?? null)
 						: actorStat.actor.user.registrationTimestamp)
 					: null,
 			})
 			.execute();
 
-		for (const group of (mwDbActor.user.userGroups || [])) {
+		for (const group of (mwDbActor.user?.userGroups ?? [])) {
 			await em.createQueryBuilder()
 				.insert()
 				.into(this.wikiStatisticsEntities.actorGroup)
@@ -664,8 +651,8 @@ export class WikiEditCacher {
 			.where("actorId = :actorId", { actorId: actorStat.actorId })
 			.execute();
 
-		const toolsDbUserGroups = (existingActor.actorGroups || []).map(x => x.groupName);
-		const mwUserGroups = (mwDbActor.user.userGroups || []).map(x => x.groupName);
+		const toolsDbUserGroups = (existingActor.actorGroups ?? []).map(x => x.groupName);
+		const mwUserGroups = (mwDbActor.user?.userGroups ?? []).map(x => x.groupName);
 
 		for (const groupToAdd of mwUserGroups.filter(groupName => toolsDbUserGroups.indexOf(groupName) === -1)) {
 			this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActor: Adding group '${groupToAdd}' for '${actorName}'...`);
@@ -1195,7 +1182,7 @@ export class WikiEditCacher {
 						.createQueryBuilder("lsnl")
 						.where("lsnl.namespace = :namespace", { namespace: editsByNs.namespace })
 						.andWhere("lsnl.logAction = :logAction", { logAction: editsByNs.logAction })
-						.andWhere("lsnl.logType = :logType", { namespace: editsByNs.logType })
+						.andWhere("lsnl.logType = :logType", { logType: editsByNs.logType })
 						.andWhere("lsnl.date < :date", { date: editByNsAndLt.date.toDate() })
 						.orderBy("lsnl.date", "DESC")
 						.limit(1)
@@ -1260,10 +1247,10 @@ export class WikiEditCacher {
 				} else {
 					const previousDay = await em.getRepository(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndLogType)
 						.createQueryBuilder("lsnl")
-						.where("lsnl.actorId = :actorId", { changeTagId: actorStat.actorId })
+						.where("lsnl.actorId = :actorId", { actorId: actorStat.actorId })
 						.andWhere("lsnl.namespace = :namespace", { namespace: editsByNs.namespace })
 						.andWhere("lsnl.logAction = :logAction", { logAction: editsByNs.logAction })
-						.andWhere("lsnl.logType = :logType", { namespace: editsByNs.logType })
+						.andWhere("lsnl.logType = :logType", { logType: editsByNs.logType })
 						.andWhere("lsnl.date < :date", { date: editByDateNsAndCt.date.toDate() })
 						.orderBy("lsnl.date", "DESC")
 						.limit(1)
