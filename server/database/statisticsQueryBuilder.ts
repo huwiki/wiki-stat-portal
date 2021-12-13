@@ -68,8 +68,7 @@ export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEnt
 
 	let query = toolsDbConnection.getRepository(wikiEntities.actor)
 		.createQueryBuilder("actor")
-		.select("actor.actorId", "aId")
-		.leftJoinAndSelect("actor.actorGroups", "groups");
+		.select("actor.actorId", "aId");
 
 	// Manage selects from column definitions
 	query = addColumSelects(ctx, query, columns);
@@ -1107,15 +1106,21 @@ function addColumnJoins(
 				let subQuery = qb.subQuery()
 					.select("adsn.actorId", "actorId");
 
-				if (namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics.indexOf("editsInNamespaceSinceRegistrationPercentage") !== -1) {
+				if (arrayHasAny(namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics,
+					"editsInNamespaceSinceRegistration",
+					"editsInNamespaceSinceRegistrationPercentage")) {
 					subQuery = subQuery.addSelect("SUM(adsn.editsToDate + adsn.dailyEdits)", "totalEdits");
 				}
 
-				if (namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics.indexOf("revertedEditsInNamespaceSinceRegistrationPercentage") !== -1) {
+				if (arrayHasAny(namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics,
+					"revertedEditsInNamespaceSinceRegistration",
+					"revertedEditsInNamespaceSinceRegistrationPercentage")) {
 					subQuery = subQuery.addSelect("SUM(adsn.revertedEditsToDate + adsn.dailyRevertedEdits)", "totalRevertedEdits");
 				}
 
-				if (namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics.indexOf("characterChangesInNamespaceSinceRegistrationPercentage") !== -1) {
+				if (arrayHasAny(namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics,
+					"characterChangesInNamespaceSinceRegistration",
+					"characterChangesInNamespaceSinceRegistrationPercentage")) {
 					subQuery = subQuery.addSelect("SUM(adsn.characterChangesToDate + adsn.dailyCharacterChanges)", "totalCharacterChanges");
 				}
 

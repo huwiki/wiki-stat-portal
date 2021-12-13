@@ -73,6 +73,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			endDate: endDate,
 		});
 
+		const actorGroupMap: Map<number, string[]> = new Map();
+		if (list.columns.find(x => x.type === "userGroups")) {
+			const actorGroups = await conn.getRepository(wikiEntities.actorGroup)
+				.createQueryBuilder()
+				.getMany();
+
+			for (const actorGroup of actorGroups) {
+				const actorArr = actorGroupMap.get(actorGroup.actorId);
+				if (actorArr) {
+					actorArr.push(actorGroup.groupName);
+				} else {
+					actorGroupMap.set(actorGroup.actorId, [actorGroup.groupName]);
+				}
+			}
+		}
+
 		const listData: ListDataResult = {
 			list: list,
 			results: [],
@@ -81,8 +97,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		// console.log(users);
 		console.log(users.length);
 
+		let counter = 1;
 		for (const user of users) {
-			console.log(user);
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const columns: any[] = [];
 
@@ -90,7 +106,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			for (const columnDefinition of list.columns) {
 				const dataFromQuery = user[`column${columnIndex}`];
 
-				if (columnDefinition.type === "levelAtPeriodStart") {
+				if (columnDefinition.type === "counter") {
+					columns.push(counter);
+				} else if (columnDefinition.type === "userGroups") {
+					const userGroups = actorGroupMap.get(user.aId);
+					columns.push(userGroups ?? null);
+				} else if (columnDefinition.type === "levelAtPeriodStart") {
 					const startLevel = getUserLevel(wiki.serviceAwardLevels, user, columnIndex, "start");
 					if (startLevel) {
 						columns.push([startLevel.id, startLevel.label]);
@@ -125,6 +146,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				id: user.aId,
 				data: columns,
 			});
+			counter++;
 		}
 
 		// TODO: format results
@@ -261,4 +283,3 @@ function getUserLevel(serviceAwardLevels: ServiceAwardLevelDefinition[] | null, 
 
 	return matchingServiceAvardLevel;
 }
-

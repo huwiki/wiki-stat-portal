@@ -421,7 +421,6 @@
 			"itemCount": 500,
 			"columns": [
 				{
-					"columnId": "test",
 					"type": "counter"
 				},
 				{
@@ -429,9 +428,10 @@
 					"showUserLinks": true
 				},
 				{
-					"type": "userRoles"
+					"type": "userGroups"
 				},
 				{
+					"columnId": "orderBy",
 					"type": "editsSinceRegistration"
 				},
 				{
@@ -463,8 +463,8 @@
 			],
 			"orderBy": [
 				{
-					"columnId": "test",
-					"direction": "ascending"
+					"columnId": "orderBy",
+					"direction": "descending"
 				}
 			]
 		},

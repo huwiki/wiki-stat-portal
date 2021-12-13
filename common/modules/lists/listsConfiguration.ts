@@ -69,7 +69,7 @@ export type ListColumn =
 
 const parameterlessListColumnTypes = [
 	"counter",
-	"userRoles",
+	"userGroups", // OK
 
 	"editsInPeriod", // OK
 	"editsInPeriodPercentage", // OK

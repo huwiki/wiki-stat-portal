@@ -1,11 +1,15 @@
+import { HTMLTable, Spinner } from "@blueprintjs/core";
+import Axios from "axios";
+import { makeObservable, observable } from "mobx";
 import { observer } from "mobx-react";
+import moment from "moment";
 import { NextPageContext } from "next";
 import { withRouter } from "next/router";
 import * as React from "react";
 import { PageFrame } from "../../../../client/components/pageFrame";
 import { NextBasePage } from "../../../../client/helpers/nextBasePage";
 import { CommonPageProps } from "../../../../common/interfaces/commonPageProps";
-import { isLocalizedListConfiguration, ListConfiguration } from "../../../../common/modules/lists/listsConfiguration";
+import { isLocalizedListConfiguration, ListConfiguration, UserNameListColumn } from "../../../../common/modules/lists/listsConfiguration";
 import { MODULE_ICONS } from "../../../../common/modules/moduleIcons";
 import { MODULE_IDENTIFIERS } from "../../../../common/modules/moduleIdentifiers";
 import { AppRunningContext } from "../../../../server/appRunningContext";
@@ -13,6 +17,7 @@ import { withCommonServerSideProps } from "../../../../server/helpers/serverSide
 import { GetPortalServerSidePropsResult } from "../../../../server/interfaces/getPortalServerSidePropsResult";
 import { ListsModule } from "../../../../server/modules/listsModule/listsModule";
 import { moduleManager } from "../../../../server/modules/moduleManager";
+import { ListDataResult } from "../../../api/lists/listData";
 
 interface ListByIdPageProps extends CommonPageProps {
 	wikiFound: boolean;
@@ -23,8 +28,55 @@ interface ListByIdPageProps extends CommonPageProps {
 
 @observer
 class ListByIdPage extends NextBasePage<ListByIdPageProps> {
+	isLoading: boolean = false;
+	failedToLoad: boolean = false;
+	data: ListDataResult;
+
 	constructor(props: ListByIdPageProps) {
 		super(props);
+
+		makeObservable(this, {
+			isLoading: observable,
+			failedToLoad: observable,
+			data: observable,
+		});
+
+		if (this.props.wikiFound && this.props.listFound && this.props.list) {
+			this.fetchData();
+		}
+	}
+
+	private fetchData = async (): Promise<void> => {
+		if (!this.props.list)
+			return;
+
+		this.isLoading = true;
+		this.failedToLoad = false;
+
+		try {
+			const resp = await Axios.post(
+				"/api/lists/listData",
+				{
+					wikiId: this.props.wikiId,
+					listId: `${this.props.list.groupId}.${this.props.list.id}`,
+					startDate: "2021-11-13",
+					endDate: "2021-11-15",
+					languageCode: this.props.languageCode
+				},
+				{ timeout: 100000 }
+			);
+
+			if (resp.status === 200) {
+				this.data = resp.data;
+			} else {
+				this.failedToLoad = true;
+			}
+			this.isLoading = false;
+		}
+		catch (err) {
+			this.failedToLoad = true;
+			this.isLoading = false;
+		}
 	}
 
 	public render(): JSX.Element {
@@ -45,8 +97,70 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 			title={listTitle}
 			router={this.props.router}
 			i18nProvider={this.i18nProvider}>
-
+			{this.isLoading ? <Spinner /> : this.renderContent()}
 		</PageFrame>;
+	}
+
+	private renderContent(): JSX.Element {
+		return <HTMLTable bordered striped condensed interactive>
+			<thead>
+				{this.renderTableColumnHeaders()}
+			</thead>
+			<tbody>
+				{this.renderTableRows()}
+			</tbody>
+		</HTMLTable>;
+	}
+
+	private renderTableColumnHeaders(): React.ReactNode {
+		return this.data.list.columns.map((col, idx) => <th key={idx.toString()}>
+			{col.type}
+		</th>);
+	}
+
+	private renderTableRows(): React.ReactNode {
+		return this.data.results.map((row, idx) => <tr key={row.id.toString()}>
+			{this.renderTableRow(row.id, row.data)}
+		</tr>);
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	private renderTableRow(actorId: number, data: any[]): React.ReactNode {
+		return data.map((data, idx) => {
+			const columnDefinition = this.data.list.columns[idx];
+
+			let cellContent: React.ReactNode = "?";
+			if (columnDefinition.type === "userName") {
+				cellContent = this.renderUserName(actorId, data, columnDefinition);
+			} else if (columnDefinition.type === "userGroups") {
+				cellContent = this.renderUserGroups(data);
+			} else if (typeof data === "number") {
+				cellContent = data.toString();
+			} else if (typeof data === "string") {
+				cellContent = data;
+			} else if (Array.isArray(data) && data.length === 3) {
+				cellContent = moment.utc(data).format("YYYY-MM-DD");
+			}
+
+			return <td key={idx.toString()}>
+				{cellContent}
+			</td>;
+		});
+	}
+
+	private renderUserName(actorId: number, data: string, columnDefinition: UserNameListColumn): React.ReactNode {
+		return <>
+			<b>{data}</b><br />
+			<code>actorId: {actorId}</code>
+		</>;
+	}
+
+	private renderUserGroups(groups: string[]) {
+		if (!groups || Array.isArray(groups) === false)
+			return "";
+
+		const groupsLocalized = groups.map(group => this.t(`userGroup.${group}`));
+		return groupsLocalized.join(", ");
 	}
 
 }
