@@ -2,6 +2,7 @@ import { Connection, createConnection } from "typeorm";
 import { ApplicationConfiguration } from "../configuration/applicationConfiguration";
 import { Actor, Comment, Page, Revision, User, UserGroup } from "./entities/mediawiki";
 import { ChangeTag } from "./entities/mediawiki/changeTag";
+import { ChangeTagDefinition } from "./entities/mediawiki/changeTagDefinition";
 import { LogEntry } from "./entities/mediawiki/logEntry";
 import { createActorEntitiesForWiki } from "./entities/toolsDatabase/actorByWiki";
 import { WikiProcessedRevisions } from "./entities/toolsDatabase/wikiProcessedRevisions";
@@ -41,6 +42,7 @@ export const createConnectionToUserDatabase = async (appConfig: ApplicationConfi
 		database: databaseName,
 		synchronize: false,
 		logging: false,
+		bigNumberStrings: false,
 		timezone: "Z",
 		entities: [
 			WikiProcessedRevisions,
@@ -62,6 +64,7 @@ export const createConnectionToMediaWikiReplica = async (appConfig: ApplicationC
 		database: databaseName,
 		synchronize: false,
 		logging: false,
+		bigNumberStrings: false,
 		timezone: "Z",
 		extra: {
 			connectionLimit: 1
@@ -69,6 +72,7 @@ export const createConnectionToMediaWikiReplica = async (appConfig: ApplicationC
 		entities: [
 			Actor,
 			ChangeTag,
+			ChangeTagDefinition,
 			Comment,
 			LogEntry,
 			Page,

@@ -8,6 +8,8 @@ import { ApplicationConfiguration } from "../../server/configuration/application
 import { createConnectionToMediaWikiReplica } from "../../server/database/connectionManager";
 import { UserGroup } from "../../server/database/entities/mediawiki";
 import { Actor } from "../../server/database/entities/mediawiki/actor";
+import { ChangeTag } from "../../server/database/entities/mediawiki/changeTag";
+import { ChangeTagDefinition } from "../../server/database/entities/mediawiki/changeTagDefinition";
 import { LogEntry } from "../../server/database/entities/mediawiki/logEntry";
 import { Revision } from "../../server/database/entities/mediawiki/revision";
 import { ActorTypeModel, createActorEntitiesForWiki, WikiStatisticsTypesResult } from "../../server/database/entities/toolsDatabase/actorByWiki";
@@ -77,6 +79,17 @@ interface ActorStatisticsUpdateCollection extends WikiStatisticsUpdateCollection
 	lastLogEntryTimestamp: moment.Moment | null;
 }
 
+interface RevertChangeTagParams {
+	isNew: boolean;
+	orginalRevisionId: number | false;
+	newestRevertedRevId: number;
+	oldestRevertedRevId: number;
+	isExactRevert: boolean;
+	isNullEdit: boolean;
+	revertTags: string;
+	version: string;
+}
+
 export class WikiEditCacher {
 	private readonly appConfig: ApplicationConfiguration;
 	private readonly wiki: KnownWiki;
@@ -99,6 +112,10 @@ export class WikiEditCacher {
 	private wikiActors: Actor[] = [];
 	private wikiActorsById: Map<number, Actor> = new Map<number, Actor>();
 	private wikiActorsByName: Map<string, Actor> = new Map<string, Actor>();
+
+	private wikiChangeTagDefinitionsByName: Map<string, ChangeTagDefinition> = new Map();
+	private wikiRevertChangeTagIds: Set<number> = new Set();
+
 	private toolsActors: ActorTypeModel[] = [];
 	private toolsActorsById: Map<number, ActorTypeModel> = new Map<number, ActorTypeModel>();
 
@@ -116,6 +133,7 @@ export class WikiEditCacher {
 
 		await this.getLastProcessInfo();
 		await this.getAllWikiActors();
+		await this.getWikiChangeTagDefinitions();
 
 		for (; ;) {
 			if (!(await this.tryProcessNextRevisionBatch()))
@@ -154,6 +172,25 @@ export class WikiEditCacher {
 		this.lastActorUpdateTimestamp = wikiProcessEntry?.lastActorUpdate
 			? moment.utc(wikiProcessEntry.lastActorUpdate)
 			: moment.utc(new Date(2000, 1, 1));
+	}
+
+	private async getWikiChangeTagDefinitions(): Promise<void> {
+		this.logger.info(`[getAllWikiActors/${this.wiki.id}] getWikiChangeTagDefinitions: Getting change tag definitions from replica db`);
+		const ctds = await this.replicatedDatabaseConnection.getRepository(ChangeTagDefinition)
+			.createQueryBuilder("ctd")
+			.getMany();
+
+		this.logger.info(`[getAllWikiActors/${this.wiki.id}] getWikiChangeTagDefinitions: ${ctds.length} cts fetched from replica db`);
+
+		for (const ctd of ctds) {
+			this.wikiChangeTagDefinitionsByName.set(ctd.name, ctd);
+			if (ctd.name === "mw-undo"
+				|| ctd.name === "mw-rollback"
+				|| ctd.name === "mw-manual-revert"
+			) {
+				this.wikiRevertChangeTagIds.add(ctd.id);
+			}
+		}
 	}
 
 	private async getAllWikiActors(): Promise<void> {
@@ -198,53 +235,62 @@ export class WikiEditCacher {
 
 		this.totalProcessedRevisions += revisions.length;
 		this.lastProcessedRevisionId = revisions[revisions.length - 1].id;
-		this.processRevisionList(revisions);
+		await this.processRevisionList(revisions);
 
 		return true;
 	}
 
-	private processRevisionList(revisions: Revision[]): void {
+	private async processRevisionList(revisions: Revision[]): Promise<void> {
 		this.logger.info(`[processRevisionList/${this.wiki.id}] Starting processing ${revisions.length} revisions.`);
 
 		for (const revision of revisions) {
-			if (revision.actor == null) {
-				this.logger.info(`[processRevisionList/${this.wiki.id}] Revision ${revision.id} does not have a valid actor reference.`);
-				continue;
-			}
-
-			if (revision.page == null) {
-				this.logger.info(`[processRevisionList/${this.wiki.id}] Revision ${revision.id} does not have a valid page reference.`);
-				continue;
-			}
-
-			const actor = revision.actor;
-
-			const editDate = moment.utc(revision.timestamp).startOf("day");
-			const currentEditTimestamp = moment.utc(revision.timestamp);
-			const characterChanges = revision.length - (revision.parentRevision?.length ?? 0);
-
-			let statsByActor = this.statsByActorDict.get(actor.id);
-			if (!statsByActor) {
-				statsByActor = WikiEditCacher.createNewStatsByActorInstance(actor);
-				this.statsByActorList.push(statsByActor);
-				this.statsByActorDict.set(actor.id, statsByActor);
-				this.updatedActorCount++;
-			}
-
-			if (statsByActor.firstEditTimestamp == null
-				|| statsByActor.firstEditTimestamp.isAfter(currentEditTimestamp))
-				statsByActor.firstEditTimestamp = currentEditTimestamp;
-
-			if (statsByActor.lastEditTimestamp == null
-				|| statsByActor.lastEditTimestamp.isBefore(currentEditTimestamp))
-				statsByActor.lastEditTimestamp = currentEditTimestamp;
-
-			this.collectDailyStatisticsFromRevision(statsByActor, currentEditTimestamp, editDate, characterChanges, revision);
-			this.collectDailyStatisticsFromRevision(this.statsByWiki, currentEditTimestamp, editDate, characterChanges, revision);
+			await this.processSingleRevision(revision);
 		}
 	}
 
-	private collectDailyStatisticsFromRevision(statsByActor: WikiStatisticsUpdateCollection, currentEditTimestamp: moment.Moment, editDate: moment.Moment, characterChanges: number, revision: Revision) {
+	private async processSingleRevision(revision: Revision): Promise<void> {
+		if (revision.actor == null) {
+			this.logger.info(`[processRevisionList/${this.wiki.id}] Revision ${revision.id} does not have a valid actor reference.`);
+			return;
+		}
+
+		if (revision.page == null) {
+			this.logger.info(`[processRevisionList/${this.wiki.id}] Revision ${revision.id} does not have a valid page reference.`);
+			return;
+		}
+
+		const actor = revision.actor;
+
+		const editDate = moment.utc(revision.timestamp).startOf("day");
+		const currentEditTimestamp = moment.utc(revision.timestamp);
+		const characterChanges = revision.length - (revision.parentRevision?.length ?? 0);
+
+		let statsByActor = this.statsByActorDict.get(actor.id);
+		if (!statsByActor) {
+			statsByActor = WikiEditCacher.createNewStatsByActorInstance(actor);
+			this.statsByActorList.push(statsByActor);
+			this.statsByActorDict.set(actor.id, statsByActor);
+			this.updatedActorCount++;
+		}
+
+		if (statsByActor.firstEditTimestamp == null
+			|| statsByActor.firstEditTimestamp.isAfter(currentEditTimestamp))
+			statsByActor.firstEditTimestamp = currentEditTimestamp;
+
+		if (statsByActor.lastEditTimestamp == null
+			|| statsByActor.lastEditTimestamp.isBefore(currentEditTimestamp))
+			statsByActor.lastEditTimestamp = currentEditTimestamp;
+
+		this.collectDailyStatisticsFromRevision(statsByActor, editDate, characterChanges, revision);
+		this.collectDailyStatisticsFromRevision(this.statsByWiki, editDate, characterChanges, revision);
+
+		const revertChangeTag = revision.changeTags.find(x => this.wikiRevertChangeTagIds.has(x.tagDefitionId));
+		if (revertChangeTag) {
+			await this.processRevertChangeTag(revision, revertChangeTag, editDate);
+		}
+	}
+
+	private collectDailyStatisticsFromRevision(statsByActor: WikiStatisticsUpdateCollection, editDate: moment.Moment, characterChanges: number, revision: Revision) {
 		const dailyBucket = statsByActor.dailyStatistics.find(x => x.date.isSame(editDate));
 		if (!dailyBucket) {
 			statsByActor.dailyStatistics.push({ date: editDate, edits: 1, revertedEdits: 0, characterChanges: characterChanges, thanks: 0, logEvents: 0 });
@@ -290,6 +336,80 @@ export class WikiEditCacher {
 		}
 	}
 
+	private async processRevertChangeTag(
+		revision: Revision,
+		revertChangeTag: ChangeTag,
+		revertDate: moment.Moment
+	): Promise<void> {
+		if (!revertChangeTag.params)
+			return;
+
+		let params: RevertChangeTagParams;
+		try {
+			params = JSON.parse(revertChangeTag.params);
+		}
+		catch {
+			return;
+		}
+
+		if (!params.isExactRevert
+			|| typeof params.oldestRevertedRevId !== "number"
+			|| typeof params.newestRevertedRevId !== "number") {
+			this.logger.info(`[processRevisionList/${this.wiki.id}] Revision ${revision.id} is a revert edit, but not an exact revert: ${revertChangeTag.params}.`);
+			return;
+		}
+
+		this.logger.info(`[processRevisionList/${this.wiki.id}] Revision ${revision.id} is a revert edit.`);
+
+		const referencedRevisions = await this.replicatedDatabaseConnection.getRepository(Revision)
+			.createQueryBuilder("rev")
+			.leftJoinAndSelect("rev.page", "page")
+			.leftJoinAndSelect("rev.actor", "act")
+			.leftJoinAndSelect("act.user", "usr")
+			.where("rev.id >= :oldestRevertedRevId", { oldestRevertedRevId: params.oldestRevertedRevId })
+			.andWhere("rev.id <= :newestRevertedRevId", { newestRevertedRevId: params.newestRevertedRevId })
+			.orderBy("rev.id", "ASC")
+			.getMany();
+
+		for (const referencedRevision of referencedRevisions) {
+			let statsByActor = this.statsByActorDict.get(referencedRevision.actor.id);
+			if (!statsByActor) {
+				statsByActor = WikiEditCacher.createNewStatsByActorInstance(referencedRevision.actor);
+				this.statsByActorList.push(statsByActor);
+				this.statsByActorDict.set(referencedRevision.actor.id, statsByActor);
+				this.updatedActorCount++;
+			}
+
+			this.collectRevertStatisticsFromRevision(statsByActor, revertDate, revision);
+			this.collectRevertStatisticsFromRevision(this.statsByWiki, revertDate, revision);
+		}
+	}
+
+	private collectRevertStatisticsFromRevision(statsByActor: WikiStatisticsUpdateCollection, revertDate: moment.Moment, revision: Revision) {
+		const dailyBucket = statsByActor.dailyStatistics.find(x => x.date.isSame(revertDate));
+		if (!dailyBucket) {
+			statsByActor.dailyStatistics.push({ date: revertDate, edits: 0, revertedEdits: 1, characterChanges: 0, thanks: 0, logEvents: 0 });
+		} else {
+			dailyBucket.revertedEdits++;
+		}
+
+		const nsBucket = statsByActor.editsByDateAndNs.find(x => x.namespace === revision.page.namespace);
+		if (!nsBucket) {
+			statsByActor.editsByDateAndNs.push({
+				namespace: revision.page.namespace,
+				editsByDate: [{ date: revertDate, edits: 0, revertedEdits: 1, characterChanges: 0, thanks: 0, logEvents: 0 }]
+			});
+		} else {
+			const dailyNsBucket = nsBucket.editsByDate.find(x => x.date.isSame(revertDate));
+			if (!dailyNsBucket) {
+				nsBucket.editsByDate.push({ date: revertDate, edits: 1, revertedEdits: 0, characterChanges: 0, thanks: 0, logEvents: 0 });
+			} else {
+				dailyNsBucket.revertedEdits++;
+				dailyNsBucket.characterChanges += 0;
+			}
+		}
+	}
+
 	private async tryProcessNextLogBatch(): Promise<boolean> {
 		this.logger.info(`[tryProcessNextLogBatch/${this.wiki.id}] Getting at most ${this.appConfig.dataCacher.logEntriesProcessedAtOnce} log entries starting at id ${this.lastProcessedLogId + 1}...`);
 
@@ -324,7 +444,13 @@ export class WikiEditCacher {
 				continue;
 			}
 
-			if (logEntry.type === "newusers") {
+			if (logEntry.type === "newusers"
+				|| logEntry.type === "delete"
+				|| (logEntry.type === "growthexperiments" && logEntry.action === "addlink")
+				|| logEntry.type === "move"
+				|| logEntry.type === "upload"
+				|| logEntry.type === "liquidthreads"
+				|| (logEntry.type === "review" && logEntry.action?.endsWith("a"))) {
 				continue;
 			}
 
@@ -332,9 +458,10 @@ export class WikiEditCacher {
 
 			const logEntryDate = moment.utc(logEntry.timestamp).startOf("day");
 
-			this.processStandardLogEntry(actor, logEntry, logEntryDate);
 			if (logEntry.type === "thanks" && logEntry.action == "thank") {
 				this.processThanksLogEntry(actor, logEntry, logEntryDate);
+			} else {
+				this.processStandardLogEntry(actor, logEntry, logEntryDate);
 			}
 		}
 	}
