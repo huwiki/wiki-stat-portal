@@ -154,6 +154,7 @@ export type ListColumnTypesWithLogTypeParameter = typeof columnsWithLogTypeParam
 export interface ParameterlessListColumn {
 	columnId: string;
 	type: ParameterlessListColumnTypes;
+	headerI18nKey?: string;
 }
 
 export function isParameterlessListColumn(obj: unknown): obj is ParameterlessListColumn {
@@ -165,7 +166,13 @@ export function isParameterlessListColumn(obj: unknown): obj is ParameterlessLis
 export interface UserNameListColumn {
 	columnId: string;
 	type: "userName"; // OK
-	showUserLinks?: boolean;
+	headerI18nKey?: string;
+	userLinks?: UserLinksDefinition;
+}
+
+export interface UserLinksDefinition {
+	talkPage?: boolean;
+	edits?: boolean;
 }
 
 export function isUserNameListColumn(obj: unknown): obj is UserNameListColumn {
@@ -177,6 +184,7 @@ export function isUserNameListColumn(obj: unknown): obj is UserNameListColumn {
 export interface ListColumnWithNamespaceParameter {
 	columnId: string;
 	type: ListColumnTypesWithNamespaceParameter;
+	headerI18nKey?: string;
 	namespace: number | number[];
 }
 
@@ -190,6 +198,7 @@ export function isListColumnWithNamespaceParameter(obj: unknown): obj is ListCol
 export interface ListColumnWithChangeTagParameter {
 	columnId: string;
 	type: ListColumnTypesWithChangeTagParameter;
+	headerI18nKey?: string;
 	changeTag: ChangeTagFilterDefinition | ChangeTagFilterDefinition[];
 }
 
@@ -208,6 +217,7 @@ export function isListColumnWithChangeTagParameter(obj: unknown): obj is ListCol
 export interface ListColumnWithLogTypeParameter {
 	columnId: string;
 	type: ListColumnTypesWithLogTypeParameter;
+	headerI18nKey?: string;
 	logFilter: LogFilterDefinition | LogFilterDefinition[];
 }
 

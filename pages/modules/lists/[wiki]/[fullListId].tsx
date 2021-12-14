@@ -114,12 +114,12 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 
 	private renderTableColumnHeaders(): React.ReactNode {
 		return this.data.list.columns.map((col, idx) => <th key={idx.toString()}>
-			{col.type}
+			{col.headerI18nKey ? this.t(col.headerI18nKey) : col.type}
 		</th>);
 	}
 
 	private renderTableRows(): React.ReactNode {
-		return this.data.results.map((row, idx) => <tr key={row.id.toString()}>
+		return this.data.results.map((row) => <tr key={row.id.toString()}>
 			{this.renderTableRow(row.id, row.data)}
 		</tr>);
 	}
@@ -130,10 +130,17 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 			const columnDefinition = this.data.list.columns[idx];
 
 			let cellContent: React.ReactNode = "?";
-			if (columnDefinition.type === "userName") {
+			if (columnDefinition.type === "counter") {
+				cellContent = `${data}.`;
+			} else if (columnDefinition.type === "userName") {
 				cellContent = this.renderUserName(actorId, data, columnDefinition);
 			} else if (columnDefinition.type === "userGroups") {
 				cellContent = this.renderUserGroups(data);
+			} else if (columnDefinition.type === "levelAtPeriodStart"
+				|| columnDefinition.type === "levelAtPeriodEnd") {
+				cellContent = this.renderUserLevel(data);
+			} else if (columnDefinition.type === "levelAtPeriodEndWithChange") {
+				cellContent = this.renderUserLevelWithChange(data);
 			} else if (typeof data === "number") {
 				cellContent = data.toString();
 			} else if (typeof data === "string") {
@@ -149,8 +156,26 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 	}
 
 	private renderUserName(actorId: number, data: string, columnDefinition: UserNameListColumn): React.ReactNode {
+		const userLinks: React.ReactNode[] = [];
+
+		if (columnDefinition.userLinks?.talkPage === true) {
+			userLinks.push(<a href="#">vita</a>);
+		}
+
+		if (columnDefinition.userLinks?.edits === true) {
+			userLinks.push(<a href="#">szerk.</a>);
+		}
+
 		return <>
-			<b>{data}</b><br />
+			<b>{data}</b>
+			{userLinks.length > 0 && <>
+				{" "}
+				( {userLinks.map((ele, idx) => <React.Fragment key={idx.toString()}>
+					{idx > 0 && " | "}
+					{ele}
+				</React.Fragment>)} )
+			</>}
+			<br />
 			<code>actorId: {actorId}</code>
 		</>;
 	}
@@ -163,6 +188,24 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		return groupsLocalized.join(", ");
 	}
 
+	private renderUserLevel(data: [string, string]) {
+		if (!data) {
+			return "–";
+		}
+
+		return data[1];
+	}
+
+	private renderUserLevelWithChange(data: [string, string, boolean]) {
+		if (!data) {
+			return "–";
+		}
+
+		return <>
+			{data[2] && "⬆🔺"}
+			{data[1]}
+		</>;
+	}
 }
 
 export const getServerSideProps = async (ctx: NextPageContext): Promise<GetPortalServerSidePropsResult<ListByIdPageProps>> => {

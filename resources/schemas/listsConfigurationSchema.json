@@ -183,6 +183,9 @@
 						"levelAtPeriodEnd",
 						"levelAtPeriodEndWithChange"
 					]
+				},
+				"headerI18nKey": {
+					"type": "string"
 				}
 			},
 			"required": [
@@ -200,8 +203,20 @@
 					"type": "string",
 					"pattern": "userName"
 				},
-				"showUserLinks": {
-					"type": "boolean"
+				"headerI18nKey": {
+					"type": "string"
+				},
+				"userLinks": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"talkPage": {
+							"type": "boolean"
+						},
+						"edits": {
+							"type": "boolean"
+						}
+					}
 				}
 			},
 			"required": [
@@ -233,6 +248,9 @@
 						"activeDaysInNamespaceInPeriod",
 						"activeDaysInNamespaceSinceRegistration"
 					]
+				},
+				"headerI18nKey": {
+					"type": "string"
 				},
 				"namespace": {
 					"anyOf": [
@@ -271,6 +289,9 @@
 						"characterChangesInPeriodByChangeTag",
 						"characterChangesSinceRegistrationByChangeTag"
 					]
+				},
+				"headerI18nKey": {
+					"type": "string"
 				},
 				"changeTag": {
 					"anyOf": [
@@ -321,6 +342,9 @@
 						"logEventsInPeriodByType",
 						"logEventsSinceRegistrationByType"
 					]
+				},
+				"headerI18nKey": {
+					"type": "string"
 				},
 				"logFilter": {
 					"anyOf": [
