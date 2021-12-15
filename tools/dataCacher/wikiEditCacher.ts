@@ -337,7 +337,7 @@ export class WikiEditCacher {
 	}
 
 	private async processRevertChangeTag(
-		revision: Revision,
+		revertRevision: Revision,
 		revertChangeTag: ChangeTag,
 		revertDate: moment.Moment
 	): Promise<void> {
@@ -355,23 +355,29 @@ export class WikiEditCacher {
 		if (!params.isExactRevert
 			|| typeof params.oldestRevertedRevId !== "number"
 			|| typeof params.newestRevertedRevId !== "number") {
-			this.logger.info(`[processRevisionList/${this.wiki.id}] Revision ${revision.id} is a revert edit, but not an exact revert: ${revertChangeTag.params}.`);
+			this.logger.info(`[processRevisionList/${this.wiki.id}] Revision ${revertRevision.id} is a revert edit, but not an exact revert: ${revertChangeTag.params}.`);
 			return;
 		}
 
-		this.logger.info(`[processRevisionList/${this.wiki.id}] Revision ${revision.id} is a revert edit.`);
+		this.logger.info(`[processRevisionList/${this.wiki.id}] Revision ${revertRevision.id} is a revert edit: ${revertChangeTag.params}.`);
 
 		const referencedRevisions = await this.replicatedDatabaseConnection.getRepository(Revision)
 			.createQueryBuilder("rev")
 			.leftJoinAndSelect("rev.page", "page")
 			.leftJoinAndSelect("rev.actor", "act")
 			.leftJoinAndSelect("act.user", "usr")
+			.where("rev.pageId = :pageId", { pageId: revertRevision.pageId })
 			.where("rev.id >= :oldestRevertedRevId", { oldestRevertedRevId: params.oldestRevertedRevId })
 			.andWhere("rev.id <= :newestRevertedRevId", { newestRevertedRevId: params.newestRevertedRevId })
 			.orderBy("rev.id", "ASC")
 			.getMany();
 
 		for (const referencedRevision of referencedRevisions) {
+			if (referencedRevision.actor == null) {
+				this.logger.info(`[processRevisionList/${this.wiki.id}] Reverted revision ${referencedRevision.id} does not have a valid actor reference.`);
+				return;
+			}
+
 			let statsByActor = this.statsByActorDict.get(referencedRevision.actor.id);
 			if (!statsByActor) {
 				statsByActor = WikiEditCacher.createNewStatsByActorInstance(referencedRevision.actor);
@@ -380,8 +386,8 @@ export class WikiEditCacher {
 				this.updatedActorCount++;
 			}
 
-			this.collectRevertStatisticsFromRevision(statsByActor, revertDate, revision);
-			this.collectRevertStatisticsFromRevision(this.statsByWiki, revertDate, revision);
+			this.collectRevertStatisticsFromRevision(statsByActor, revertDate, revertRevision);
+			this.collectRevertStatisticsFromRevision(this.statsByWiki, revertDate, revertRevision);
 		}
 	}
 
@@ -402,10 +408,9 @@ export class WikiEditCacher {
 		} else {
 			const dailyNsBucket = nsBucket.editsByDate.find(x => x.date.isSame(revertDate));
 			if (!dailyNsBucket) {
-				nsBucket.editsByDate.push({ date: revertDate, edits: 1, revertedEdits: 0, characterChanges: 0, thanks: 0, logEvents: 0 });
+				nsBucket.editsByDate.push({ date: revertDate, edits: 0, revertedEdits: 1, characterChanges: 0, thanks: 0, logEvents: 0 });
 			} else {
 				dailyNsBucket.revertedEdits++;
-				dailyNsBucket.characterChanges += 0;
 			}
 		}
 	}
@@ -445,6 +450,7 @@ export class WikiEditCacher {
 			}
 
 			if (logEntry.type === "newusers"
+				|| logEntry.type === "create"
 				|| logEntry.type === "delete"
 				|| (logEntry.type === "growthexperiments" && logEntry.action === "addlink")
 				|| logEntry.type === "move"
