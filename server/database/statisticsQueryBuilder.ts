@@ -512,10 +512,10 @@ function addSingleColumSelect(
 			query = addStartLevelColumnSelects(query, selectedColumnName);
 			break;
 		case "levelAtPeriodEnd":
-			query = addStartLevelColumnSelects(query, selectedColumnName);
 			query = addEndLevelColumnSelects(query, selectedColumnName);
 			break;
 		case "levelAtPeriodEndWithChange":
+			query = addStartLevelColumnSelects(query, selectedColumnName);
 			query = addEndLevelColumnSelects(query, selectedColumnName);
 			break;
 	}
@@ -525,7 +525,7 @@ function addSingleColumSelect(
 
 function addStartLevelColumnSelects(query: SelectQueryBuilder<ActorTypeModel>, selectedColumnName: string) {
 	query = query.addSelect(
-		"IFNULL(atPeriodStartActorStatistics.editsToDate, 0)",
+		"IFNULL(atPeriodStartActorStatistics.editsToDate + atPeriodStartActorStatistics.dailyEdits, 0)",
 		`${selectedColumnName}_startEdits`
 	);
 	query = query.addSelect(
@@ -888,9 +888,9 @@ function addColumnJoins(
 		query = query.leftJoin(qb => {
 			return qb.subQuery()
 				.select("lads.actorId", "actorId")
-				.addSelect("MIN(lads.date)", "lastDate")
+				.addSelect("MAX(lads.date)", "lastDate")
 				.from(wikiEntities.actorDailyStatistics, "lads")
-				.where("lads.date >= :startDate AND lads.date <= :endDate", { startDate: startDate, endDate: endDate })
+				.where("lads.date < :startDate", { startDate: startDate, endDate: endDate })
 				.groupBy("lads.actorId");
 		}, "firstKnownDailyPeriodStatisticsDateByActor", "firstKnownDailyPeriodStatisticsDateByActor.actorId = actor.actorId");
 
