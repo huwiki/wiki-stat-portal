@@ -888,17 +888,11 @@ export class WikiEditCacher {
 					.createQueryBuilder()
 					.update(this.wikiStatisticsEntities.dailyStatistics)
 					.set({
-						dailyEdits: () => `daily_edits + ${editsByDate.edits}`,
 						editsToDate: () => `edits_to_date + ${editsByDate.edits}`,
-						dailyRevertedEdits: () => `daily_reverted_edits + ${editsByDate.revertedEdits}`,
 						revertedEditsToDate: () => `reverted_edits_to_date + ${editsByDate.revertedEdits}`,
-						dailyCharacterChanges: () => `daily_character_changes + ${editsByDate.characterChanges}`,
 						characterChangesToDate: () => `character_changes_to_date + ${editsByDate.characterChanges}`,
-						dailyReceivedThanks: () => `daily_received_thanks + ${editsByDate.receivedThanks}`,
 						receivedThanksToDate: () => `received_thanks_to_date + ${editsByDate.receivedThanks}`,
-						dailySentThanks: () => `daily_sent_thanks + ${editsByDate.sentThanks}`,
 						sentThanksToDate: () => `sent_thanks_to_date + ${editsByDate.sentThanks}`,
-						dailyLogEvents: () => `daily_log_events + ${editsByDate.logEvents}`,
 						logEventsToDate: () => `log_events_to_date + ${editsByDate.logEvents}`,
 					})
 					.where("date > :date", { date: editsByDate.date.toDate() })
@@ -974,19 +968,12 @@ export class WikiEditCacher {
 					.createQueryBuilder()
 					.update(this.wikiStatisticsEntities.actorDailyStatistics)
 					.set({
-						dailyEdits: () => `daily_edits + ${editsByDate.edits}`,
 						editsToDate: () => `edits_to_date + ${editsByDate.edits}`,
-						dailyRevertedEdits: () => `daily_reverted_edits + ${editsByDate.revertedEdits}`,
 						revertedEditsToDate: () => `reverted_edits_to_date + ${editsByDate.revertedEdits}`,
-						dailyCharacterChanges: () => `daily_character_changes + ${editsByDate.characterChanges}`,
 						characterChangesToDate: () => `character_changes_to_date + ${editsByDate.characterChanges}`,
-						dailyReceivedThanks: () => `daily_received_thanks + ${editsByDate.receivedThanks}`,
 						receivedThanksToDate: () => `received_thanks_to_date + ${editsByDate.receivedThanks}`,
-						dailySentThanks: () => `daily_sent_thanks + ${editsByDate.sentThanks}`,
 						sentThanksToDate: () => `sent_thanks_to_date + ${editsByDate.sentThanks}`,
-						dailyLogEvents: () => `daily_log_events + ${editsByDate.logEvents}`,
 						logEventsToDate: () => `log_events_to_date + ${editsByDate.logEvents}`,
-						dailyServiceAwardLogEvents: () => `daily_saward_log_events + ${editsByDate.serviceAwardLogEvents}`,
 						serviceAwardLogEventsToDate: () => `saward_log_events_to_date + ${editsByDate.serviceAwardLogEvents}`,
 					})
 					.where("actorId = :actorId", { actorId: actorStat.actorId })
@@ -1068,13 +1055,9 @@ export class WikiEditCacher {
 						.createQueryBuilder()
 						.update(this.wikiStatisticsEntities.dailyStatisticsByNamespace)
 						.set({
-							dailyEdits: () => `daily_edits + ${editByDateAndNs.edits}`,
 							editsToDate: () => `edits_to_date + ${editByDateAndNs.edits}`,
-							dailyRevertedEdits: () => `daily_reverted_edits + ${editByDateAndNs.revertedEdits}`,
 							revertedEditsToDate: () => `reverted_edits_to_date + ${editByDateAndNs.revertedEdits}`,
-							dailyCharacterChanges: () => `daily_character_changes + ${editByDateAndNs.characterChanges}`,
 							characterChangesToDate: () => `character_changes_to_date + ${editByDateAndNs.characterChanges}`,
-							dailyLogEvents: () => `daily_log_events + ${editByDateAndNs.logEvents}`,
 							logEventsToDate: () => `log_events_to_date + ${editByDateAndNs.logEvents}`,
 						})
 						.where("date > :date", { date: editByDateAndNs.date.toDate() })
@@ -1145,13 +1128,9 @@ export class WikiEditCacher {
 						.createQueryBuilder()
 						.update(this.wikiStatisticsEntities.actorDailyStatisticsByNamespace)
 						.set({
-							dailyEdits: () => `daily_edits + ${editByDateAndNs.edits}`,
 							editsToDate: () => `edits_to_date + ${editByDateAndNs.edits}`,
-							dailyRevertedEdits: () => `daily_reverted_edits + ${editByDateAndNs.revertedEdits}`,
 							revertedEditsToDate: () => `reverted_edits_to_date + ${editByDateAndNs.revertedEdits}`,
-							dailyCharacterChanges: () => `daily_character_changes + ${editByDateAndNs.characterChanges}`,
 							characterChangesToDate: () => `character_changes_to_date + ${editByDateAndNs.characterChanges}`,
-							dailyLogEvents: () => `daily_log_events + ${editByDateAndNs.logEvents}`,
 							logEventsToDate: () => `log_events_to_date + ${editByDateAndNs.logEvents}`,
 						})
 						.where("actorId = :actorId", { actorId: actorStat.actorId })
@@ -1229,9 +1208,7 @@ export class WikiEditCacher {
 						.createQueryBuilder()
 						.update(this.wikiStatisticsEntities.editStatisticsByNamespaceAndChangeTag)
 						.set({
-							dailyEdits: () => `daily_edits + ${editByDateNsAndCt.edits}`,
 							editsToDate: () => `edits_to_date + ${editByDateNsAndCt.edits}`,
-							dailyCharacterChanges: () => `daily_character_changes + ${editByDateNsAndCt.characterChanges}`,
 							characterChangesToDate: () => `character_changes_to_date + ${editByDateNsAndCt.characterChanges}`,
 						})
 						.where("changeTagId = :changeTagId", { changeTagId: editsByCt.changeTagId })
@@ -1303,9 +1280,7 @@ export class WikiEditCacher {
 						.createQueryBuilder()
 						.update(this.wikiStatisticsEntities.actorEditStatisticsByNamespaceAndChangeTag)
 						.set({
-							dailyEdits: () => `daily_edits + ${editByDateNsAndCt.edits}`,
 							editsToDate: () => `edits_to_date + ${editByDateNsAndCt.edits}`,
-							dailyCharacterChanges: () => `daily_character_changes + ${editByDateNsAndCt.characterChanges}`,
 							characterChangesToDate: () => `character_changes_to_date + ${editByDateNsAndCt.characterChanges}`,
 						})
 						.where("actorId = :actorId", { actorId: actorStat.actorId })
@@ -1375,7 +1350,6 @@ export class WikiEditCacher {
 						.createQueryBuilder()
 						.update(this.wikiStatisticsEntities.logStatisticsByNamespaceAndLogType)
 						.set({
-							dailyLogEvents: () => `daily_log_events + ${editByNsAndLt.logEntries}`,
 							logEventsToDate: () => `log_events_to_date + ${editByNsAndLt.logEntries}`,
 						})
 						.where("date > :date", { date: editByNsAndLt.date.toDate() })
@@ -1441,7 +1415,6 @@ export class WikiEditCacher {
 						.createQueryBuilder()
 						.update(this.wikiStatisticsEntities.actorLogStatisticsByNamespaceAndLogType)
 						.set({
-							dailyLogEvents: () => `daily_log_events + ${editByDateNsAndCt.logEntries}`,
 							logEventsToDate: () => `log_events_to_date + ${editByDateNsAndCt.logEntries}`,
 						})
 						.where("actorId = :actorId", { actorId: actorStat.actorId })
