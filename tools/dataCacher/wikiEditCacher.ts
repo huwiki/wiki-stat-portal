@@ -140,6 +140,8 @@ export class WikiEditCacher {
 		await this.getAllWikiActors();
 		await this.getWikiChangeTagDefinitions();
 
+		await this.getActorsToUpdate();
+
 		for (; ;) {
 			if (!(await this.tryProcessNextRevisionBatch()))
 				break;
@@ -154,11 +156,6 @@ export class WikiEditCacher {
 
 			if (this.totalProcessedLogEntries >= this.appConfig.dataCacher.maxLogEntriesProcessedInASingleRun)
 				break;
-		}
-
-		const dateDiff = moment.utc().diff(this.lastActorUpdateTimestamp, "hours");
-		if (dateDiff > 24) {
-			await this.getActorsToUpdate();
 		}
 
 		this.replicatedDatabaseConnection.close();
