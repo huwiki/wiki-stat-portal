@@ -17,7 +17,7 @@ import { WikiProcessedRevisions } from "../../server/database/entities/toolsData
 import { compareMoments } from "../../server/helpers/comparers";
 import { KnownWiki } from "../../server/interfaces/knownWiki";
 
-const BASE_TIMESTAMP: string = "20211113000000";
+//const BASE_TIMESTAMP: string = "20211113000000";
 
 interface WikiEditCacherOptions {
 	appCtx: AppRunningContext;
@@ -30,8 +30,10 @@ interface DailyStatistics {
 	edits: number;
 	revertedEdits: number;
 	characterChanges: number;
-	thanks: number;
+	receivedThanks: number;
+	sentThanks: number;
 	logEvents: number;
+	serviceAwardLogEvents: number;
 }
 
 interface LogStatisticsOnDate {
@@ -223,7 +225,7 @@ export class WikiEditCacher {
 			.leftJoinAndSelect("rev.parentRevision", "p")
 			.leftJoinAndSelect("rev.changeTags", "ctags")
 			.where("rev.id > :lastProcessedRevisionId", { lastProcessedRevisionId: this.lastProcessedRevisionId })
-			.andWhere("rev.rev_timestamp > :baseTimestamp", { baseTimestamp: BASE_TIMESTAMP })
+			//.andWhere("rev.rev_timestamp > :baseTimestamp", { baseTimestamp: BASE_TIMESTAMP })
 			.orderBy("rev.id", "ASC")
 			.limit(this.appConfig.dataCacher.revisionsProcessedAtOnce)
 			.getMany();
@@ -293,7 +295,7 @@ export class WikiEditCacher {
 	private collectDailyStatisticsFromRevision(statsByActor: WikiStatisticsUpdateCollection, editDate: moment.Moment, characterChanges: number, revision: Revision) {
 		const dailyBucket = statsByActor.dailyStatistics.find(x => x.date.isSame(editDate));
 		if (!dailyBucket) {
-			statsByActor.dailyStatistics.push({ date: editDate, edits: 1, revertedEdits: 0, characterChanges: characterChanges, thanks: 0, logEvents: 0 });
+			statsByActor.dailyStatistics.push(createDailyStatistics(editDate, { edits: 1 }));
 		} else {
 			dailyBucket.edits++;
 			dailyBucket.characterChanges += characterChanges;
@@ -303,12 +305,12 @@ export class WikiEditCacher {
 		if (!nsBucket) {
 			statsByActor.editsByDateAndNs.push({
 				namespace: revision.page.namespace,
-				editsByDate: [{ date: editDate, edits: 1, revertedEdits: 0, characterChanges: characterChanges, thanks: 0, logEvents: 0 }]
+				editsByDate: [createDailyStatistics(editDate, { edits: 1 })]
 			});
 		} else {
 			const dailyNsBucket = nsBucket.editsByDate.find(x => x.date.isSame(editDate));
 			if (!dailyNsBucket) {
-				nsBucket.editsByDate.push({ date: editDate, edits: 1, revertedEdits: 0, characterChanges: characterChanges, thanks: 0, logEvents: 0 });
+				nsBucket.editsByDate.push(createDailyStatistics(editDate, { edits: 1 }));
 			} else {
 				dailyNsBucket.edits++;
 				dailyNsBucket.characterChanges += characterChanges;
@@ -322,12 +324,12 @@ export class WikiEditCacher {
 				statsByActor.editsByDateNsAndChangeTag.push({
 					namespace: revision.page.namespace,
 					changeTagId: ct.tagDefitionId,
-					editsByDate: [{ date: editDate, edits: 1, revertedEdits: 0, characterChanges: characterChanges, thanks: 0, logEvents: 0 }]
+					editsByDate: [createDailyStatistics(editDate, { edits: 1 })]
 				});
 			} else {
 				const dailyCtBucket = ctBucket.editsByDate.find(x => x.date.isSame(editDate));
 				if (!dailyCtBucket) {
-					ctBucket.editsByDate.push({ date: editDate, edits: 1, revertedEdits: 0, characterChanges: characterChanges, thanks: 0, logEvents: 0 });
+					ctBucket.editsByDate.push(createDailyStatistics(editDate, { edits: 1 }));
 				} else {
 					dailyCtBucket.edits++;
 					dailyCtBucket.characterChanges += characterChanges;
@@ -394,7 +396,7 @@ export class WikiEditCacher {
 	private collectRevertStatisticsFromRevision(statsByActor: WikiStatisticsUpdateCollection, revertDate: moment.Moment, revision: Revision) {
 		const dailyBucket = statsByActor.dailyStatistics.find(x => x.date.isSame(revertDate));
 		if (!dailyBucket) {
-			statsByActor.dailyStatistics.push({ date: revertDate, edits: 0, revertedEdits: 1, characterChanges: 0, thanks: 0, logEvents: 0 });
+			statsByActor.dailyStatistics.push(createDailyStatistics(revertDate, { revertedEdits: 1 }));
 		} else {
 			dailyBucket.revertedEdits++;
 		}
@@ -403,12 +405,12 @@ export class WikiEditCacher {
 		if (!nsBucket) {
 			statsByActor.editsByDateAndNs.push({
 				namespace: revision.page.namespace,
-				editsByDate: [{ date: revertDate, edits: 0, revertedEdits: 1, characterChanges: 0, thanks: 0, logEvents: 0 }]
+				editsByDate: [createDailyStatistics(revertDate, { revertedEdits: 1 })]
 			});
 		} else {
 			const dailyNsBucket = nsBucket.editsByDate.find(x => x.date.isSame(revertDate));
 			if (!dailyNsBucket) {
-				nsBucket.editsByDate.push({ date: revertDate, edits: 0, revertedEdits: 1, characterChanges: 0, thanks: 0, logEvents: 0 });
+				nsBucket.editsByDate.push(createDailyStatistics(revertDate, { revertedEdits: 1 }));
 			} else {
 				dailyNsBucket.revertedEdits++;
 			}
@@ -423,7 +425,7 @@ export class WikiEditCacher {
 			.leftJoinAndSelect("log.actor", "act")
 			.leftJoinAndSelect("act.user", "usr")
 			.where("log.id > :lastProcessedLogId", { lastProcessedLogId: this.lastProcessedLogId })
-			.andWhere("log.log_timestamp > :baseTimestamp", { baseTimestamp: BASE_TIMESTAMP })
+			//.andWhere("log.log_timestamp > :baseTimestamp", { baseTimestamp: BASE_TIMESTAMP })
 			.orderBy("log.id", "ASC")
 			.limit(this.appConfig.dataCacher.logEntriesProcessedAtOnce)
 			.getMany();
@@ -446,17 +448,6 @@ export class WikiEditCacher {
 		for (const logEntry of logEntries) {
 			if (logEntry.actor == null) {
 				this.logger.info(`[processLogEntryList/${this.wiki.id}] Log entry ${logEntry.id} does not have a valid actor reference.`);
-				continue;
-			}
-
-			if (logEntry.type === "newusers"
-				|| logEntry.type === "create"
-				|| logEntry.type === "delete"
-				|| (logEntry.type === "growthexperiments" && logEntry.action === "addlink")
-				|| logEntry.type === "move"
-				|| logEntry.type === "upload"
-				|| logEntry.type === "liquidthreads"
-				|| (logEntry.type === "review" && logEntry.action?.endsWith("a"))) {
 				continue;
 			}
 
@@ -495,11 +486,21 @@ export class WikiEditCacher {
 	}
 
 	private collectDailyStatisticsFromStandardLogEntry(stats: WikiStatisticsUpdateCollection, logEntry: LogEntry, logEntryDate: moment.Moment) {
+		const isNonServiceAwardLogEntry: boolean = logEntry.type === "newusers"
+			|| logEntry.type === "create"
+			|| (logEntry.type === "growthexperiments" && logEntry.action === "addlink")
+			|| logEntry.type === "move"
+			|| logEntry.type === "upload"
+			|| logEntry.type === "liquidthreads"
+			|| (logEntry.type === "review" && logEntry.action?.endsWith("a"));
+		const serviceAwardLogEntryCount = isNonServiceAwardLogEntry ? 0 : 1;
+
 		const dailyBucket = stats.dailyStatistics.find(x => x.date.isSame(logEntryDate));
 		if (!dailyBucket) {
-			stats.dailyStatistics.push({ date: logEntryDate, edits: 0, revertedEdits: 0, characterChanges: 0, thanks: 0, logEvents: 1 });
+			stats.dailyStatistics.push(createDailyStatistics(logEntryDate, { logEvents: 1, serviceAwardLogEvents: serviceAwardLogEntryCount }));
 		} else {
 			dailyBucket.logEvents++;
+			dailyBucket.serviceAwardLogEvents += serviceAwardLogEntryCount;
 		}
 
 		const nsltBucket = stats.logEntriesByDateNsAndCt.find(x => x.namespace === logEntry.namespace
@@ -510,7 +511,7 @@ export class WikiEditCacher {
 				namespace: logEntry.namespace,
 				logType: logEntry.type,
 				logAction: logEntry.action,
-				editsByDate: [{ date: logEntryDate, logEntries: 1 }]
+				editsByDate: [{ date: logEntryDate, logEntries: 1, }]
 			});
 		} else {
 			const dailyNsBucket = nsltBucket.editsByDate.find(x => x.date.isSame(logEntryDate));
@@ -522,7 +523,7 @@ export class WikiEditCacher {
 		}
 	}
 
-	private processThanksLogEntry(logActor: Actor, logEntry: LogEntry, logEntryDate: moment.Moment): void {
+	private processThanksLogEntry(thankerActor: Actor, logEntry: LogEntry, logEntryDate: moment.Moment): void {
 		if (typeof logEntry.title !== "string") {
 			this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Thanks log entry ${logEntry.id} does not have a valid title.`);
 			return;
@@ -538,24 +539,43 @@ export class WikiEditCacher {
 			return;
 		}
 
-		let statsByActor = this.statsByActorDict.get(thankedActor.id);
-		if (!statsByActor) {
-			statsByActor = WikiEditCacher.createNewStatsByActorInstance(thankedActor);
-			this.statsByActorList.push(statsByActor);
-			this.statsByActorDict.set(thankedActor.id, statsByActor);
+		let statsByThankedActor = this.statsByActorDict.get(thankedActor.id);
+		if (!statsByThankedActor) {
+			statsByThankedActor = WikiEditCacher.createNewStatsByActorInstance(thankedActor);
+			this.statsByActorList.push(statsByThankedActor);
+			this.statsByActorDict.set(thankedActor.id, statsByThankedActor);
 			this.updatedActorCount++;
 		}
 
-		this.collectStatisticsFromThanksLogEntry(statsByActor, logEntryDate);
-		this.collectStatisticsFromThanksLogEntry(this.statsByWiki, logEntryDate);
+		let statsByThankerActor = this.statsByActorDict.get(thankerActor.id);
+		if (!statsByThankerActor) {
+			statsByThankerActor = WikiEditCacher.createNewStatsByActorInstance(thankerActor);
+			this.statsByActorList.push(statsByThankerActor);
+			this.statsByActorDict.set(thankerActor.id, statsByThankerActor);
+			this.updatedActorCount++;
+		}
+
+		this.collectStatisticsFromThanksLogEntry(statsByThankerActor, statsByThankedActor, logEntryDate);
+		this.collectStatisticsFromThanksLogEntry(this.statsByWiki, this.statsByWiki, logEntryDate);
 	}
 
-	private collectStatisticsFromThanksLogEntry(statsByActor: WikiStatisticsUpdateCollection, logEntryDate: moment.Moment) {
-		const dailyBucket = statsByActor.dailyStatistics.find(x => x.date.isSame(logEntryDate));
-		if (!dailyBucket) {
-			statsByActor.dailyStatistics.push({ date: logEntryDate, edits: 0, revertedEdits: 0, characterChanges: 0, thanks: 1, logEvents: 0 });
+	private collectStatisticsFromThanksLogEntry(
+		statsByThankerActor: WikiStatisticsUpdateCollection,
+		statsByThankedActor: WikiStatisticsUpdateCollection,
+		logEntryDate: moment.Moment
+	) {
+		const thankerDailyBucket = statsByThankerActor.dailyStatistics.find(x => x.date.isSame(logEntryDate));
+		if (!thankerDailyBucket) {
+			statsByThankedActor.dailyStatistics.push(createDailyStatistics(logEntryDate, { sentThanks: 1 }));
 		} else {
-			dailyBucket.thanks++;
+			thankerDailyBucket.sentThanks++;
+		}
+
+		const thankedDailyBucket = statsByThankedActor.dailyStatistics.find(x => x.date.isSame(logEntryDate));
+		if (!thankedDailyBucket) {
+			statsByThankedActor.dailyStatistics.push(createDailyStatistics(logEntryDate, { receivedThanks: 1 }));
+		} else {
+			thankedDailyBucket.receivedThanks++;
 		}
 	}
 
@@ -832,7 +852,8 @@ export class WikiEditCacher {
 						dailyEdits: existingStat.dailyEdits + editsByDate.edits,
 						dailyRevertedEdits: existingStat.dailyRevertedEdits + editsByDate.revertedEdits,
 						dailyCharacterChanges: existingStat.dailyCharacterChanges + editsByDate.characterChanges,
-						dailyThanks: existingStat.dailyThanks + editsByDate.thanks,
+						dailyReceivedThanks: existingStat.dailyReceivedThanks + editsByDate.receivedThanks,
+						dailySentThanks: existingStat.dailySentThanks + editsByDate.sentThanks,
 						dailyLogEvents: existingStat.dailyLogEvents + editsByDate.logEvents,
 					})
 					.where("date = :date", { date: editsByDate.date.toDate() })
@@ -848,8 +869,10 @@ export class WikiEditCacher {
 						revertedEditsToDate: () => `reverted_edits_to_date + ${editsByDate.revertedEdits}`,
 						dailyCharacterChanges: () => `daily_character_changes + ${editsByDate.characterChanges}`,
 						characterChangesToDate: () => `character_changes_to_date + ${editsByDate.characterChanges}`,
-						dailyThanks: () => `daily_thanks + ${editsByDate.thanks}`,
-						thanksToDate: () => `thanks_to_date + ${editsByDate.thanks}`,
+						dailyReceivedThanks: () => `daily_received_thanks + ${editsByDate.receivedThanks}`,
+						receivedThanksToDate: () => `received_thanks_to_date + ${editsByDate.receivedThanks}`,
+						dailySentThanks: () => `daily_sent_thanks + ${editsByDate.sentThanks}`,
+						sentThanksToDate: () => `sent_thanks_to_date + ${editsByDate.sentThanks}`,
 						dailyLogEvents: () => `daily_log_events + ${editsByDate.logEvents}`,
 						logEventsToDate: () => `log_events_to_date + ${editsByDate.logEvents}`,
 					})
@@ -880,9 +903,13 @@ export class WikiEditCacher {
 						characterChangesToDate: previousDay
 							? previousDay.characterChangesToDate + previousDay.dailyCharacterChanges
 							: 0,
-						dailyThanks: editsByDate.thanks,
-						thanksToDate: previousDay
-							? previousDay.thanksToDate + previousDay.dailyThanks
+						dailyReceivedThanks: editsByDate.receivedThanks,
+						receivedThanksToDate: previousDay
+							? previousDay.receivedThanksToDate + previousDay.dailyReceivedThanks
+							: 0,
+						dailySentThanks: editsByDate.sentThanks,
+						sentThanksToDate: previousDay
+							? previousDay.sentThanksToDate + previousDay.dailySentThanks
 							: 0,
 						dailyLogEvents: editsByDate.logEvents,
 						logEventsToDate: previousDay
@@ -909,8 +936,10 @@ export class WikiEditCacher {
 						dailyEdits: existingStat.dailyEdits + editsByDate.edits,
 						dailyRevertedEdits: existingStat.dailyRevertedEdits + editsByDate.revertedEdits,
 						dailyCharacterChanges: existingStat.dailyCharacterChanges + editsByDate.characterChanges,
-						dailyThanks: existingStat.dailyThanks + editsByDate.thanks,
+						dailyReceivedThanks: existingStat.dailyReceivedThanks + editsByDate.receivedThanks,
+						dailySentThanks: existingStat.dailySentThanks + editsByDate.sentThanks,
 						dailyLogEvents: existingStat.dailyLogEvents + editsByDate.logEvents,
+						dailyServiceAwardLogEvents: existingStat.dailyServiceAwardLogEvents + editsByDate.serviceAwardLogEvents,
 					})
 					.where("actorId = :actorId", { actorId: actorStat.actorId })
 					.andWhere("date = :date", { date: editsByDate.date.toDate() })
@@ -926,10 +955,14 @@ export class WikiEditCacher {
 						revertedEditsToDate: () => `reverted_edits_to_date + ${editsByDate.revertedEdits}`,
 						dailyCharacterChanges: () => `daily_character_changes + ${editsByDate.characterChanges}`,
 						characterChangesToDate: () => `character_changes_to_date + ${editsByDate.characterChanges}`,
-						dailyThanks: () => `daily_thanks + ${editsByDate.thanks}`,
-						thanksToDate: () => `thanks_to_date + ${editsByDate.thanks}`,
+						dailyReceivedThanks: () => `daily_received_thanks + ${editsByDate.receivedThanks}`,
+						receivedThanksToDate: () => `received_thanks_to_date + ${editsByDate.receivedThanks}`,
+						dailySentThanks: () => `daily_sent_thanks + ${editsByDate.sentThanks}`,
+						sentThanksToDate: () => `sent_thanks_to_date + ${editsByDate.sentThanks}`,
 						dailyLogEvents: () => `daily_log_events + ${editsByDate.logEvents}`,
 						logEventsToDate: () => `log_events_to_date + ${editsByDate.logEvents}`,
+						dailyServiceAwardLogEvents: () => `daily_saward_log_events + ${editsByDate.serviceAwardLogEvents}`,
+						serviceAwardLogEventsToDate: () => `saward_log_events_to_date + ${editsByDate.serviceAwardLogEvents}`,
 					})
 					.where("actorId = :actorId", { actorId: actorStat.actorId })
 					.andWhere("date > :date", { date: editsByDate.date.toDate() })
@@ -961,13 +994,21 @@ export class WikiEditCacher {
 						characterChangesToDate: previousDay
 							? previousDay.characterChangesToDate + previousDay.dailyCharacterChanges
 							: 0,
-						dailyThanks: editsByDate.thanks,
-						thanksToDate: previousDay
-							? previousDay.thanksToDate + previousDay.dailyThanks
+						dailyReceivedThanks: editsByDate.receivedThanks,
+						receivedThanksToDate: previousDay
+							? previousDay.receivedThanksToDate + previousDay.dailyReceivedThanks
+							: 0,
+						dailySentThanks: editsByDate.sentThanks,
+						sentThanksToDate: previousDay
+							? previousDay.sentThanksToDate + previousDay.dailySentThanks
 							: 0,
 						dailyLogEvents: editsByDate.logEvents,
 						logEventsToDate: previousDay
 							? previousDay.logEventsToDate + previousDay.dailyLogEvents
+							: 0,
+						dailyServiceAwardLogEvents: editsByDate.serviceAwardLogEvents,
+						serviceAwardLogEventsToDate: previousDay
+							? previousDay.serviceAwardLogEventsToDate + previousDay.dailyServiceAwardLogEvents
 							: 0,
 					})
 					.execute();
@@ -1480,4 +1521,17 @@ export class WikiEditCacher {
 			logEntriesByDateNsAndCt: []
 		};
 	}
+}
+
+function createDailyStatistics(date: moment.Moment, dailyStatistics: Omit<Partial<DailyStatistics>, "date">): DailyStatistics {
+	return {
+		date: date,
+		edits: dailyStatistics.edits ?? 0,
+		revertedEdits: dailyStatistics.revertedEdits ?? 0,
+		characterChanges: dailyStatistics.characterChanges ?? 0,
+		sentThanks: dailyStatistics.sentThanks ?? 0,
+		receivedThanks: dailyStatistics.receivedThanks ?? 0,
+		logEvents: dailyStatistics.logEvents ?? 0,
+		serviceAwardLogEvents: dailyStatistics.serviceAwardLogEvents ?? 0,
+	};
 }

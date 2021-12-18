@@ -20,7 +20,7 @@ const fun = async () => {
 		return;
 	}
 
-	const toolsConnection = await createConnectionToUserDatabase(appConfig, `${appConfig.toolForgeUserName}__userstatistics`, ["huwiki"]);
+	const toolsConnection = await createConnectionToUserDatabase(appConfig, `${appConfig.toolForgeUserName}__userstatistics2`, ["huwiki"]);
 	const mwConnection = await createConnectionToMediaWikiReplica(appConfig, "skwiki_p");
 
 	try {

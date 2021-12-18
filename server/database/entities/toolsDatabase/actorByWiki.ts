@@ -35,8 +35,10 @@ export class DailyStatisticsTypeModel {
 	public revertedEditsToDate: number;
 	public dailyCharacterChanges: number;
 	public characterChangesToDate: number;
-	public dailyThanks: number;
-	public thanksToDate: number;
+	public dailyReceivedThanks: number;
+	public receivedThanksToDate: number;
+	public dailySentThanks: number;
+	public sentThanksToDate: number;
 	public dailyLogEvents: number;
 	public logEventsToDate: number;
 }
@@ -50,10 +52,14 @@ export class ActorDailyStatisticsTypeModel {
 	public revertedEditsToDate: number;
 	public dailyCharacterChanges: number;
 	public characterChangesToDate: number;
-	public dailyThanks: number;
-	public thanksToDate: number;
+	public dailyReceivedThanks: number;
+	public receivedThanksToDate: number;
+	public dailySentThanks: number;
+	public sentThanksToDate: number;
 	public dailyLogEvents: number;
 	public logEventsToDate: number;
+	public dailyServiceAwardLogEvents: number;
+	public serviceAwardLogEventsToDate: number;
 }
 
 export class DailyStatisticsByNamespaceTypeModel {
@@ -262,11 +268,17 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@Column({ name: "character_changes_to_date", type: "int" })
 		public characterChangesToDate: number;
 
-		@Column({ name: "daily_thanks", type: "int" })
-		public dailyThanks: number;
+		@Column({ name: "daily_received_thanks", type: "int" })
+		public dailyReceivedThanks: number;
 
-		@Column({ name: "thanks_to_date", type: "int" })
-		public thanksToDate: number;
+		@Column({ name: "received_thanks_to_date", type: "int" })
+		public receivedThanksToDate: number;
+
+		@Column({ name: "daily_sent_thanks", type: "int" })
+		public dailySentThanks: number;
+
+		@Column({ name: "sent_thanks_to_date", type: "int" })
+		public sentThanksToDate: number;
 
 		@Column({ name: "daily_log_events", type: "int" })
 		public dailyLogEvents: number;
@@ -301,17 +313,29 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@Column({ name: "character_changes_to_date", type: "int" })
 		public characterChangesToDate: number;
 
-		@Column({ name: "daily_thanks", type: "int" })
-		public dailyThanks: number;
+		@Column({ name: "daily_received_thanks", type: "int" })
+		public dailyReceivedThanks: number;
 
-		@Column({ name: "thanks_to_date", type: "int" })
-		public thanksToDate: number;
+		@Column({ name: "received_thanks_to_date", type: "int" })
+		public receivedThanksToDate: number;
+
+		@Column({ name: "daily_sent_thanks", type: "int" })
+		public dailySentThanks: number;
+
+		@Column({ name: "sent_thanks_to_date", type: "int" })
+		public sentThanksToDate: number;
 
 		@Column({ name: "daily_log_events", type: "int" })
 		public dailyLogEvents: number;
 
 		@Column({ name: "log_events_to_date", type: "int" })
 		public logEventsToDate: number;
+
+		@Column({ name: "daily_saward_log_events", type: "int" })
+		public dailyServiceAwardLogEvents: number;
+
+		@Column({ name: "saward_log_events_to_date", type: "int" })
+		public serviceAwardLogEventsToDate: number;
 	}
 
 	@Entity({ name: dailyStatisticsByNamespaceTableName })

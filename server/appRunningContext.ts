@@ -63,7 +63,7 @@ export class AppRunningContext {
 	public async getToolsDbConnection(): Promise<Connection> {
 		return await createConnectionToUserDatabase(
 			this.appConfig,
-			`${this.appConfig.toolForgeUserName}__userstatistics`,
+			`${this.appConfig.toolForgeUserName}__userstatistics2`,
 			this.knownWikisConfiguration.map(x => x.id)
 		);
 	}

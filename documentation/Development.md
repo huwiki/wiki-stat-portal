@@ -43,7 +43,7 @@ For the source of the statistics, we use the replica Wikimedia databases (see [R
 When working with MediaWiki-databases, you can use the documentation on database tables/entities on MediaWiki.org or use the [MediaWiki table creation SQL script](https://phabricator.wikimedia.org/source/mediawiki/browse/master/maintenance/tables.sql).
 
 ## User database
-We use an user database named `[ToolForge userId]__userstatistics`.
+We use an user database named `[ToolForge userId]__userstatistics2`.
 
 An init SQL script is available at `server/database/entities/toolsDatabase/createStatisticsTables.sql`.
 
