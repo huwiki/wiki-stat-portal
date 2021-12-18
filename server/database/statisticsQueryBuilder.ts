@@ -38,7 +38,8 @@ interface StatisticsQueryBuildingContext {
 }
 
 export interface ActorLike {
-	aId: number;
+	actorId: number;
+	actorName?: string;
 }
 
 export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEntities, userRequirements, columns, orderBy, itemCount: itemCount, startDate, endDate }: {
@@ -68,7 +69,8 @@ export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEnt
 
 	let query = toolsDbConnection.getRepository(wikiEntities.actor)
 		.createQueryBuilder("actor")
-		.select("actor.actorId", "aId");
+		.select("actor.actorId", "actorId")
+		.addSelect("actor.actorName", "actorName");
 
 	// Manage selects from column definitions
 	query = addColumSelects(ctx, query, columns);
@@ -90,7 +92,7 @@ export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEnt
 	if (columns && columns.length > 0) {
 		return await query.getRawMany();
 	} else {
-		return await query.getRawMany<{ aId: number }>();
+		return await query.getRawMany<{ actorId: number }>();
 	}
 }
 
@@ -301,10 +303,6 @@ function addSingleColumSelect(
 	const selectedColumnName = `column${columnIndex}`;
 
 	switch (column.type) {
-		case "userName":
-			query = query.addSelect("actor.actorName", selectedColumnName);
-			break;
-
 		case "editsInPeriod":
 			query = query.addSelect("IFNULL(periodActorStatistics.actorEditsInPeriod, 0)", selectedColumnName);
 			break;

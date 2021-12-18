@@ -19,6 +19,7 @@ export interface ListDataResult {
 
 export interface ListDataEntry {
 	id: number;
+	actorName: string;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	data: any[];
 }
@@ -61,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 		appCtx.logger.info(`[api/lists/listData] running query for '${list.id}'`);
 
-		const users = await createStatisticsQuery({
+		const resultActors = await createStatisticsQuery({
 			appCtx: appCtx,
 			toolsDbConnection: conn,
 			wikiEntities,
@@ -94,40 +95,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			results: [],
 		};
 
-		// console.log(users);
-		console.log(users.length);
-
 		let counter = 1;
-		for (const user of users) {
+		for (const actorLike of resultActors) {
+			console.log(actorLike);
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const columns: any[] = [];
 
 			let columnIndex = 0;
 			for (const columnDefinition of list.columns) {
-				const dataFromQuery = user[`column${columnIndex}`];
+				const dataFromQuery = actorLike[`column${columnIndex}`];
 
 				if (columnDefinition.type === "counter") {
 					columns.push(counter);
+				} else if (columnDefinition.type === "userName") {
+					columns.push(actorLike.actorName ?? "?");
 				} else if (columnDefinition.type === "userGroups") {
-					const userGroups = actorGroupMap.get(user.aId);
+					const userGroups = actorGroupMap.get(actorLike.actorId);
 					columns.push(userGroups ?? null);
 				} else if (columnDefinition.type === "levelAtPeriodStart") {
-					const startLevel = getUserLevel(wiki.serviceAwardLevels, user, columnIndex, "start");
+					const startLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "start");
 					if (startLevel) {
 						columns.push([startLevel.id, startLevel.label]);
 					} else {
 						columns.push(null);
 					}
 				} else if (columnDefinition.type === "levelAtPeriodEnd") {
-					const endLevel = getUserLevel(wiki.serviceAwardLevels, user, columnIndex, "end");
+					const endLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "end");
 					if (endLevel) {
 						columns.push([endLevel.id, endLevel.label]);
 					} else {
 						columns.push(null);
 					}
 				} else if (columnDefinition.type === "levelAtPeriodEndWithChange") {
-					const startLevel = getUserLevel(wiki.serviceAwardLevels, user, columnIndex, "start");
-					const endLevel = getUserLevel(wiki.serviceAwardLevels, user, columnIndex, "end");
+					const startLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "start");
+					const endLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "end");
 					if (endLevel) {
 						columns.push([endLevel.id, endLevel.label, startLevel === null || startLevel.id !== endLevel.id]);
 					} else {
@@ -143,7 +144,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			}
 
 			listData.results.push({
-				id: user.aId,
+				id: actorLike.actorId,
+				actorName: actorLike.actorName ?? "?",
 				data: columns,
 			});
 			counter++;

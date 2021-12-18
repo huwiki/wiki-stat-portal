@@ -67,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				endDate: epochDate,
 			});
 
-			const usersInThisGroup = new Set<number>(users.map(x => x.aId));
+			const usersInThisGroup = new Set<number>(users.map(x => x.actorId));
 
 			results.push({
 				name: isLocalizedUserPyramidGroup(userGroup)
