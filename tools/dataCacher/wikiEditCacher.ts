@@ -134,7 +134,7 @@ export class WikiEditCacher {
 	}
 
 	public async run(): Promise<void> {
-		this.replicatedDatabaseConnection = await createConnectionToMediaWikiReplica(this.appConfig, this.wiki.replicaDatabaseName);
+		this.replicatedDatabaseConnection = await createConnectionToMediaWikiReplica(this.appConfig, this.wiki.id, this.wiki.replicaDatabaseName);
 
 		await this.getLastProcessInfo();
 		await this.getAllWikiActors();

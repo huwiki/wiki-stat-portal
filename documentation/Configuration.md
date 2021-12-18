@@ -10,14 +10,14 @@ This is the main configuration file of WikiStatPortal. It contains database conn
 	"toolForgePassword": "", // ToolForge password
 
 	"replicaDbHost": "127.0.0.1", // Database host
-		// For production, use huwiki.analytics.db.svc.eqiad.wmflabs
+		// For production, use ${wikiId}.analytics.db.svc.wikimedia.cloud
 		// For development use 127.0.0.1
 	"replicaDbPort": 4711,
 		// For production, use 3306
 		// For development, use the port you use in your SSH local port forwarding (e.g. 4711)
 
 	"toolsDbHost": "127.0.0.1",
-		// For production, use tools.db.svc.eqiad.wmflabs
+		// For production, use tools.db.svc.wikimedia.cloud
 		// For development use 127.0.0.1
 	"toolsDbPort": 4712
 		// For production, use 3306
@@ -87,7 +87,7 @@ A user pyramid definition looks like this:
 		// items in the `group` array must also have
 		// an `i18nKey` property with the localization key
 		// of the group name. UI and the API will use
-		// this key from the language file to localize 
+		// this key from the language file to localize
 		// the name of the pyramid.
 	"groups": [
 		// List of groups belonging to this user pyramid.
@@ -112,7 +112,7 @@ A user pyramid group definition looks like this:
 		// Forbidden if the parent pyramid has a
 		// `name` property. UI and the API will use
 		// this key from the language file to localize
-		// the name of the group. 
+		// the name of the group.
 	"requirements": {
 		// One or more requirements can be defined
 		"registrationStatus": "userType",
@@ -149,8 +149,8 @@ A user pyramid group definition looks like this:
 			//   the current day and Y days before today will be checked
 			//   where X comes from the value of 'period'
 			// - if an epoch is defined, the number of edits made between
-			//   the Y days before the current day and Y + X days before 
-			//   today will be checked where X comes from the value of 
+			//   the Y days before the current day and Y + X days before
+			//   today will be checked where X comes from the value of
 			//   'period' and Y comes from the value of 'epoch'
 			// Note: 'epoch' is defined using a negative number, so it
 			//   is obvious that the epoch parameter helps looking back in time.
@@ -160,8 +160,8 @@ A user pyramid group definition looks like this:
 			//   the current day and Y days before today will be checked
 			//   where X comes from the value of 'period'
 			// - if an epoch is defined, the number of edits made between
-			//   the Y days before the current day and Y + X days before 
-			//   today will be checked where X comes from the value of 
+			//   the Y days before the current day and Y + X days before
+			//   today will be checked where X comes from the value of
 			//   'period' and Y comes from the value of 'epoch'.
 			// Note: 'epoch' is defined using a negative number, so it
 			//   is obvious that the epoch parameter helps looking back in time.

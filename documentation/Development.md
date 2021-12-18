@@ -31,7 +31,7 @@ VS Code is used as the primary platform of development. VS Code provides IDE-lik
 
 To access ToolForge databases on your development system, you should use SSH local port forwarding (replace USERNAME with your own user name):
 ```
-ssh -i ~/.ssh/id_rsa -N -L 4711:huwiki.analytics.db.svc.eqiad.wmflabs:3306 [USERNAME]@login.toolforge.org -L 4712:tools.db.svc.eqiad.wmflabs:3306 [USERNAME]@login.toolforge.org
+ssh -i ~/.ssh/id_rsa -N -L 4711:huwiki.analytics.db.svc.wikimedia.cloud:3306 [USERNAME]@login.toolforge.org -L 4712:tools.db.svc.wikimedia.cloud:3306 [USERNAME]@login.toolforge.org
 ```
 You can replace `huwiki` with any valid wiki database ID in the first database server URL. For further information on ToolForge user and replica databases, see [Help:ToolForge/Databases#Connecting to the database replicas](https://wikitech.wikimedia.org/wiki/Help:Toolforge/Database#Connecting_to_the_database_replicas) on Wikitech.
 

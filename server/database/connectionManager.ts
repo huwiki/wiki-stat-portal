@@ -51,13 +51,17 @@ export const createConnectionToUserDatabase = async (appConfig: ApplicationConfi
 	});
 };
 
-export const createConnectionToMediaWikiReplica = async (appConfig: ApplicationConfiguration, databaseName: string): Promise<Connection> => {
+export const createConnectionToMediaWikiReplica = async (
+	appConfig: ApplicationConfiguration,
+	wikiId: string,
+	databaseName: string
+): Promise<Connection> => {
 	connectionCounter++;
 
 	return await createConnection({
 		name: MW_REPLICAS_DB_CONNECTION_NAME + connectionCounter.toString(),
 		type: "mysql",
-		host: appConfig.replicaDbHost,
+		host: appConfig.replicaDbHost.replace("{wikiId}", wikiId),
 		port: appConfig.replicaDbPort,
 		username: appConfig.toolForgeUserName,
 		password: appConfig.toolForgePassword,

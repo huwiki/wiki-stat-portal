@@ -21,7 +21,7 @@ const fun = async () => {
 	}
 
 	const toolsConnection = await createConnectionToUserDatabase(appConfig, `${appConfig.toolForgeUserName}__userstatistics2`, ["huwiki"]);
-	const mwConnection = await createConnectionToMediaWikiReplica(appConfig, "skwiki_p");
+	const mwConnection = await createConnectionToMediaWikiReplica(appConfig, "skwiki", "skwiki_p");
 
 	try {
 		const wikiEntry = await toolsConnection.getRepository(WikiProcessedRevisions)
