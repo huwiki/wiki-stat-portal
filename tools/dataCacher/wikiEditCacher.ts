@@ -100,8 +100,11 @@ export class WikiEditCacher {
 	private readonly wikiStatisticsEntities: WikiStatisticsTypesResult;
 
 	private lastProcessedRevisionId: number;
+	private lastProcessedRevisionTimestamp: moment.Moment | null;
 	private totalProcessedRevisions: number = 0;
+
 	private lastProcessedLogId: number;
+	private lastProcessedLogTimestamp: moment.Moment | null;
 	private totalProcessedLogEntries: number = 0;
 
 	private lastActorUpdateTimestamp: moment.Moment;
@@ -169,7 +172,14 @@ export class WikiEditCacher {
 		const wikiProcessEntry = await this.toolsConnection.getRepository(WikiProcessedRevisions)
 			.findOne({ where: { wiki: this.wiki.id } });
 		this.lastProcessedRevisionId = wikiProcessEntry?.lastProcessedRevisionId ?? 0;
+		this.lastProcessedRevisionTimestamp = wikiProcessEntry && wikiProcessEntry.lastProcessedRevisionTimestamp
+			? moment.utc(wikiProcessEntry.lastProcessedRevisionTimestamp)
+			: null;
+
 		this.lastProcessedLogId = wikiProcessEntry?.lastProcessedLogId ?? 0;
+		this.lastProcessedLogTimestamp = wikiProcessEntry && wikiProcessEntry.lastProcessedLogTimestamp
+			? moment.utc(wikiProcessEntry.lastProcessedLogTimestamp)
+			: null;
 
 		this.lastActorUpdateTimestamp = wikiProcessEntry?.lastActorUpdate
 			? moment.utc(wikiProcessEntry.lastActorUpdate)
@@ -263,8 +273,9 @@ export class WikiEditCacher {
 
 		const actor = revision.actor;
 
-		const editDate = moment.utc(revision.timestamp).startOf("day");
 		const currentEditTimestamp = moment.utc(revision.timestamp);
+		const currentEditDate = moment.utc(revision.timestamp).startOf("day");
+
 		const characterChanges = revision.length - (revision.parentRevision?.length ?? 0);
 
 		let statsByActor = this.statsByActorDict.get(actor.id);
@@ -283,12 +294,18 @@ export class WikiEditCacher {
 			|| statsByActor.lastEditTimestamp.isBefore(currentEditTimestamp))
 			statsByActor.lastEditTimestamp = currentEditTimestamp;
 
-		this.collectDailyStatisticsFromRevision(statsByActor, editDate, characterChanges, revision);
-		this.collectDailyStatisticsFromRevision(this.statsByWiki, editDate, characterChanges, revision);
+		this.collectDailyStatisticsFromRevision(statsByActor, currentEditDate, characterChanges, revision);
+		this.collectDailyStatisticsFromRevision(this.statsByWiki, currentEditDate, characterChanges, revision);
 
 		const revertChangeTag = revision.changeTags.find(x => this.wikiRevertChangeTagIds.has(x.tagDefitionId));
 		if (revertChangeTag) {
-			await this.processRevertChangeTag(revision, revertChangeTag, editDate);
+			await this.processRevertChangeTag(revision, revertChangeTag, currentEditDate);
+		}
+
+		if (this.lastProcessedRevisionTimestamp == null
+			|| this.lastProcessedRevisionTimestamp.isBefore(currentEditTimestamp)
+		) {
+			this.lastProcessedRevisionTimestamp = currentEditTimestamp;
 		}
 	}
 
@@ -483,6 +500,12 @@ export class WikiEditCacher {
 
 		this.collectDailyStatisticsFromStandardLogEntry(statsByActor, logEntry, logEntryDate);
 		this.collectDailyStatisticsFromStandardLogEntry(this.statsByWiki, logEntry, logEntryDate);
+
+		if (this.lastProcessedLogTimestamp == null
+			|| this.lastProcessedLogTimestamp.isBefore(logEntryTimestamp)
+		) {
+			this.lastProcessedLogTimestamp = logEntryTimestamp;
+		}
 	}
 
 	private collectDailyStatisticsFromStandardLogEntry(stats: WikiStatisticsUpdateCollection, logEntry: LogEntry, logEntryDate: moment.Moment) {
@@ -1455,6 +1478,8 @@ export class WikiEditCacher {
 	}
 
 	private async saveWikiProcessedRevisionInfo(em: EntityManager): Promise<void> {
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Saving wiki processed revision info...`);
+
 		const currentWikiProcessEntry = await em.getRepository(WikiProcessedRevisions)
 			.findOne({ where: { wiki: this.wiki.id } });
 
@@ -1465,7 +1490,9 @@ export class WikiEditCacher {
 				.values({
 					wiki: this.wiki.id,
 					lastProcessedRevisionId: this.lastProcessedRevisionId,
+					lastProcessedRevisionTimestamp: this.lastProcessedRevisionTimestamp?.toDate(),
 					lastProcessedLogId: this.lastProcessedLogId,
+					lastProcessedLogTimestamp: this.lastProcessedLogTimestamp?.toDate(),
 					lastActorUpdate: this.updatedActorCount > 0
 						? moment.utc().toDate()
 						: this.lastActorUpdateTimestamp?.toDate(),
@@ -1477,7 +1504,9 @@ export class WikiEditCacher {
 				.update(WikiProcessedRevisions)
 				.set({
 					lastProcessedRevisionId: this.lastProcessedRevisionId,
+					lastProcessedRevisionTimestamp: this.lastProcessedRevisionTimestamp?.toDate(),
 					lastProcessedLogId: this.lastProcessedLogId,
+					lastProcessedLogTimestamp: this.lastProcessedLogTimestamp?.toDate(),
 					lastActorUpdate: this.updatedActorCount > 0
 						? moment.utc().toDate()
 						: this.lastActorUpdateTimestamp.toDate(),

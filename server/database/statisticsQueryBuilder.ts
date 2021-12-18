@@ -309,7 +309,7 @@ function addSingleColumSelect(
 			query = query.addSelect("IFNULL(periodActorStatistics.actorEditsInPeriod, 0)", selectedColumnName);
 			break;
 		case "editsInPeriodPercentage":
-			query = query.addSelect("IFNULL(periodActorStatistics.actorEditsInPeriod / periodWikiStatistics.wikiEditsInPeriod * 100, 0)", selectedColumnName);
+			query = query.addSelect("IFNULL(periodActorStatistics.actorEditsInPeriod / periodWikiStatistics.wikiEditsInPeriod * 100, 0.0)", selectedColumnName);
 			break;
 		case "editsSinceRegistration":
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0)", selectedColumnName);
