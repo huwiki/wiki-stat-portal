@@ -22,6 +22,7 @@ import { ListDataResult } from "../../../api/lists/listData";
 interface ListByIdPageProps extends CommonPageProps {
 	wikiFound: boolean;
 	wikiId: string | null;
+	wikiBaseUrl: string | null;
 	listFound: boolean;
 	list: ListConfiguration | null;
 }
@@ -155,19 +156,39 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		});
 	}
 
-	private renderUserName(actorId: number, data: string, columnDefinition: UserNameListColumn): React.ReactNode {
+	private renderUserName(
+		actorId: number,
+		userName: string,
+		columnDefinition: UserNameListColumn
+	): React.ReactNode {
 		const userLinks: React.ReactNode[] = [];
 
 		if (columnDefinition.userLinks?.talkPage === true) {
-			userLinks.push(<a href="#">vita</a>);
+			userLinks.push(
+				<a key="talkPage"
+					href={ListByIdPage.makeWikiLink(this.props.wikiBaseUrl, `User talk:${userName}`)}
+					target="_blank"
+					rel="noreferrer"
+				>
+					vita
+				</a>
+			);
 		}
 
 		if (columnDefinition.userLinks?.edits === true) {
-			userLinks.push(<a href="#">szerk.</a>);
+			userLinks.push(
+				<a key="contributions"
+					href={ListByIdPage.makeWikiLink(this.props.wikiBaseUrl, `Special:Contributions/${userName}`)}
+					target="_blank"
+					rel="noreferrer"
+				>
+					szerk.
+				</a>
+			);
 		}
 
 		return <>
-			<b>{data}</b>
+			<b>{userName}</b>
 			{userLinks.length > 0 && <>
 				{" "}
 				( {userLinks.map((ele, idx) => <React.Fragment key={idx.toString()}>
@@ -202,9 +223,13 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		}
 
 		return <>
-			{data[2] && "⬆🔺"}
+			{data[2] && "🔺"}
 			{data[1]}
 		</>;
+	}
+
+	private static makeWikiLink(wikiBaseUrl: string | null, subUrl: string): string | undefined {
+		return `https://${wikiBaseUrl}/wiki/${subUrl}`;
 	}
 }
 
@@ -219,6 +244,7 @@ export const getServerSideProps = async (ctx: NextPageContext): Promise<GetPorta
 	return await withCommonServerSideProps<ListByIdPageProps>(ctx, {
 		wikiFound: !!wiki,
 		wikiId: wiki?.id ?? null,
+		wikiBaseUrl: wiki?.domain ?? null,
 		listFound: !!list,
 		list: list ?? null,
 	});
