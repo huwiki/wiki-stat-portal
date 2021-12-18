@@ -7,11 +7,17 @@ export const createWikiStatLogger = (loggerId: string): winston.Logger => {
 		transports: [
 			new winston.transports.Console({
 				format: format.combine(
+					format.errors({ stack: true }),
 					format.timestamp(),
 					format.colorize(),
 					format.prettyPrint(),
-					format.printf(info =>
-						`[${info.timestamp}] ${info.level}: ${info.message}`)
+					format.printf(info => {
+						if (info.stack) {
+							return `[${info.timestamp}] ${info.level}: ${info.message}; ${info.stack}`;
+						}
+
+						return `[${info.timestamp}] ${info.level}: ${info.message}`;
+					})
 				)
 			}),
 			new DailyRotateFile({
@@ -21,11 +27,17 @@ export const createWikiStatLogger = (loggerId: string): winston.Logger => {
 				dirname: `./logs/${loggerId}`,
 				maxFiles: 15,
 				format: format.combine(
+					format.errors({ stack: true }),
 					format.timestamp(),
-					format.printf(info =>
-						`[${info.timestamp}] ${info.level}: ${info.message}`)
+					format.printf(info => {
+						if (info.stack) {
+							return `[${info.timestamp}] ${info.level}: ${info.message}; ${info.stack}`;
+						}
+
+						return `[${info.timestamp}] ${info.level}: ${info.message}`;
+					})
 				),
 			})
-		]
+		],
 	});
 };
