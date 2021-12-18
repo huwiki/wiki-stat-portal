@@ -526,22 +526,24 @@ export class WikiEditCacher {
 			dailyBucket.serviceAwardLogEvents += serviceAwardLogEntryCount;
 		}
 
-		const nsltBucket = stats.logEntriesByDateNsAndCt.find(x => x.namespace === logEntry.namespace
-			&& x.logType === logEntry.type
-			&& x.logAction === logEntry.action);
-		if (!nsltBucket) {
-			stats.logEntriesByDateNsAndCt.push({
-				namespace: logEntry.namespace,
-				logType: logEntry.type,
-				logAction: logEntry.action,
-				editsByDate: [{ date: logEntryDate, logEntries: 1, }]
-			});
-		} else {
-			const dailyNsBucket = nsltBucket.editsByDate.find(x => x.date.isSame(logEntryDate));
-			if (!dailyNsBucket) {
-				nsltBucket.editsByDate.push({ date: logEntryDate, logEntries: 1 });
+		if (typeof logEntry.namespace === "number" && logEntry.namespace >= 0) {
+			const nsltBucket = stats.logEntriesByDateNsAndCt.find(x => x.namespace === logEntry.namespace
+				&& x.logType === logEntry.type
+				&& x.logAction === logEntry.action);
+			if (!nsltBucket) {
+				stats.logEntriesByDateNsAndCt.push({
+					namespace: logEntry.namespace,
+					logType: logEntry.type,
+					logAction: logEntry.action,
+					editsByDate: [{ date: logEntryDate, logEntries: 1, }]
+				});
 			} else {
-				dailyNsBucket.logEntries++;
+				const dailyNsBucket = nsltBucket.editsByDate.find(x => x.date.isSame(logEntryDate));
+				if (!dailyNsBucket) {
+					nsltBucket.editsByDate.push({ date: logEntryDate, logEntries: 1 });
+				} else {
+					dailyNsBucket.logEntries++;
+				}
 			}
 		}
 	}
