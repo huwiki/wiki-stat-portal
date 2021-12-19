@@ -1,5 +1,6 @@
 import { HTMLTable, Spinner } from "@blueprintjs/core";
 import Axios from "axios";
+import * as classnames from "classnames";
 import { makeObservable, observable } from "mobx";
 import { observer } from "mobx-react";
 import moment from "moment";
@@ -19,6 +20,70 @@ import { ListsModule } from "../../../../server/modules/listsModule/listsModule"
 import { moduleManager } from "../../../../server/modules/moduleManager";
 import { ListDataResult } from "../../../api/lists/listData";
 
+type CellDataTypes = "date" | "datetime" | "string" | "integer" | "float" | "percentage" | "other";
+
+const DATATYPE_MAP: { [index: string]: CellDataTypes } = {
+	"counter": "integer",
+	"userName": "string",
+	"userGroups": "string",
+	"editsInPeriod": "integer",
+	"editsInPeriodPercentage": "percentage",
+	"editsSinceRegistration": "integer",
+	"editsSinceRegistrationPercentage": "percentage",
+	"revertedEditsInPeriod": "integer",
+	"revertedEditsInPeriodPercentage": "percentage",
+	"revertedEditsSinceRegistration": "integer",
+	"revertedEditsSinceRegistrationPercentage": "percentage",
+	"firstEditDate": "integer",
+	"lastEditDate": "integer",
+	"daysBetweenFirstAndLastEdit": "integer",
+	"characterChangesInPeriod": "integer",
+	"characterChangesInPeriodPercentage": "percentage",
+	"characterChangesSinceRegistration": "integer",
+	"characterChangesSinceRegistrationPercentage": "percentage",
+	"thanksInPeriod": "integer",
+	"thanksInPeriodPercentage": "percentage",
+	"thanksSinceRegistration": "integer",
+	"thanksSinceRegistrationPercentage": "percentage",
+	"logEventsInPeriod": "integer",
+	"logEventsInPeriodPercentage": "percentage",
+	"logEventsSinceRegistration": "integer",
+	"logEventsSinceRegistrationPercentage": "percentage",
+	"firstLogEventDate": "integer",
+	"lastLogEventDate": "integer",
+	"averageLogEventsPerDaySinceRegistration": "float",
+	"averageLogEventsPerDayInPeriod": "float",
+	"registrationDate": "integer",
+	"daysSinceRegistration": "integer",
+	"daysBetweenFirstAndLastLogEvent": "integer",
+	"activeDaysInPeriod": "integer",
+	"activeDaysSinceRegistration": "integer",
+	"averageEditsPerDaySinceRegistration": "float",
+	"averageEditsPerDayInPeriod": "float",
+	"levelAtPeriodStart": "integer",
+	"levelAtPeriodEnd": "integer",
+	"levelAtPeriodEndWithChange": "integer",
+	"editsInNamespaceInPeriod": "integer",
+	"editsInNamespaceInPeriodPercentage": "percentage",
+	"editsInNamespaceSinceRegistration": "integer",
+	"editsInNamespaceSinceRegistrationPercentage": "percentage",
+	"revertedEditsInNamespaceInPeriod": "integer",
+	"revertedEditsInNamespaceInPeriodPercentage": "percentage",
+	"revertedEditsInNamespaceSinceRegistration": "integer",
+	"revertedEditsInNamespaceSinceRegistrationPercentage": "percentage",
+	"characterChangesInNamespaceInPeriod": "integer",
+	"characterChangesInNamespaceInPeriodPercentage": "percentage",
+	"characterChangesInNamespaceSinceRegistration": "integer",
+	"characterChangesInNamespaceSinceRegistrationPercentage": "percentage",
+	"activeDaysInNamespaceInPeriod": "integer",
+	"activeDaysInNamespaceSinceRegistration": "integer",
+	"editsInPeriodByChangeTag": "integer",
+	"editsSinceRegistrationByChangeTag": "integer",
+	"characterChangesInPeriodByChangeTag": "integer",
+	"characterChangesSinceRegistrationByChangeTag": "integer",
+};
+
+
 interface ListByIdPageProps extends CommonPageProps {
 	wikiFound: boolean;
 	wikiId: string | null;
@@ -33,6 +98,10 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 	failedToLoad: boolean = false;
 	data: ListDataResult;
 
+	private intFormatter: Intl.NumberFormat;
+	private floatFormatter: Intl.NumberFormat;
+	private percentFormatter: Intl.NumberFormat;
+
 	constructor(props: ListByIdPageProps) {
 		super(props);
 
@@ -40,6 +109,22 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 			isLoading: observable,
 			failedToLoad: observable,
 			data: observable,
+		});
+
+		this.intFormatter = Intl.NumberFormat(this.props.languageCode, {
+			maximumFractionDigits: 0,
+			minimumFractionDigits: 0,
+		});
+
+		this.floatFormatter = Intl.NumberFormat(this.props.languageCode, {
+			maximumFractionDigits: 2,
+			minimumFractionDigits: 0,
+		});
+
+		this.percentFormatter = Intl.NumberFormat(this.props.languageCode, {
+			style: "percent",
+			maximumFractionDigits: 2,
+			minimumFractionDigits: 0,
 		});
 
 		if (this.props.wikiFound && this.props.listFound && this.props.list) {
@@ -103,7 +188,7 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 	}
 
 	private renderContent(): JSX.Element {
-		return <HTMLTable bordered striped condensed interactive>
+		return <HTMLTable className="wikiStatList" bordered striped condensed interactive>
 			<thead>
 				{this.renderTableColumnHeaders()}
 			</thead>
@@ -114,9 +199,24 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 	}
 
 	private renderTableColumnHeaders(): React.ReactNode {
-		return this.data.list.columns.map((col, idx) => <th key={idx.toString()}>
-			{col.headerI18nKey ? this.t(col.headerI18nKey) : col.type}
-		</th>);
+		return this.data.list.columns.map((col, idx) => {
+			const headerProps: React.ThHTMLAttributes<HTMLTableHeaderCellElement> = {};
+
+			const dataType: CellDataTypes = Object.prototype.hasOwnProperty.call(DATATYPE_MAP, col.type)
+				? DATATYPE_MAP[col.type]
+				: "other";
+
+			return <th
+				key={idx.toString()}
+				className={classnames({
+					[`listColumn-type-${col.type}`]: true,
+					[`listColumn-dataType-${dataType}`]: true
+				})}
+				{...headerProps}
+			>
+				{col.headerI18nKey ? this.t(col.headerI18nKey) : col.type}
+			</th>;
+		});
 	}
 
 	private renderTableRows(): React.ReactNode {
@@ -130,7 +230,11 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		return data.map((data, idx) => {
 			const columnDefinition = this.data.list.columns[idx];
 
-			let cellContent: React.ReactNode = "?";
+			const dataType: CellDataTypes = Object.prototype.hasOwnProperty.call(DATATYPE_MAP, columnDefinition.type)
+				? DATATYPE_MAP[columnDefinition.type]
+				: "other";
+
+			let cellContent: React.ReactNode = "–";
 			if (columnDefinition.type === "counter") {
 				cellContent = `${data}.`;
 			} else if (columnDefinition.type === "userName") {
@@ -143,14 +247,25 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 			} else if (columnDefinition.type === "levelAtPeriodEndWithChange") {
 				cellContent = this.renderUserLevelWithChange(data);
 			} else if (typeof data === "number") {
-				cellContent = data.toString();
+				if (dataType === "integer") {
+					cellContent = this.intFormatter.format(data);
+				} else if (dataType === "percentage") {
+					cellContent = this.percentFormatter.format(data);
+				} else if (dataType === "float") {
+					cellContent = this.floatFormatter.format(data);
+				}
 			} else if (typeof data === "string") {
 				cellContent = data;
 			} else if (Array.isArray(data) && data.length === 3) {
 				cellContent = moment.utc(data).format("YYYY-MM-DD");
 			}
 
-			return <td key={idx.toString()}>
+			return <td
+				key={idx.toString()}
+				className={classnames({
+					[`listColumn-type-${columnDefinition.type}`]: true,
+					[`listColumn-dataType-${dataType}`]: true
+				})}>
 				{cellContent}
 			</td>;
 		});

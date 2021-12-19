@@ -5,6 +5,7 @@ import "normalize.css/normalize.css";
 import * as React from "react";
 import { CommonPageProps } from "../common/interfaces/commonPageProps";
 import "../styles/globals.scss";
+import "../styles/lists.scss";
 
 interface WikiStatAppProps {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any

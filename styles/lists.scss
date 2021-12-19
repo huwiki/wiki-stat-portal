@@ -1,0 +1,19 @@
+.listColumn-type-userName {
+	width: 150px;
+}
+
+.listCell-type-userName {
+	.bp3-tag {
+		margin-left: 5px;
+	}
+}
+
+.listColumn-type-userGroups {
+	width: 100px;
+}
+
+.wikiStatList td.listCell-dataType-integer,
+.wikiStatList td.listCell-dataType-percentage,
+.wikiStatList td.listCell-dataType-float {
+	text-align: right;
+}

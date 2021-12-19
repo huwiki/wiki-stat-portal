@@ -136,6 +136,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 					}
 				} else if (isDate(dataFromQuery)) {
 					columns.push([dataFromQuery.getFullYear(), dataFromQuery.getMonth(), dataFromQuery.getDate()]);
+				} else if (typeof dataFromQuery === "string") {
+					if (dataFromQuery.indexOf(".") !== -1) {
+						const floatNumber = Number.parseFloat(dataFromQuery);
+						columns.push(Number.isNaN(floatNumber) ? "?" : floatNumber);
+					} else {
+						const intNumber = Number.parseInt(dataFromQuery);
+						columns.push(Number.isNaN(intNumber) ? "?" : intNumber);
+					}
 				} else {
 					columns.push(dataFromQuery ?? null);
 				}

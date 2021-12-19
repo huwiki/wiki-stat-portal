@@ -427,7 +427,7 @@
 			"id": "byEditCount",
 			"groupId": "topLists",
 			"i18nKey": "lists.list.topLists.byEditCount",
-			"itemCount": 10,
+			"itemCount": 500,
 			"columns": [
 				{
 					"type": "counter",
