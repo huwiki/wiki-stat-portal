@@ -202,18 +202,26 @@ function addUserRequirementFilters(
 
 	// User groups
 	if (typeof userRequirements.userGroups !== "undefined") {
-		for (const groupName of userRequirements.userGroups) {
-			query = query.andWhere(qb => {
-				const subQuery = qb.subQuery()
-					.select("1")
-					.from(wikiEntities.actorGroup, "gr")
-					.where("gr.actor_id = actor.actorId")
-					.andWhere("gr.group_name = :groupName", { groupName: groupName })
-					.getQuery();
+		const userGroups = userRequirements.userGroups;
 
-				return `EXISTS(${subQuery})`;
-			});
-		}
+		query = query.andWhere(qb => {
+			const whereParameters = {};
+			const whereClause = userGroups
+				.map((group: string): string => {
+					whereParameters[`group_${group}`] = group;
+					return `gr.group_name = :group_${group}`;
+				})
+				.join(" OR ");
+
+			const subQuery = qb.subQuery()
+				.select("1")
+				.from(wikiEntities.actorGroup, "gr")
+				.where("gr.actor_id = actor.actorId")
+				.andWhere(`(${whereClause})`, whereParameters)
+				.getQuery();
+
+			return `EXISTS(${subQuery})`;
+		});
 	}
 
 	// Total edits at least
