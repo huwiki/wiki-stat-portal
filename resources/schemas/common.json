@@ -30,6 +30,7 @@
 						"type": "string",
 						"enum": [
 							"bot",
+							"flaglessBot",
 							"bureaucrat",
 							"checkuser",
 							"editor",

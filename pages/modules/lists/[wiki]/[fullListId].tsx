@@ -1,4 +1,4 @@
-import { HTMLTable, Spinner } from "@blueprintjs/core";
+import { AnchorButton, Callout, HTMLTable, Intent, Menu, MenuDivider, MenuItem, Popover, Position, Spinner } from "@blueprintjs/core";
 import Axios from "axios";
 import * as classnames from "classnames";
 import { makeObservable, observable } from "mobx";
@@ -9,6 +9,7 @@ import { withRouter } from "next/router";
 import * as React from "react";
 import { PageFrame } from "../../../../client/components/pageFrame";
 import { NextBasePage } from "../../../../client/helpers/nextBasePage";
+import { FLAGLESS_BOT_VIRTUAL_GROUP_NAME } from "../../../../common/consts";
 import { CommonPageProps } from "../../../../common/interfaces/commonPageProps";
 import { isLocalizedListConfiguration, ListConfiguration, UserNameListColumn } from "../../../../common/modules/lists/listsConfiguration";
 import { MODULE_ICONS } from "../../../../common/modules/moduleIcons";
@@ -34,8 +35,8 @@ const DATATYPE_MAP: { [index: string]: CellDataTypes } = {
 	"revertedEditsInPeriodPercentage": "percentage",
 	"revertedEditsSinceRegistration": "integer",
 	"revertedEditsSinceRegistrationPercentage": "percentage",
-	"firstEditDate": "integer",
-	"lastEditDate": "integer",
+	"firstEditDate": "date",
+	"lastEditDate": "date",
 	"daysBetweenFirstAndLastEdit": "integer",
 	"characterChangesInPeriod": "integer",
 	"characterChangesInPeriodPercentage": "percentage",
@@ -49,11 +50,11 @@ const DATATYPE_MAP: { [index: string]: CellDataTypes } = {
 	"logEventsInPeriodPercentage": "percentage",
 	"logEventsSinceRegistration": "integer",
 	"logEventsSinceRegistrationPercentage": "percentage",
-	"firstLogEventDate": "integer",
-	"lastLogEventDate": "integer",
+	"firstLogEventDate": "date",
+	"lastLogEventDate": "date",
 	"averageLogEventsPerDaySinceRegistration": "float",
 	"averageLogEventsPerDayInPeriod": "float",
-	"registrationDate": "integer",
+	"registrationDate": "date",
 	"daysSinceRegistration": "integer",
 	"daysBetweenFirstAndLastLogEvent": "integer",
 	"activeDaysInPeriod": "integer",
@@ -81,6 +82,8 @@ const DATATYPE_MAP: { [index: string]: CellDataTypes } = {
 	"editsSinceRegistrationByChangeTag": "integer",
 	"characterChangesInPeriodByChangeTag": "integer",
 	"characterChangesSinceRegistrationByChangeTag": "integer",
+	"logEventsInPeriodByType": "integer",
+	"logEventsSinceRegistrationByType": "integer"
 };
 
 
@@ -149,7 +152,7 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 					endDate: "2021-11-15",
 					languageCode: this.props.languageCode
 				},
-				{ timeout: 100000 }
+				{ timeout: 500000 }
 			);
 
 			if (resp.status === 200) {
@@ -188,14 +191,22 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 	}
 
 	private renderContent(): JSX.Element {
-		return <HTMLTable className="wikiStatList" bordered striped condensed interactive>
-			<thead>
-				{this.renderTableColumnHeaders()}
-			</thead>
-			<tbody>
-				{this.renderTableRows()}
-			</tbody>
-		</HTMLTable>;
+		if (this.data.results.length === 0) {
+			return <Callout intent={Intent.PRIMARY}>
+				{this.t("lists.noUsersOnList")}
+			</Callout>;
+		}
+
+		return <>
+			<HTMLTable className="wikiStatList" bordered striped condensed interactive>
+				<thead>
+					{this.renderTableColumnHeaders()}
+				</thead>
+				<tbody>
+					{this.renderTableRows()}
+				</tbody>
+			</HTMLTable>
+		</>;
 	}
 
 	private renderTableColumnHeaders(): React.ReactNode {
@@ -220,9 +231,17 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 	}
 
 	private renderTableRows(): React.ReactNode {
-		return this.data.results.map((row) => <tr key={row.id.toString()}>
-			{this.renderTableRow(row.id, row.data)}
-		</tr>);
+		return this.data.results.map((row) => {
+			const classes = {
+				"listRow-fadeBot": this.props.list?.displaySettings?.fadeBots
+					&& row.actorGroups
+					&& (row.actorGroups.indexOf("bot") !== -1 || row.actorGroups.indexOf(FLAGLESS_BOT_VIRTUAL_GROUP_NAME) !== -1)
+			};
+
+			return <tr className={classnames(classes)} key={row.id.toString()}>
+				{this.renderTableRow(row.id, row.data)}
+			</tr>;
+		});
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -253,18 +272,22 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 					cellContent = this.percentFormatter.format(data);
 				} else if (dataType === "float") {
 					cellContent = this.floatFormatter.format(data);
+				} else {
+					cellContent = `${columnDefinition.type}, ${dataType}: ${data}`;
 				}
 			} else if (typeof data === "string") {
 				cellContent = data;
 			} else if (Array.isArray(data) && data.length === 3) {
 				cellContent = moment.utc(data).format("YYYY-MM-DD");
+			} else {
+				cellContent = `${typeof data}: ${data}`;
 			}
 
 			return <td
 				key={idx.toString()}
 				className={classnames({
-					[`listColumn-type-${columnDefinition.type}`]: true,
-					[`listColumn-dataType-${dataType}`]: true
+					[`listCell-type-${columnDefinition.type}`]: true,
+					[`listCell-dataType-${dataType}`]: true
 				})}>
 				{cellContent}
 			</td>;
@@ -280,39 +303,44 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 
 		if (columnDefinition.userLinks?.talkPage === true) {
 			userLinks.push(
-				<a key="talkPage"
+				<MenuItem key="talkPage"
 					href={ListByIdPage.makeWikiLink(this.props.wikiBaseUrl, `User talk:${userName}`)}
 					target="_blank"
 					rel="noreferrer"
-				>
-					vita
-				</a>
+					icon="chat"
+					text={this.t("lists.userLinks.talkPage")}
+				/>
 			);
 		}
 
 		if (columnDefinition.userLinks?.edits === true) {
 			userLinks.push(
-				<a key="contributions"
+				<MenuItem key="contributions"
 					href={ListByIdPage.makeWikiLink(this.props.wikiBaseUrl, `Special:Contributions/${userName}`)}
 					target="_blank"
 					rel="noreferrer"
-				>
-					szerk.
-				</a>
+					icon="history"
+					text={this.t("lists.userLinks.contributions")}
+				/>
 			);
 		}
 
 		return <>
-			<b>{userName}</b>
-			{userLinks.length > 0 && <>
-				{" "}
-				( {userLinks.map((ele, idx) => <React.Fragment key={idx.toString()}>
-					{idx > 0 && " | "}
-					{ele}
-				</React.Fragment>)} )
-			</>}
-			<br />
-			<code>actorId: {actorId}</code>
+			<div className="userNameCell-firstRow">
+				<b>{userName}</b>
+				{userLinks.length > 0 && <Popover
+					position={Position.BOTTOM}
+					content={<Menu>
+						{userLinks}
+						<MenuDivider title="Debug info" />
+						<MenuItem
+							text={`actor id: ${actorId}`}
+						/>
+					</Menu>}
+				>
+					<AnchorButton className="userLinks-button" small minimal icon="menu" />
+				</Popover>}
+			</div>
 		</>;
 	}
 
@@ -320,7 +348,7 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		if (!groups || Array.isArray(groups) === false)
 			return "";
 
-		const groupsLocalized = groups.map(group => this.t(`userGroup.${group}`));
+		const groupsLocalized = groups.map(group => this.t(`userGroup.${group}.member`));
 		return groupsLocalized.join(", ");
 	}
 

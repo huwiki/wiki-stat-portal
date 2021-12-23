@@ -29,6 +29,7 @@ export interface NonLocalizedListConfiguration {
 	isTimeless: boolean;
 	columns: ListColumn[];
 	orderBy: ListOrderBy[];
+	displaySettings: ListDisplaySettings;
 }
 
 export function isNonLocalizedListConfiguration(obj: unknown): obj is NonLocalizedListConfiguration {
@@ -49,6 +50,7 @@ export interface LocalizedListConfiguration {
 	userRequirements: UserRequirements;
 	columns: ListColumn[];
 	orderBy: ListOrderBy[];
+	displaySettings: ListDisplaySettings;
 }
 
 export function isLocalizedListConfiguration(obj: unknown): obj is LocalizedListConfiguration {
@@ -58,6 +60,10 @@ export function isLocalizedListConfiguration(obj: unknown): obj is LocalizedList
 		&& typeof obj["groupId"] === "string"
 		&& typeof obj["i18nKey"] === "string"
 		&& typeof obj["orderBy"] === "object";
+}
+
+export interface ListDisplaySettings {
+	fadeBots: boolean;
 }
 
 export type ListColumn =

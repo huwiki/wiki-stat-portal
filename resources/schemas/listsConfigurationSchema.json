@@ -60,6 +60,9 @@
 				},
 				"orderBy": {
 					"$ref": "#/definitions/listOrderByList"
+				},
+				"displaySettings": {
+					"$ref": "#/definitions/listDisplaySettings"
 				}
 			},
 			"required": [
@@ -98,6 +101,9 @@
 				},
 				"orderBy": {
 					"$ref": "#/definitions/listOrderByList"
+				},
+				"displaySettings": {
+					"$ref": "#/definitions/listDisplaySettings"
 				}
 			},
 			"required": [
@@ -415,6 +421,15 @@
 				"columnId",
 				"direction"
 			]
+		},
+		"listDisplaySettings": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"fadeBots": {
+					"type": "boolean"
+				}
+			}
 		}
 	}
 }

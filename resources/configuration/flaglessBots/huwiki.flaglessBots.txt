@@ -1,1 +1,10 @@
 AsgardBot
+DhanakBot
+EscarBot
+FlaBot
+GlanthorBot
+NyenyecBot
+Thijs!Bot
+YurikBot
+Zwobot
+TuvicBot
