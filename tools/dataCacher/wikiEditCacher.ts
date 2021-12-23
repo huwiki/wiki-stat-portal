@@ -375,7 +375,7 @@ export class WikiEditCacher {
 			return;
 		}
 
-		this.logger.info(`[processRevisionList/${this.wiki.id}] Revision ${revertRevision.id} is a revert edit: ${revertChangeTag.params}.`);
+		this.logger.info(`[processRevisionList/${this.wiki.id}] Revision ${revertRevision.id} is a revert edit; pageId: ${revertRevision.pageId}; params: ${revertChangeTag.params}.`);
 
 		const referencedRevisions = await this.replicatedDatabaseConnection.getRepository(Revision)
 			.createQueryBuilder("rev")
@@ -383,7 +383,7 @@ export class WikiEditCacher {
 			.leftJoinAndSelect("rev.actor", "act")
 			.leftJoinAndSelect("act.user", "usr")
 			.where("rev.pageId = :pageId", { pageId: revertRevision.pageId })
-			.where("rev.id >= :oldestRevertedRevId", { oldestRevertedRevId: params.oldestRevertedRevId })
+			.andWhere("rev.id >= :oldestRevertedRevId", { oldestRevertedRevId: params.oldestRevertedRevId })
 			.andWhere("rev.id <= :newestRevertedRevId", { newestRevertedRevId: params.newestRevertedRevId })
 			.orderBy("rev.id", "ASC")
 			.getMany();
