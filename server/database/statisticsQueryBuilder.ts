@@ -473,13 +473,13 @@ function addSingleColumSelect(
 			break;
 
 		case "firstEditDate":
-			query = query.addSelect("firstEditDate.date", selectedColumnName);
+			query = query.addSelect("editDates.firstEditDate", selectedColumnName);
 			break;
 		case "lastEditDate":
-			query = query.addSelect("lastEditDate.date", selectedColumnName);
+			query = query.addSelect("editDates.lastEditDate", selectedColumnName);
 			break;
 		case "daysBetweenFirstAndLastEdit":
-			query = query.addSelect("DATEDIFF(lastEditDate.date, firstEditDate.date)", selectedColumnName);
+			query = query.addSelect("DATEDIFF(editDates.lastEditDate, editDates.firstEditDate)", selectedColumnName);
 			break;
 
 		case "averageEditsPerDayInPeriod":
@@ -1005,32 +1005,31 @@ function addColumnJoins(
 		);
 	}
 
-	if (columns.find(x => x.type === "firstEditDate" || x.type === "daysBetweenFirstAndLastEdit")) {
-		query = query.leftJoin(qb => {
-			return qb.subQuery()
-				.select("ads.actorId", "actorId")
-				.addSelect("MIN(date)", "date")
-				.from(wikiEntities.actorDailyStatistics, "ads")
-				.where(
-					"ads.date <= :endDate", { endDate: endDate }
-				)
-				.andWhere("ads.daily_edits > 0")
-				.groupBy("ads.actorId");
-		}, "firstEditDate", "firstEditDate.actorId = actor.actorId");
-	}
+	const needsDaysBetweenFirstAndLastEdit = columns.findIndex(x => x.type === "daysBetweenFirstAndLastEdit") !== -1;
+	const needsFirstEditDate = needsDaysBetweenFirstAndLastEdit || columns.findIndex(x => x.type === "firstEditDate") !== -1;
+	const needsLastEditDate = needsDaysBetweenFirstAndLastEdit || columns.findIndex(x => x.type === "lastEditDate") !== -1;
 
-	if (columns.find(x => x.type === "lastEditDate" || x.type === "daysBetweenFirstAndLastEdit")) {
+	if (needsDaysBetweenFirstAndLastEdit || needsFirstEditDate || needsLastEditDate) {
 		query = query.leftJoin(qb => {
-			return qb.subQuery()
-				.select("ads.actorId", "actorId")
-				.addSelect("MAX(date)", "date")
+			let subQuery = qb.subQuery()
+				.select("ads.actorId", "actorId");
+
+			if (needsFirstEditDate) {
+				subQuery = subQuery.addSelect("MIN(date)", "firstEditDate");
+			}
+
+			if (needsLastEditDate) {
+				subQuery = subQuery.addSelect("MAX(date)", "lastEditDate");
+			}
+
+			return subQuery
 				.from(wikiEntities.actorDailyStatistics, "ads")
 				.where(
 					"ads.date <= :endDate", { endDate: endDate }
 				)
 				.andWhere("ads.daily_edits > 0")
 				.groupBy("ads.actorId");
-		}, "lastEditDate", "lastEditDate.actorId = actor.actorId");
+		}, "editDates", "editDates.actorId = actor.actorId");
 	}
 
 	if (columns.find(x => x.type === "firstLogEventDate" || x.type === "daysBetweenFirstAndLastLogEvent")) {

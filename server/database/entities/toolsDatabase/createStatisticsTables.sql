@@ -58,7 +58,8 @@ CREATE TABLE `huwiki_actor_daily_stats_v2` (
 	`daily_saward_log_events` int(11) NOT NULL,
 	`saward_log_events_to_date` int(11) NOT NULL,
 	PRIMARY KEY (`actor_id`, `date`),
-	CONSTRAINT `huwiki_actor_daily_stats_v2_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiki_actor_v2` (`actor_id`) ON DELETE CASCADE ON UPDATE CASCADE
+	CONSTRAINT `huwiki_actor_daily_stats_v2_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiki_actor_v2` (`actor_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+	INDEX `huwiki_actor_daily_stats_v2_date` (`date`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 CREATE TABLE `huwiki_daily_stats_by_ns_v2` (
 	`namespace` int(11) NOT NULL,
@@ -86,7 +87,8 @@ CREATE TABLE `huwiki_actor_daily_stats_by_ns_v2` (
 	`daily_log_events` int(11) NOT NULL,
 	`log_events_to_date` int(11) NOT NULL,
 	PRIMARY KEY (`actor_id`, `namespace`, `date`),
-	CONSTRAINT `huwiki_actor_daily_stats_by_ns_v2_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiki_actor_v2` (`actor_id`) ON DELETE CASCADE ON UPDATE CASCADE
+	CONSTRAINT `huwiki_actor_daily_stats_by_ns_v2_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiki_actor_v2` (`actor_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+	INDEX `huwiki_actor_daily_stats_by_ns_v2_date` (`date`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 CREATE TABLE `huwiki_edit_stats_by_nsct_v2` (
 	`namespace` int(11) NOT NULL,
