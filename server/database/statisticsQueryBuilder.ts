@@ -1409,25 +1409,11 @@ function createNamespaceWhereClauseFromNamespaceDefinition(
 	queryBuilder: SelectQueryBuilder<any>,
 	tableAlias: string
 ) {
-	/*if (typeof namespaceCollection.namespace === "number") {*/
 	queryBuilder = queryBuilder.andWhere(
 		`${tableAlias}.namespace = :namespace${namespaceCollection.namespace}`,
 		{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
 	);
-	/*} else {
-		const whereParameters = {};
-		const whereClause = namespaceCollection.namespace
-			.map((ele: number): string => {
-				whereParameters[`namespace${ele}`] = ele;
-				return `${tableAlias}.namespace = :namespace${ele}`;
-			})
-			.join(" OR ");
 
-		queryBuilder = queryBuilder.andWhere(
-			`(${whereClause})`,
-			whereParameters
-		);
-	}*/
 	return queryBuilder;
 }
 
