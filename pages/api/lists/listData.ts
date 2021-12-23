@@ -20,6 +20,7 @@ export interface ListDataResult {
 export interface ListDataEntry {
 	id: number;
 	actorName: string;
+	actorGroups: string[] | null;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	data: any[];
 }
@@ -75,18 +76,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		});
 
 		const actorGroupMap: Map<number, string[]> = new Map();
-		if (list.columns.find(x => x.type === "userGroups")) {
-			const actorGroups = await conn.getRepository(wikiEntities.actorGroup)
-				.createQueryBuilder()
-				.getMany();
+		const actorGroups = await conn.getRepository(wikiEntities.actorGroup)
+			.createQueryBuilder()
+			.getMany();
 
-			for (const actorGroup of actorGroups) {
-				const actorArr = actorGroupMap.get(actorGroup.actorId);
-				if (actorArr) {
-					actorArr.push(actorGroup.groupName);
-				} else {
-					actorGroupMap.set(actorGroup.actorId, [actorGroup.groupName]);
-				}
+		for (const actorGroup of actorGroups) {
+			const actorArr = actorGroupMap.get(actorGroup.actorId);
+			if (actorArr) {
+				actorArr.push(actorGroup.groupName);
+			} else {
+				actorGroupMap.set(actorGroup.actorId, [actorGroup.groupName]);
 			}
 		}
 
@@ -98,6 +97,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		let counter = 1;
 		for (const actorLike of resultActors) {
 			console.log(actorLike);
+			const userGroups = actorGroupMap.get(actorLike.actorId) ?? null;
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const columns: any[] = [];
 
@@ -110,7 +110,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				} else if (columnDefinition.type === "userName") {
 					columns.push(actorLike.actorName ?? "?");
 				} else if (columnDefinition.type === "userGroups") {
-					const userGroups = actorGroupMap.get(actorLike.actorId);
 					columns.push(userGroups ?? null);
 				} else if (columnDefinition.type === "levelAtPeriodStart") {
 					const startLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "start");
@@ -154,6 +153,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			listData.results.push({
 				id: actorLike.actorId,
 				actorName: actorLike.actorName ?? "?",
+				actorGroups: userGroups,
 				data: columns,
 			});
 			counter++;

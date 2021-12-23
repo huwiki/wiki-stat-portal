@@ -3,7 +3,7 @@ import { Connection, SelectQueryBuilder } from "typeorm";
 import { UserRequirements } from "../../common/modules/commonConfiguration";
 import { AllColumnTypes, ChangeTagFilterDefinition, ListColumn, ListOrderBy, LogFilterDefinition } from "../../common/modules/lists/listsConfiguration";
 import { AppRunningContext } from "../appRunningContext";
-import { arrayHasAny, sequenceEqual } from "../helpers/collectionUtils";
+import { arrayHasAny } from "../helpers/collectionUtils";
 import { ActorTypeModel, DailyStatisticsByNamespaceTypeModel, DailyStatisticsTypeModel, WikiStatisticsTypesResult } from "./entities/toolsDatabase/actorByWiki";
 
 type RequiredColumns = {
@@ -16,17 +16,17 @@ type RequiredColumns = {
 
 
 type NamespaceRequiredColumns = RequiredColumns & {
-	namespace: number | number[];
+	namespace: number;
 };
 
 type LogTypeStatisticsRequiredColumns = RequiredColumns & {
 	serializedLogFilter: string;
-	logFilter: LogFilterDefinition | LogFilterDefinition[];
+	logFilter: LogFilterDefinition;
 };
 
 type ChangeTagStatisticsRequiredColumns = RequiredColumns & {
 	serializedChangeTagFilter: string;
-	changeTagFilter: ChangeTagFilterDefinition | ChangeTagFilterDefinition[];
+	changeTagFilter: ChangeTagFilterDefinition;
 };
 
 interface StatisticsQueryBuildingContext {
@@ -328,27 +328,77 @@ function addSingleColumSelect(
 			break;
 
 		case "editsInNamespaceInPeriod":
-			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorEditsInPeriod, 0)`, selectedColumnName);
+			if (Array.isArray(column.namespace)) {
+				query = query.addSelect(column.namespace.map(columnPart => {
+					return `IFNULL(ns${formatNamespaceParameter(columnPart)}PeriodActorStatistics.actorEditsInPeriod, 0)`;
+				}).join(" + "), selectedColumnName);
+			} else {
+				query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorEditsInPeriod, 0)`, selectedColumnName);
+			}
 			break;
 		case "editsInNamespaceInPeriodPercentage":
-			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorEditsInPeriod`
-				+ ` / ns${formatNamespaceParameter(column.namespace)}PeriodWikiStatistics.wikiEditsInPeriod * 100, 0)`, selectedColumnName);
+			if (Array.isArray(column.namespace)) {
+				query = query.addSelect(
+					"IFNULL((" + column.namespace.map(columnPart => {
+						return `IFNULL(ns${formatNamespaceParameter(columnPart)}PeriodActorStatistics.actorEditsInPeriod, 0)`;
+					}).join(" + ") + ")"
+					+ " / "
+					+ "(" + column.namespace.map(columnPart => {
+						return `IFNULL(ns${formatNamespaceParameter(columnPart)}PeriodWikiStatistics.totalEdits, 0)`;
+					}).join(" + ") + ")"
+					+ " * 100, 0)", selectedColumnName);
+			} else {
+				query = query.addSelect(
+					`IFNULL((ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorEditsInPeriod)`
+					+ " / "
+					+ `(ns${formatNamespaceParameter(column.namespace)}PeriodWikiStatistics.totalEdits) * 100, 0)`, selectedColumnName);
+			}
 			break;
 		case "editsInNamespaceSinceRegistration":
-			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalEdits, 0)`, selectedColumnName);
+			if (Array.isArray(column.namespace)) {
+				query = query.addSelect(column.namespace.map(columnPart => {
+					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.totalEdits, 0)`;
+				}).join(" + "), selectedColumnName);
+			} else {
+				query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalEdits, 0)`, selectedColumnName);
+			}
 			break;
 		case "editsInNamespaceSinceRegistrationPercentage":
-			query = query.addSelect(
-				`IFNULL((ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalEdits)`
-				+ " / "
-				+ `(ns${formatNamespaceParameter(column.namespace)}SinceStartWikiStatistics.totalEdits) * 100, 0)`, selectedColumnName);
+			if (Array.isArray(column.namespace)) {
+				query = query.addSelect(
+					"IFNULL((" + column.namespace.map(columnPart => {
+						return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.totalEdits, 0)`;
+					}).join(" + ") + ")"
+					+ " / "
+					+ "(" + column.namespace.map(columnPart => {
+						return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.totalEdits, 0)`;
+					}).join(" + ") + ")"
+					+ " * 100, 0)", selectedColumnName);
+			} else {
+				query = query.addSelect(
+					`IFNULL((ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalEdits)`
+					+ " / "
+					+ `(ns${formatNamespaceParameter(column.namespace)}SinceStartWikiStatistics.totalEdits) * 100, 0)`, selectedColumnName);
+			}
 			break;
 
 		case "editsInPeriodByChangeTag":
-			query = query.addSelect(`IFNULL(ct${formatChangeTagFilterDefinitionCollection(column.changeTag)}PeriodActorStatistics.editsInPeriod, 0)`, selectedColumnName);
+			if (Array.isArray(column.changeTag)) {
+				query = query.addSelect(column.changeTag.map(changeTagPart => {
+					return `IFNULL(ct${formatChangeTagFilterDefinitionCollection(changeTagPart)}PeriodActorStatistics.editsInPeriod, 0)`;
+				}).join(" + "), selectedColumnName);
+			} else {
+				query = query.addSelect(`IFNULL(ct${formatChangeTagFilterDefinitionCollection(column.changeTag)}PeriodActorStatistics.editsInPeriod, 0)`, selectedColumnName);
+			}
 			break;
 		case "editsSinceRegistrationByChangeTag":
-			query = query.addSelect(`IFNULL(ct${formatChangeTagFilterDefinitionCollection(column.changeTag)}SinceRegistrationActorStatistics.totalEdits, 0)`, selectedColumnName);
+			if (Array.isArray(column.changeTag)) {
+				query = query.addSelect(column.changeTag.map(changeTagPart => {
+					return `IFNULL(ct${formatChangeTagFilterDefinitionCollection(changeTagPart)}SinceRegistrationActorStatistics.totalEdits, 0)`;
+				}).join(" + "), selectedColumnName);
+			} else {
+				query = query.addSelect(`IFNULL(ct${formatChangeTagFilterDefinitionCollection(column.changeTag)}SinceRegistrationActorStatistics.totalEdits, 0)`, selectedColumnName);
+			}
 			break;
 
 		case "revertedEditsInPeriod":
@@ -368,19 +418,58 @@ function addSingleColumSelect(
 			break;
 
 		case "revertedEditsInNamespaceInPeriod":
-			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorRevertedEditsInPeriod, 0)`, selectedColumnName);
+			if (Array.isArray(column.namespace)) {
+				query = query.addSelect(column.namespace.map(columnPart => {
+					return `IFNULL(ns${formatNamespaceParameter(columnPart)}PeriodActorStatistics.actorRevertedEditsInPeriod, 0)`;
+				}).join(" + "), selectedColumnName);
+			} else {
+				query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorRevertedEditsInPeriod, 0)`, selectedColumnName);
+			}
 			break;
 		case "revertedEditsInNamespaceInPeriodPercentage":
-			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorRevertedEditsInPeriod / ns${formatNamespaceParameter(column.namespace)}PeriodWikiStatistics.wikiRevertedEditsInPeriod * 100, 0)`, selectedColumnName);
+			if (Array.isArray(column.namespace)) {
+				query = query.addSelect(
+					"IFNULL((" + column.namespace.map(columnPart => {
+						return `IFNULL(ns${formatNamespaceParameter(columnPart)}PeriodActorStatistics.actorRevertedEditsInPeriod, 0)`;
+					}).join(" + ") + ")"
+					+ " / "
+					+ "(" + column.namespace.map(columnPart => {
+						return `IFNULL(ns${formatNamespaceParameter(columnPart)}PeriodWikiStatistics.totalRevertedEdits, 0)`;
+					}).join(" + ") + ")"
+					+ " * 100, 0)", selectedColumnName);
+			} else {
+				query = query.addSelect(
+					`IFNULL((ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorRevertedEditsInPeriod)`
+					+ " / "
+					+ `(ns${formatNamespaceParameter(column.namespace)}PeriodWikiStatistics.totalRevertedEdits) * 100, 0)`, selectedColumnName);
+			}
 			break;
 		case "revertedEditsInNamespaceSinceRegistration":
-			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalRevertedEdits, 0)`, selectedColumnName);
+			if (Array.isArray(column.namespace)) {
+				query = query.addSelect(column.namespace.map(columnPart => {
+					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.totalRevertedEdits, 0)`;
+				}).join(" + "), selectedColumnName);
+			} else {
+				query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalRevertedEdits, 0)`, selectedColumnName);
+			}
 			break;
 		case "revertedEditsInNamespaceSinceRegistrationPercentage":
-			query = query.addSelect(
-				`IFNULL((ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalRevertedEdits)`
-				+ " / "
-				+ `(ns${formatNamespaceParameter(column.namespace)}SinceStartWikiStatistics.totalRevertedEdits) * 100, 0)`, selectedColumnName);
+			if (Array.isArray(column.namespace)) {
+				query = query.addSelect(
+					"IFNULL((" + column.namespace.map(columnPart => {
+						return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.totalRevertedEdits, 0)`;
+					}).join(" + ") + ")"
+					+ " / "
+					+ "(" + column.namespace.map(columnPart => {
+						return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.totalRevertedEdits, 0)`;
+					}).join(" + ") + ")"
+					+ " * 100, 0)", selectedColumnName);
+			} else {
+				query = query.addSelect(
+					`IFNULL((ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalRevertedEdits)`
+					+ " / "
+					+ `(ns${formatNamespaceParameter(column.namespace)}SinceStartWikiStatistics.totalRevertedEdits) * 100, 0)`, selectedColumnName);
+			}
 			break;
 
 		case "firstEditDate":
@@ -419,19 +508,58 @@ function addSingleColumSelect(
 			break;
 
 		case "characterChangesInNamespaceInPeriod":
-			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorCharacterChangesInPeriod, 0)`, selectedColumnName);
+			if (Array.isArray(column.namespace)) {
+				query = query.addSelect(column.namespace.map(columnPart => {
+					return `IFNULL(ns${formatNamespaceParameter(columnPart)}PeriodActorStatistics.actorCharacterChangesInPeriod, 0)`;
+				}).join(" + "), selectedColumnName);
+			} else {
+				query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorCharacterChangesInPeriod, 0)`, selectedColumnName);
+			}
 			break;
 		case "characterChangesInNamespaceInPeriodPercentage":
-			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorCharacterChangesInPeriod / ns${formatNamespaceParameter(column.namespace)}PeriodWikiStatistics.wikiCharacterChangesInPeriod * 100, 0)`, selectedColumnName);
+			if (Array.isArray(column.namespace)) {
+				query = query.addSelect(
+					"IFNULL((" + column.namespace.map(columnPart => {
+						return `IFNULL(ns${formatNamespaceParameter(columnPart)}PeriodActorStatistics.actorCharacterChangesInPeriod, 0)`;
+					}).join(" + ") + ")"
+					+ " / "
+					+ "(" + column.namespace.map(columnPart => {
+						return `IFNULL(ns${formatNamespaceParameter(columnPart)}PeriodWikiStatistics.wikiCharacterChangesInPeriod, 0)`;
+					}).join(" + ") + ")"
+					+ " * 100, 0)", selectedColumnName);
+			} else {
+				query = query.addSelect(
+					`IFNULL((ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorCharacterChangesInPeriod)`
+					+ " / "
+					+ `(ns${formatNamespaceParameter(column.namespace)}PeriodWikiStatistics.wikiCharacterChangesInPeriod) * 100, 0)`, selectedColumnName);
+			}
 			break;
 		case "characterChangesInNamespaceSinceRegistration":
-			query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalCharacterChanges, 0)`, selectedColumnName);
+			if (Array.isArray(column.namespace)) {
+				query = query.addSelect(column.namespace.map(columnPart => {
+					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.totalCharacterChanges, 0)`;
+				}).join(" + "), selectedColumnName);
+			} else {
+				query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalCharacterChanges, 0)`, selectedColumnName);
+			}
 			break;
 		case "characterChangesInNamespaceSinceRegistrationPercentage":
-			query = query.addSelect(
-				`IFNULL((ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalCharacterChanges)`
-				+ " / "
-				+ `(ns${formatNamespaceParameter(column.namespace)}SinceStartWikiStatistics.totalCharacterChanges) * 100, 0)`, selectedColumnName);
+			if (Array.isArray(column.namespace)) {
+				query = query.addSelect(
+					"IFNULL((" + column.namespace.map(columnPart => {
+						return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.totalCharacterChanges, 0)`;
+					}).join(" + ") + ")"
+					+ " / "
+					+ "(" + column.namespace.map(columnPart => {
+						return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.totalCharacterChanges, 0)`;
+					}).join(" + ") + ")"
+					+ " * 100, 0)", selectedColumnName);
+			} else {
+				query = query.addSelect(
+					`IFNULL((ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalCharacterChanges)`
+					+ " / "
+					+ `(ns${formatNamespaceParameter(column.namespace)}SinceStartWikiStatistics.totalCharacterChanges) * 100, 0)`, selectedColumnName);
+			}
 			break;
 
 		case "characterChangesInPeriodByChangeTag":
@@ -474,10 +602,22 @@ function addSingleColumSelect(
 			break;
 
 		case "logEventsInPeriodByType":
-			query = query.addSelect(`IFNULL(log${formatLogFilterDefinitionCollection(column.logFilter)}PeriodActorStatistics.logEventsInPeriod, 0)`, selectedColumnName);
+			if (Array.isArray(column.logFilter)) {
+				query = query.addSelect(column.logFilter.map(logFilterPart => {
+					return `IFNULL(log${formatLogFilterDefinitionCollection(logFilterPart)}PeriodActorStatistics.logEventsInPeriod, 0)`;
+				}).join(" + "), selectedColumnName);
+			} else {
+				query = query.addSelect(`IFNULL(log${formatLogFilterDefinitionCollection(column.logFilter)}PeriodActorStatistics.logEventsInPeriod, 0)`, selectedColumnName);
+			}
 			break;
 		case "logEventsSinceRegistrationByType":
-			query = query.addSelect(`IFNULL(log${formatLogFilterDefinitionCollection(column.logFilter)}SinceRegistrationActorStatistics.totalLogEvents, 0)`, selectedColumnName);
+			if (Array.isArray(column.logFilter)) {
+				query = query.addSelect(column.logFilter.map(logFilterPart => {
+					return `IFNULL(log${formatLogFilterDefinitionCollection(logFilterPart)}SinceRegistrationActorStatistics.totalLogEvents, 0)`;
+				}).join(" + "), selectedColumnName);
+			} else {
+				query = query.addSelect(`IFNULL(log${formatLogFilterDefinitionCollection(column.logFilter)}SinceRegistrationActorStatistics.totalLogEvents, 0)`, selectedColumnName);
+			}
 			break;
 
 		case "averageLogEventsPerDayInPeriod":
@@ -574,54 +714,94 @@ function addColumnJoins(
 
 	for (const column of columns) {
 		switch (column.type) {
-
 			case "editsInPeriod":
+			case "revertedEditsInPeriod":
+			case "characterChangesInPeriod":
+			case "thanksInPeriod":
+			case "logEventsInPeriod":
 				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
 				break;
+
 			case "editsInPeriodPercentage":
+			case "revertedEditsInPeriodPercentage":
+			case "characterChangesInPeriodPercentage":
+			case "thanksInPeriodPercentage":
+			case "logEventsInPeriodPercentage":
 				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
 				ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.push(column.type);
 				break;
+
 			case "editsSinceRegistration":
+			case "revertedEditsSinceRegistration":
+			case "characterChangesSinceRegistration":
+			case "thanksSinceRegistration":
+			case "logEventsSinceRegistration":
 				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
 				break;
+
 			case "editsSinceRegistrationPercentage":
+			case "revertedEditsSinceRegistrationPercentage":
+			case "characterChangesSinceRegistrationPercentage":
+			case "thanksSinceRegistrationPercentage":
+			case "logEventsSinceRegistrationPercentage":
 				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
 				ctx.columns.requiredColumnsForSinceRegisteredWikiStatistics.push(column.type);
 				break;
 
-			case "editsInNamespaceInPeriod": {
-				const namespaceCollector = getOrCreateNamespaceCollector(ctx, column.namespace);
-				namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
+			case "editsInNamespaceInPeriod":
+			case "revertedEditsInNamespaceInPeriod":
+			case "characterChangesInNamespaceInPeriod": {
+				for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
+					const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
+					namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
+				}
 				break;
 			}
-			case "editsInNamespaceInPeriodPercentage": {
-				const namespaceCollector = getOrCreateNamespaceCollector(ctx, column.namespace);
-				namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				namespaceCollector.requiredColumnsForSelectedPeriodWikiStatistics.push(column.type);
+			case "editsInNamespaceInPeriodPercentage":
+			case "revertedEditsInNamespaceInPeriodPercentage":
+			case "characterChangesInNamespaceInPeriodPercentage": {
+				for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
+					const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
+					namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
+					namespaceCollector.requiredColumnsForSelectedPeriodWikiStatistics.push(column.type);
+				}
 				break;
 			}
-			case "editsInNamespaceSinceRegistration": {
-				const namespaceCollector = getOrCreateNamespaceCollector(ctx, column.namespace);
-				namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
+			case "editsInNamespaceSinceRegistration":
+			case "revertedEditsInNamespaceSinceRegistration":
+			case "characterChangesInNamespaceSinceRegistration": {
+				for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
+					const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
+					namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
+				}
 				break;
 			}
-			case "editsInNamespaceSinceRegistrationPercentage": {
-				const namespaceCollector = getOrCreateNamespaceCollector(ctx, column.namespace);
-				namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				namespaceCollector.requiredColumnsForSinceRegisteredWikiStatistics.push(column.type);
+			case "editsInNamespaceSinceRegistrationPercentage":
+			case "revertedEditsInNamespaceSinceRegistrationPercentage":
+			case "characterChangesInNamespaceSinceRegistrationPercentage": {
+				for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
+					const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
+					namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
+					namespaceCollector.requiredColumnsForSinceRegisteredWikiStatistics.push(column.type);
+				}
 				break;
 			}
 
-			case "editsInPeriodByChangeTag": {
-				const namespaceCollector = getOrCreateChangeTagCollector(ctx, column.changeTag);
-				namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
+			case "editsInPeriodByChangeTag":
+			case "characterChangesInPeriodByChangeTag": {
+				for (const ct of Array.isArray(column.changeTag) ? column.changeTag : [column.changeTag]) {
+					const namespaceCollector = getOrCreateChangeTagCollector(ctx, ct);
+					namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
+				}
 				break;
 			}
 
-			case "editsSinceRegistrationByChangeTag": {
-				const namespaceCollector = getOrCreateChangeTagCollector(ctx, column.changeTag);
-				namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
+			case "editsSinceRegistrationByChangeTag":
+			case "characterChangesSinceRegistrationByChangeTag": {
+				for (const ct of Array.isArray(column.changeTag) ? column.changeTag : [column.changeTag]) {
+					const namespaceCollector = getOrCreateChangeTagCollector(ctx, ct);
+					namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
+				}
 				break;
 			}
 
@@ -632,132 +812,18 @@ function addColumnJoins(
 				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push("editsSinceRegistration");
 				break;
 
-			case "revertedEditsInPeriod":
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				break;
-			case "revertedEditsInPeriodPercentage":
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.push(column.type);
-				break;
-			case "revertedEditsSinceRegistration":
-				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				break;
-			case "revertedEditsSinceRegistrationPercentage":
-				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				ctx.columns.requiredColumnsForSinceRegisteredWikiStatistics.push(column.type);
-				break;
-
-			case "revertedEditsInNamespaceInPeriod": {
-				const namespaceCollector = getOrCreateNamespaceCollector(ctx, column.namespace);
-				namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				break;
-			}
-			case "revertedEditsInNamespaceInPeriodPercentage": {
-				const namespaceCollector = getOrCreateNamespaceCollector(ctx, column.namespace);
-				namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				namespaceCollector.requiredColumnsForSelectedPeriodWikiStatistics.push(column.type);
-				break;
-			}
-			case "revertedEditsInNamespaceSinceRegistration": {
-				const namespaceCollector = getOrCreateNamespaceCollector(ctx, column.namespace);
-				namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				break;
-			}
-			case "revertedEditsInNamespaceSinceRegistrationPercentage": {
-				const namespaceCollector = getOrCreateNamespaceCollector(ctx, column.namespace);
-				namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				namespaceCollector.requiredColumnsForSinceRegisteredWikiStatistics.push(column.type);
-				break;
-			}
-
-			case "characterChangesInPeriod":
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				break;
-			case "characterChangesInPeriodPercentage":
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.push(column.type);
-				break;
-			case "characterChangesSinceRegistration":
-				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				break;
-			case "characterChangesSinceRegistrationPercentage":
-				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				ctx.columns.requiredColumnsForSinceRegisteredWikiStatistics.push(column.type);
-				break;
-
-			case "characterChangesInNamespaceInPeriod": {
-				const namespaceCollector = getOrCreateNamespaceCollector(ctx, column.namespace);
-				namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				break;
-			}
-			case "characterChangesInNamespaceInPeriodPercentage": {
-				const namespaceCollector = getOrCreateNamespaceCollector(ctx, column.namespace);
-				namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				namespaceCollector.requiredColumnsForSelectedPeriodWikiStatistics.push(column.type);
-				break;
-			}
-			case "characterChangesInNamespaceSinceRegistration": {
-				const namespaceCollector = getOrCreateNamespaceCollector(ctx, column.namespace);
-				namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				break;
-			}
-			case "characterChangesInNamespaceSinceRegistrationPercentage": {
-				const namespaceCollector = getOrCreateNamespaceCollector(ctx, column.namespace);
-				namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				namespaceCollector.requiredColumnsForSinceRegisteredWikiStatistics.push(column.type);
-				break;
-			}
-
-			case "characterChangesInPeriodByChangeTag": {
-				const namespaceCollector = getOrCreateChangeTagCollector(ctx, column.changeTag);
-				namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				break;
-			}
-
-			case "characterChangesSinceRegistrationByChangeTag": {
-				const namespaceCollector = getOrCreateChangeTagCollector(ctx, column.changeTag);
-				namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				break;
-			}
-
-			case "thanksInPeriod":
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				break;
-			case "thanksInPeriodPercentage":
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.push(column.type);
-				break;
-			case "thanksSinceRegistration":
-				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				break;
-			case "thanksSinceRegistrationPercentage":
-				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				ctx.columns.requiredColumnsForSinceRegisteredWikiStatistics.push(column.type);
-				break;
-
-			case "logEventsInPeriod":
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				break;
-			case "logEventsInPeriodPercentage":
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.push(column.type);
-				break;
-			case "logEventsSinceRegistration":
-				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				break;
-			case "logEventsSinceRegistrationPercentage":
-				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				ctx.columns.requiredColumnsForSinceRegisteredWikiStatistics.push(column.type);
-				break;
-
 			case "logEventsInPeriodByType": {
-				const namespaceCollector = getOrCreateLogTypeCollector(ctx, column.logFilter);
-				namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
+				for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
+					const namespaceCollector = getOrCreateLogTypeCollector(ctx, logFilter);
+					namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
+				}
 				break;
 			}
 			case "logEventsSinceRegistrationByType": {
-				const namespaceCollector = getOrCreateLogTypeCollector(ctx, column.logFilter);
-				namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
+				for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
+					const namespaceCollector = getOrCreateLogTypeCollector(ctx, logFilter);
+					namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
+				}
 				break;
 			}
 
@@ -1343,12 +1409,12 @@ function createNamespaceWhereClauseFromNamespaceDefinition(
 	queryBuilder: SelectQueryBuilder<any>,
 	tableAlias: string
 ) {
-	if (typeof namespaceCollection.namespace === "number") {
-		queryBuilder = queryBuilder.andWhere(
-			`${tableAlias}.namespace = :namespace${namespaceCollection.namespace}`,
-			{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
-		);
-	} else {
+	/*if (typeof namespaceCollection.namespace === "number") {*/
+	queryBuilder = queryBuilder.andWhere(
+		`${tableAlias}.namespace = :namespace${namespaceCollection.namespace}`,
+		{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
+	);
+	/*} else {
 		const whereParameters = {};
 		const whereClause = namespaceCollection.namespace
 			.map((ele: number): string => {
@@ -1361,7 +1427,7 @@ function createNamespaceWhereClauseFromNamespaceDefinition(
 			`(${whereClause})`,
 			whereParameters
 		);
-	}
+	}*/
 	return queryBuilder;
 }
 
@@ -1371,40 +1437,11 @@ function createChangeTagWhereClauseFromFilterDefinition(
 	queryBuilder: SelectQueryBuilder<any>,
 	tableAlias: string
 ) {
-	if (Array.isArray(namespaceCollection.changeTagFilter)) {
-		const whereParameters = {};
-		const whereClause = namespaceCollection.changeTagFilter
-			.map((ele: ChangeTagFilterDefinition): string => {
-				let ret = `${tableAlias}.changeTagId = :changeTagId${ele.changeTagId}`;
-				whereParameters[`changeTagId${ele.changeTagId}`] = ele.changeTagId;
+	queryBuilder = queryBuilder.andWhere(
+		`${tableAlias}.changeTagId = :changeTagId${namespaceCollection.changeTagFilter.changeTagId}`,
+		{ [`changeTagId${namespaceCollection.changeTagFilter.changeTagId}`]: namespaceCollection.changeTagFilter.changeTagId }
+	);
 
-				if (typeof ele.namespace === "number") {
-					ret = `(${ret} OR ${tableAlias}.namespace = :namespace${ele.namespace})`;
-					whereParameters[`namespace${ele.changeTagId}`] = ele.changeTagId;
-				}
-
-				return ret;
-			})
-			.join(" OR ");
-
-		queryBuilder = queryBuilder.andWhere(
-			`(${whereClause})`,
-			whereParameters
-		);
-
-	} else {
-		queryBuilder = queryBuilder.andWhere(
-			`${tableAlias}.changeTagId = :changeTagId${namespaceCollection.changeTagFilter.changeTagId}`,
-			{ [`changeTagId${namespaceCollection.changeTagFilter.changeTagId}`]: namespaceCollection.changeTagFilter.changeTagId }
-		);
-
-		if (typeof namespaceCollection.changeTagFilter.namespace === "number") {
-			queryBuilder = queryBuilder.andWhere(
-				`${tableAlias}.namespace = :namespace${namespaceCollection.changeTagFilter.namespace}`,
-				{ [`namespace${namespaceCollection.changeTagFilter.namespace}`]: namespaceCollection.changeTagFilter.namespace }
-			);
-		}
-	}
 	return queryBuilder;
 }
 
@@ -1414,51 +1451,20 @@ function createLogWhereClauseFromFilterDefinition(
 	queryBuilder: SelectQueryBuilder<any>,
 	tableAlias: string
 ) {
-	if (Array.isArray(namespaceCollection.logFilter)) {
-		const whereParameters = {};
-		const whereClause = namespaceCollection.logFilter
-			.map((ele: LogFilterDefinition): string => {
-				let logActionClause: string | null = null;
-				let logTypeClause: string | null = null;
-
-				if (ele.logType) {
-					logTypeClause = `${tableAlias}.logType = :logType${ele.logType}`;
-					whereParameters[`logType${ele.logType}`] = ele.logType;
-				}
-
-				if (ele.logAction) {
-					logActionClause = `${tableAlias}.logAction = :logAction${ele.logAction}`;
-					whereParameters[`logAction${ele.logAction}`] = ele.logAction;
-				}
-
-				if (ele.logType && ele.logAction) {
-					return `(${logTypeClause} AND ${logActionClause})`;
-				}
-
-				return logTypeClause ?? logActionClause ?? "Should not happen";
-			})
-			.join(" OR ");
-
+	if (namespaceCollection.logFilter.logType) {
 		queryBuilder = queryBuilder.andWhere(
-			`(${whereClause})`,
-			whereParameters
+			`${tableAlias}.logType = :logType${namespaceCollection.logFilter.logType.replace("-", "_")}`,
+			{ [`logType${namespaceCollection.logFilter.logType.replace("-", "_")}`]: namespaceCollection.logFilter.logType.replace("-", "_") }
 		);
-
-	} else {
-		if (namespaceCollection.logFilter.logType) {
-			queryBuilder = queryBuilder.andWhere(
-				`${tableAlias}.logType = :logType${namespaceCollection.logFilter.logType}`,
-				{ [`logType${namespaceCollection.logFilter.logType}`]: namespaceCollection.logFilter.logType }
-			);
-		}
-
-		if (namespaceCollection.logFilter.logAction) {
-			queryBuilder = queryBuilder.andWhere(
-				`${tableAlias}.logAction = :logAction${namespaceCollection.logFilter.logAction}`,
-				{ [`logAction${namespaceCollection.logFilter.logAction}`]: namespaceCollection.logFilter.logAction }
-			);
-		}
 	}
+
+	if (namespaceCollection.logFilter.logAction) {
+		queryBuilder = queryBuilder.andWhere(
+			`${tableAlias}.logAction = :logAction${namespaceCollection.logFilter.logAction.replace("-", "_")}`,
+			{ [`logAction${namespaceCollection.logFilter.logAction.replace("-", "_")}`]: namespaceCollection.logFilter.logAction.replace("-", "_") }
+		);
+	}
+
 	return queryBuilder;
 }
 
@@ -1496,11 +1502,9 @@ function addOrderBy(
 	return query;
 }
 
-function getOrCreateNamespaceCollector(ctx: StatisticsQueryBuildingContext, namespace: number | number[]): NamespaceRequiredColumns {
+function getOrCreateNamespaceCollector(ctx: StatisticsQueryBuildingContext, namespace: number): NamespaceRequiredColumns {
 	let existingCollector = ctx.columns.requiredNamespaceStatisticsColumns.find(x =>
-		typeof (x.namespace) === "object"
-			? sequenceEqual(x.namespace, namespace)
-			: x.namespace === namespace);
+		x.namespace === namespace);
 
 	if (!existingCollector) {
 		existingCollector = {
@@ -1523,7 +1527,7 @@ function formatNamespaceParameter(namespace: number | number[]): string {
 		: namespace.toString();
 }
 
-function getOrCreateChangeTagCollector(ctx: StatisticsQueryBuildingContext, changeTagFilter: ChangeTagFilterDefinition | ChangeTagFilterDefinition[]): ChangeTagStatisticsRequiredColumns {
+function getOrCreateChangeTagCollector(ctx: StatisticsQueryBuildingContext, changeTagFilter: ChangeTagFilterDefinition): ChangeTagStatisticsRequiredColumns {
 	const serializedChangeTagFilter = formatChangeTagFilterDefinitionCollection(changeTagFilter);
 
 	let existingCollector = ctx.columns.requiredChangeTagStatisticsColumns
@@ -1552,10 +1556,10 @@ function formatChangeTagFilterDefinitionCollection(changeTagFilter: ChangeTagFil
 }
 
 function serializeChangeTagFilterDefinition(changeTagFilter: ChangeTagFilterDefinition) {
-	return `${changeTagFilter.namespace ?? "any"}_${changeTagFilter.changeTagId}`;
+	return `${changeTagFilter.namespace ?? "any"}_${changeTagFilter.changeTagId}`.replace(/-/g, "_");
 }
 
-function getOrCreateLogTypeCollector(ctx: StatisticsQueryBuildingContext, logFilter: LogFilterDefinition | LogFilterDefinition[]): LogTypeStatisticsRequiredColumns {
+function getOrCreateLogTypeCollector(ctx: StatisticsQueryBuildingContext, logFilter: LogFilterDefinition): LogTypeStatisticsRequiredColumns {
 	const serializedLogFilter = formatLogFilterDefinitionCollection(logFilter);
 
 	let existingCollector = ctx.columns.requiredLogTypeStatisticsColumns
@@ -1584,5 +1588,5 @@ function formatLogFilterDefinitionCollection(logFilter: LogFilterDefinition | Lo
 }
 
 function serializeLogFilterDefinition(logFilter: LogFilterDefinition) {
-	return `${logFilter.logType ?? "any"}_${logFilter.logAction ?? "any"}`;
+	return `${logFilter.logType ?? "any"}_${logFilter.logAction ?? "any"}`.replace(/-/g, "_");
 }
