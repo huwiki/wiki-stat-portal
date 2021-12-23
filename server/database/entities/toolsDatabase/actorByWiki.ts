@@ -60,6 +60,8 @@ export class ActorDailyStatisticsTypeModel {
 	public logEventsToDate: number;
 	public dailyServiceAwardLogEvents: number;
 	public serviceAwardLogEventsToDate: number;
+	public dailyActiveDay: number;
+	public activeDaysToDate: number;
 }
 
 export class DailyStatisticsByNamespaceTypeModel {
@@ -336,6 +338,12 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 		@Column({ name: "saward_log_events_to_date", type: "int" })
 		public serviceAwardLogEventsToDate: number;
+
+		@Column({ name: "daily_active_day", type: "int" })
+		public dailyActiveDay: number;
+
+		@Column({ name: "active_days_to_date", type: "int" })
+		public activeDaysToDate: number;
 	}
 
 	@Entity({ name: dailyStatisticsByNamespaceTableName })

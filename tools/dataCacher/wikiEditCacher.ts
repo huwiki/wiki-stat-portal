@@ -944,7 +944,14 @@ export class WikiEditCacher {
 			const existingStat = await em.getRepository(this.wikiStatisticsEntities.actorDailyStatistics)
 				.findOne({ where: { actorId: actorStat.actorId, date: editsByDate.date.toDate() } });
 
+			let activeDayRollover = 0;
 			if (existingStat) {
+				// TODO: maybe use service award log events?
+				const activeDay = (existingStat.dailyEdits + editsByDate.edits > 0)
+					|| (existingStat.dailyLogEvents + editsByDate.logEvents > 0) ? 1 : 0;
+				if (existingStat.dailyActiveDay < activeDay)
+					activeDayRollover = 1;
+
 				await em
 					.createQueryBuilder()
 					.update(this.wikiStatisticsEntities.actorDailyStatistics)
@@ -956,11 +963,16 @@ export class WikiEditCacher {
 						dailySentThanks: existingStat.dailySentThanks + editsByDate.sentThanks,
 						dailyLogEvents: existingStat.dailyLogEvents + editsByDate.logEvents,
 						dailyServiceAwardLogEvents: existingStat.dailyServiceAwardLogEvents + editsByDate.serviceAwardLogEvents,
+						dailyActiveDay: activeDay
 					})
 					.where("actorId = :actorId", { actorId: actorStat.actorId })
 					.andWhere("date = :date", { date: editsByDate.date.toDate() })
 					.execute();
 			} else {
+				// TODO: maybe use service award log events?
+				const activeDay = editsByDate.edits > 0 || editsByDate.logEvents > 0 ? 1 : 0;
+				activeDayRollover = activeDay;
+
 				const previousDay = await em.getRepository(this.wikiStatisticsEntities.actorDailyStatistics)
 					.createQueryBuilder("ads")
 					.where("ads.actorId = :actorId", { actorId: actorStat.actorId })
@@ -1003,6 +1015,10 @@ export class WikiEditCacher {
 						serviceAwardLogEventsToDate: previousDay
 							? previousDay.serviceAwardLogEventsToDate + previousDay.dailyServiceAwardLogEvents
 							: 0,
+						dailyActiveDay: activeDay,
+						activeDaysToDate: previousDay
+							? previousDay.activeDaysToDate + previousDay?.dailyActiveDay
+							: 0
 					})
 					.execute();
 			}
@@ -1018,6 +1034,7 @@ export class WikiEditCacher {
 					sentThanksToDate: () => `sent_thanks_to_date + ${editsByDate.sentThanks}`,
 					logEventsToDate: () => `log_events_to_date + ${editsByDate.logEvents}`,
 					serviceAwardLogEventsToDate: () => `saward_log_events_to_date + ${editsByDate.serviceAwardLogEvents}`,
+					activeDaysToDate: () => `active_days_to_date + ${activeDayRollover}`,
 				})
 				.where("actorId = :actorId", { actorId: actorStat.actorId })
 				.andWhere("date > :date", { date: editsByDate.date.toDate() })
