@@ -3,13 +3,12 @@ import { Connection, SelectQueryBuilder } from "typeorm";
 import { UserRequirements } from "../../common/modules/commonConfiguration";
 import { AllColumnTypes, ChangeTagFilterDefinition, ListColumn, ListOrderBy, LogFilterDefinition } from "../../common/modules/lists/listsConfiguration";
 import { AppRunningContext } from "../appRunningContext";
-import { arrayHasAny } from "../helpers/collectionUtils";
-import { ActorTypeModel, DailyStatisticsByNamespaceTypeModel, DailyStatisticsTypeModel, WikiStatisticsTypesResult } from "./entities/toolsDatabase/actorByWiki";
+import { ActorTypeModel, WikiStatisticsTypesResult } from "./entities/toolsDatabase/actorByWiki";
 
 type RequiredColumns = {
 	requiredColumnsForSelectedPeriodActorStatistics: AllColumnTypes[];
 	requiredColumnsForSelectedPeriodWikiStatistics: AllColumnTypes[];
-	requiredColumnsForAtPeriodStartActorStatistics: AllColumnTypes[];
+	//requiredColumnsForAtPeriodStartActorStatistics: AllColumnTypes[];
 	requiredColumnsForSinceRegisteredActorStatistics: AllColumnTypes[];
 	requiredColumnsForSinceRegisteredWikiStatistics: AllColumnTypes[];
 }
@@ -58,7 +57,6 @@ export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEnt
 		columns: {
 			requiredColumnsForSelectedPeriodActorStatistics: [],
 			requiredColumnsForSelectedPeriodWikiStatistics: [],
-			requiredColumnsForAtPeriodStartActorStatistics: [],
 			requiredColumnsForSinceRegisteredActorStatistics: [],
 			requiredColumnsForSinceRegisteredWikiStatistics: [],
 			requiredNamespaceStatisticsColumns: [],
@@ -311,77 +309,81 @@ function addSingleColumSelect(
 	const selectedColumnName = `column${columnIndex}`;
 
 	switch (column.type) {
+		// OK
 		case "editsInPeriod":
-			query = query.addSelect("IFNULL(periodActorStatistics.actorEditsInPeriod, 0)", selectedColumnName);
+			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.editsToDate + atPeriodStartActorStatistics.dailyEdits, 0)", selectedColumnName);
 			break;
+		// OK
 		case "editsInPeriodPercentage":
-			query = query.addSelect("IFNULL(periodActorStatistics.actorEditsInPeriod / periodWikiStatistics.wikiEditsInPeriod * 100, 0.0)", selectedColumnName);
+			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.editsToDate + atPeriodStartActorStatistics.dailyEdits, 0))"
+				+ " / "
+				+ "(IFNULL(sinceStartWikiStatistics.editsToDate + sinceStartWikiStatistics.dailyEdits, 0) "
+				+ "- IFNULL(atPeriodStartWikiStatistics.editsToDate + atPeriodStartWikiStatistics.dailyEdits, 0))", selectedColumnName);
 			break;
+		// OK
 		case "editsSinceRegistration":
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0)", selectedColumnName);
 			break;
+		// OK
 		case "editsSinceRegistrationPercentage":
 			query = query.addSelect(
 				"IFNULL((sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits)"
 				+ " / "
-				+ "(sinceStartWikiStatistics.editsToDate + sinceStartWikiStatistics.dailyEdits) * 100, 0)", selectedColumnName);
+				+ "(sinceStartWikiStatistics.editsToDate + sinceStartWikiStatistics.dailyEdits), 0)", selectedColumnName);
 			break;
 
-		case "editsInNamespaceInPeriod":
-			if (Array.isArray(column.namespace)) {
-				query = query.addSelect(column.namespace.map(columnPart => {
-					return `IFNULL(ns${formatNamespaceParameter(columnPart)}PeriodActorStatistics.actorEditsInPeriod, 0)`;
-				}).join(" + "), selectedColumnName);
-			} else {
-				query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorEditsInPeriod, 0)`, selectedColumnName);
-			}
-			break;
-		case "editsInNamespaceInPeriodPercentage":
-			if (Array.isArray(column.namespace)) {
-				query = query.addSelect(
-					"IFNULL((" + column.namespace.map(columnPart => {
-						return `IFNULL(ns${formatNamespaceParameter(columnPart)}PeriodActorStatistics.actorEditsInPeriod, 0)`;
-					}).join(" + ") + ")"
-					+ " / "
-					+ "(" + column.namespace.map(columnPart => {
-						return `IFNULL(ns${formatNamespaceParameter(columnPart)}PeriodWikiStatistics.totalEdits, 0)`;
-					}).join(" + ") + ")"
-					+ " * 100, 0)", selectedColumnName);
-			} else {
-				query = query.addSelect(
-					`IFNULL((ns${formatNamespaceParameter(column.namespace)}PeriodActorStatistics.actorEditsInPeriod)`
-					+ " / "
-					+ `(ns${formatNamespaceParameter(column.namespace)}PeriodWikiStatistics.totalEdits) * 100, 0)`, selectedColumnName);
-			}
-			break;
-		case "editsInNamespaceSinceRegistration":
-			if (Array.isArray(column.namespace)) {
-				query = query.addSelect(column.namespace.map(columnPart => {
-					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.totalEdits, 0)`;
-				}).join(" + "), selectedColumnName);
-			} else {
-				query = query.addSelect(`IFNULL(ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalEdits, 0)`, selectedColumnName);
-			}
-			break;
-		case "editsInNamespaceSinceRegistrationPercentage":
-			if (Array.isArray(column.namespace)) {
-				query = query.addSelect(
-					"IFNULL((" + column.namespace.map(columnPart => {
-						return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.totalEdits, 0)`;
-					}).join(" + ") + ")"
-					+ " / "
-					+ "(" + column.namespace.map(columnPart => {
-						return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.totalEdits, 0)`;
-					}).join(" + ") + ")"
-					+ " * 100, 0)", selectedColumnName);
-			} else {
-				query = query.addSelect(
-					`IFNULL((ns${formatNamespaceParameter(column.namespace)}SinceRegistrationActorStatistics.totalEdits)`
-					+ " / "
-					+ `(ns${formatNamespaceParameter(column.namespace)}SinceStartWikiStatistics.totalEdits) * 100, 0)`, selectedColumnName);
-			}
-			break;
+		case "editsInNamespaceInPeriod": {
+			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
+			query = query.addSelect(namespaces.map(columnPart => {
+				return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyEdits, 0) `
+					+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyEdits, 0))`;
+			}).join(" + "), selectedColumnName);
+
+			break;
+		}
+		case "editsInNamespaceInPeriodPercentage": {
+			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
+
+			query = query.addSelect(
+				"IFNULL((" + namespaces.map(columnPart => {
+					return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyEdits, 0) `
+						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyEdits, 0))`;
+				}).join(" + ") + ")"
+				+ " / "
+				+ "(" + namespaces.map(columnPart => {
+					return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.dailyEdits, 0) `
+						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartWikiStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartWikiStatistics.dailyEdits, 0))`;
+				}).join(" + ") + ")"
+				+ ", 0)", selectedColumnName);
+			break;
+		}
+		case "editsInNamespaceSinceRegistration": {
+			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
+
+			query = query.addSelect(namespaces.map(columnPart => {
+				return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyEdits, 0)`;
+			}).join(" + "), selectedColumnName);
+
+			break;
+		}
+		case "editsInNamespaceSinceRegistrationPercentage": {
+			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
+
+			query = query.addSelect(
+				"IFNULL((" + namespaces.map(columnPart => {
+					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyEdits, 0)`;
+				}).join(" + ") + ")"
+				+ " / "
+				+ "(" + namespaces.map(columnPart => {
+					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.dailyEdits, 0)`;
+				}).join(" + ") + ")"
+				+ ", 0)", selectedColumnName);
+
+			break;
+		}
 		case "editsInPeriodByChangeTag":
 			if (Array.isArray(column.changeTag)) {
 				query = query.addSelect(column.changeTag.map(changeTagPart => {
@@ -401,20 +403,29 @@ function addSingleColumSelect(
 			}
 			break;
 
+		// OK
 		case "revertedEditsInPeriod":
-			query = query.addSelect("IFNULL(periodActorStatistics.actorRevertedEditsInPeriod, 0)", selectedColumnName);
+			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.revertedEditsToDate + atPeriodStartActorStatistics.dailyRevertedEdits, 0)", selectedColumnName);
 			break;
+		// OK
 		case "revertedEditsInPeriodPercentage":
-			query = query.addSelect("IFNULL(periodActorStatistics.actorRevertedEditsInPeriod / periodWikiStatistics.wikiRevertedEditsInPeriod * 100, 0)", selectedColumnName);
+			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.revertedEditsToDate + atPeriodStartActorStatistics.dailyRevertedEdits, 0))"
+				+ " / "
+				+ "(IFNULL(sinceStartWikiStatistics.revertedEditsToDate + sinceStartWikiStatistics.dailyRevertedEdits, 0) "
+				+ "- IFNULL(atPeriodStartWikiStatistics.revertedEditsToDate + atPeriodStartWikiStatistics.dailyRevertedEdits, 0))", selectedColumnName);
 			break;
+		// OK
 		case "revertedEditsSinceRegistration":
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits, 0)", selectedColumnName);
 			break;
+		// OK
 		case "revertedEditsSinceRegistrationPercentage":
 			query = query.addSelect(
 				"IFNULL((sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits)"
 				+ " / "
-				+ "(sinceStartWikiStatistics.revertedEditsToDate + sinceStartWikiStatistics.dailyRevertedEdits) * 100, 0)", selectedColumnName);
+				+ "(sinceStartWikiStatistics.revertedEditsToDate + sinceStartWikiStatistics.dailyRevertedEdits), 0)", selectedColumnName);
 			break;
 
 		case "revertedEditsInNamespaceInPeriod":
@@ -472,39 +483,29 @@ function addSingleColumSelect(
 			}
 			break;
 
-		case "firstEditDate":
-			query = query.addSelect("editDates.firstEditDate", selectedColumnName);
-			break;
-		case "lastEditDate":
-			query = query.addSelect("editDates.lastEditDate", selectedColumnName);
-			break;
-		case "daysBetweenFirstAndLastEdit":
-			query = query.addSelect("DATEDIFF(editDates.lastEditDate, editDates.firstEditDate)", selectedColumnName);
-			break;
-
-		case "averageEditsPerDayInPeriod":
-			query = query.addSelect("IFNULL(periodActorStatistics.actorEditsInPeriod / DATEDIFF(:endDate, :startDate), 0)", selectedColumnName);
-			break;
-
-		case "averageEditsPerDaySinceRegistration":
-			query = query.addSelect("IFNULL((sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits)"
-				+ " / DATEDIFF(:endDate, DATE(actor.registrationTimestamp)), 0)", selectedColumnName);
-			break;
-
+		// OK
 		case "characterChangesInPeriod":
-			query = query.addSelect("IFNULL(periodActorStatistics.actorCharacterChangesInPeriod, 0)", selectedColumnName);
+			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.characterChangesToDate + sinceRegistrationActorStatistics.dailyCharacterChanges, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.characterChangesToDate + atPeriodStartActorStatistics.dailyCharacterChanges, 0)", selectedColumnName);
 			break;
+		// OK
 		case "characterChangesInPeriodPercentage":
-			query = query.addSelect("IFNULL(periodActorStatistics.actorCharacterChangesInPeriod / periodWikiStatistics.wikiCharacterChangesInPeriod * 100, 0)", selectedColumnName);
+			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.characterChangesToDate + sinceRegistrationActorStatistics.dailyCharacterChanges, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.characterChangesToDate + atPeriodStartActorStatistics.dailyCharacterChanges, 0))"
+				+ " / "
+				+ "(IFNULL(sinceStartWikiStatistics.characterChangesToDate + sinceStartWikiStatistics.dailyCharacterChanges, 0) "
+				+ "- IFNULL(atPeriodStartWikiStatistics.characterChangesToDate + atPeriodStartWikiStatistics.dailyCharacterChanges, 0))", selectedColumnName);
 			break;
+		// OK
 		case "characterChangesSinceRegistration":
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.characterChangesToDate + sinceRegistrationActorStatistics.dailyCharacterChanges, 0)", selectedColumnName);
 			break;
+		// OK
 		case "characterChangesSinceRegistrationPercentage":
 			query = query.addSelect(
 				"IFNULL((sinceRegistrationActorStatistics.characterChangesToDate + sinceRegistrationActorStatistics.dailyCharacterChanges)"
 				+ " / "
-				+ "(sinceStartWikiStatistics.characterChangesToDate + sinceStartWikiStatistics.dailyCharacterChanges) * 100, 0)", selectedColumnName);
+				+ "(sinceStartWikiStatistics.characterChangesToDate + sinceStartWikiStatistics.dailyCharacterChanges), 0)", selectedColumnName);
 			break;
 
 		case "characterChangesInNamespaceInPeriod":
@@ -569,36 +570,79 @@ function addSingleColumSelect(
 			query = query.addSelect(`IFNULL(ct${formatChangeTagFilterDefinitionCollection(column.changeTag)}SinceRegistrationActorStatistics.totalCharacterChanges, 0)`, selectedColumnName);
 			break;
 
-		case "thanksInPeriod":
-			query = query.addSelect("IFNULL(periodActorStatistics.actorThanksInPeriod, 0)", selectedColumnName);
+		// OK
+		case "receivedThanksInPeriod":
+			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.receivedThanksToDate + sinceRegistrationActorStatistics.dailyReceivedThanks, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.receivedThanksToDate + atPeriodStartActorStatistics.dailyReceivedThanks, 0)", selectedColumnName);
 			break;
-		case "thanksInPeriodPercentage":
-			query = query.addSelect("IFNULL(periodActorStatistics.actorThanksInPeriod / periodWikiStatistics.wikiThanksInPeriod * 100, 0)", selectedColumnName);
-			break;
-		case "thanksSinceRegistration":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.thanksToDate + sinceRegistrationActorStatistics.dailyThanks, 0)", selectedColumnName);
-			break;
-		case "thanksSinceRegistrationPercentage":
-			query = query.addSelect(
-				"IFNULL((sinceRegistrationActorStatistics.thanksToDate + sinceRegistrationActorStatistics.dailyThanks)"
+		// OK
+		case "receivedThanksInPeriodPercentage":
+			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.receivedThanksToDate + sinceRegistrationActorStatistics.dailyReceivedThanks, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.receivedThanksToDate + atPeriodStartActorStatistics.dailyReceivedThanks, 0))"
 				+ " / "
-				+ "(sinceStartWikiStatistics.thanksToDate + sinceStartWikiStatistics.dailyThanks) * 100, 0)", selectedColumnName);
+				+ "(IFNULL(sinceStartWikiStatistics.receivedThanksToDate + sinceStartWikiStatistics.dailyReceivedThanks, 0) "
+				+ "- IFNULL(atPeriodStartWikiStatistics.receivedThanksToDate + atPeriodStartWikiStatistics.dailyReceivedThanks, 0))", selectedColumnName);
+			break;
+		// OK
+		case "receivedThanksSinceRegistration":
+			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.receivedThanksToDate + sinceRegistrationActorStatistics.dailyReceivedThanks, 0)", selectedColumnName);
+			break;
+		// OK
+		case "receivedThanksSinceRegistrationPercentage":
+			query = query.addSelect(
+				"IFNULL((sinceRegistrationActorStatistics.receivedThanksToDate + sinceRegistrationActorStatistics.dailyReceivedThanks)"
+				+ " / "
+				+ "(sinceStartWikiStatistics.receivedThanksToDate + sinceStartWikiStatistics.dailyReceivedThanks), 0)", selectedColumnName);
 			break;
 
+		// OK
+		case "sentThanksInPeriod":
+			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.sentThanksToDate + sinceRegistrationActorStatistics.dailySentThanks, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.sentThanksToDate + atPeriodStartActorStatistics.dailySentThanks, 0)", selectedColumnName);
+			break;
+		// OK
+		case "sentThanksInPeriodPercentage":
+			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.sentThanksToDate + sinceRegistrationActorStatistics.dailySentThanks, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.sentThanksToDate + atPeriodStartActorStatistics.dailySentThanks, 0))"
+				+ " / "
+				+ "(IFNULL(sinceStartWikiStatistics.sentThanksToDate + sinceStartWikiStatistics.dailySentThanks, 0) "
+				+ "- IFNULL(atPeriodStartWikiStatistics.sentThanksToDate + atPeriodStartWikiStatistics.dailySentThanks, 0))", selectedColumnName);
+			break;
+		// OK
+		case "sentThanksSinceRegistration":
+			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.sentThanksToDate + sinceRegistrationActorStatistics.dailySentThanks, 0)", selectedColumnName);
+			break;
+		// OK
+		case "sentThanksSinceRegistrationPercentage":
+			query = query.addSelect(
+				"IFNULL((sinceRegistrationActorStatistics.sentThanksToDate + sinceRegistrationActorStatistics.dailySentThanks)"
+				+ " / "
+				+ "(sinceStartWikiStatistics.sentThanksToDate + sinceStartWikiStatistics.dailySentThanks), 0)", selectedColumnName);
+			break;
+
+		// OK
 		case "logEventsInPeriod":
-			query = query.addSelect("IFNULL(periodActorStatistics.actorLogEventsInPeriod, 0)", selectedColumnName);
+			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.logEventsToDate + atPeriodStartActorStatistics.dailyLogEvents, 0)", selectedColumnName);
 			break;
+		// OK
 		case "logEventsInPeriodPercentage":
-			query = query.addSelect("IFNULL(periodActorStatistics.actorLogEventsInPeriod / periodWikiStatistics.wikiLogEventsInPeriod * 100, 0)", selectedColumnName);
+			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.logEventsToDate + atPeriodStartActorStatistics.dailyLogEvents, 0))"
+				+ " / "
+				+ "(IFNULL(sinceStartWikiStatistics.logEventsToDate + sinceStartWikiStatistics.dailyLogEvents, 0) "
+				+ "- IFNULL(atPeriodStartWikiStatistics.logEventsToDate + atPeriodStartWikiStatistics.dailyLogEvents, 0))", selectedColumnName);
 			break;
+		// OK
 		case "logEventsSinceRegistration":
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents, 0)", selectedColumnName);
 			break;
+		// OK
 		case "logEventsSinceRegistrationPercentage":
 			query = query.addSelect(
 				"IFNULL((sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents)"
 				+ " / "
-				+ "(sinceStartWikiStatistics.logEventsToDate + sinceStartWikiStatistics.dailyLogEvents) * 100, 0)", selectedColumnName);
+				+ "(sinceStartWikiStatistics.logEventsToDate + sinceStartWikiStatistics.dailyLogEvents), 0)", selectedColumnName);
 			break;
 
 		case "logEventsInPeriodByType":
@@ -620,46 +664,88 @@ function addSingleColumSelect(
 			}
 			break;
 
-		case "averageLogEventsPerDayInPeriod":
-			query = query.addSelect("IFNULL(periodActorStatistics.actorLogEventsInPeriod / DATEDIFF(:endDate, :startDate), 0)", selectedColumnName);
+
+		// OK
+		case "firstEditDate":
+			query = query.addSelect("editDates.firstEditDate", selectedColumnName);
+			break;
+		// OK
+		case "lastEditDate":
+			query = query.addSelect("editDates.lastEditDate", selectedColumnName);
+			break;
+		// OK
+		case "daysBetweenFirstAndLastEdit":
+			query = query.addSelect("DATEDIFF(editDates.lastEditDate, editDates.firstEditDate)", selectedColumnName);
+			break;
+		// OK
+		case "averageEditsPerDayInPeriod":
+			query = query.addSelect(
+				"(IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.editsToDate + atPeriodStartActorStatistics.dailyEdits, 0))"
+				+ " / "
+				+ "(IFNULL(sinceRegistrationActorStatistics.activeDaysToDate + sinceRegistrationActorStatistics.dailyActiveDay, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.activeDaysToDate + atPeriodStartActorStatistics.dailyActiveDay, 0))", selectedColumnName);
+			break;
+		// OK
+		case "averageEditsPerDaySinceRegistration":
+			query = query.addSelect("IFNULL((sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits)"
+				+ " / (sinceRegistrationActorStatistics.activeDaysToDate + sinceRegistrationActorStatistics.dailyActiveDay), 0)", selectedColumnName);
 			break;
 
+		// OK
+		case "firstLogEventDate":
+			query = query.addSelect("logEventDates.firstLogEventDate", selectedColumnName);
+			break;
+		// OK
+		case "lastLogEventDate":
+			query = query.addSelect("logEventDates.lastLogEventDate", selectedColumnName);
+			break;
+		// OK
+		case "averageLogEventsPerDayInPeriod":
+			query = query.addSelect(
+				"(IFNULL(sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.logEventsToDate + atPeriodStartActorStatistics.dailyLogEvents, 0))"
+				+ " / "
+				+ "(IFNULL(sinceRegistrationActorStatistics.activeDaysToDate + sinceRegistrationActorStatistics.dailyActiveDay, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.activeDaysToDate + atPeriodStartActorStatistics.dailyActiveDay, 0))", selectedColumnName);
+			break;
+		// OK
 		case "averageLogEventsPerDaySinceRegistration":
 			query = query.addSelect("IFNULL((sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents)"
-				+ " / DATEDIFF(:endDate, DATE(actor.registrationTimestamp)), 0)", selectedColumnName);
+				+ " / (sinceRegistrationActorStatistics.activeDaysToDate + sinceRegistrationActorStatistics.dailyActiveDay), 0)", selectedColumnName);
 			break;
-
-		case "firstLogEventDate":
-			query = query.addSelect("firstLogEventDate.date", selectedColumnName);
-			break;
-		case "lastLogEventDate":
-			query = query.addSelect("lastLogEventDate.date", selectedColumnName);
-			break;
+		// OK
 		case "daysBetweenFirstAndLastLogEvent":
-			query = query.addSelect("DATEDIFF(lastLogEventDate.date, firstLogEventDate.date)", selectedColumnName);
+			query = query.addSelect("DATEDIFF(logEventDates.lastLogEventDate, logEventDates.firstLogEventDate)", selectedColumnName);
 			break;
-
+		// OK
 		case "registrationDate":
 			query = query.addSelect("DATE(actor.registrationTimestamp)", selectedColumnName);
 			break;
-
+		// OK
 		case "daysSinceRegistration":
 			query = query.addSelect("DATEDIFF(:endDate, DATE(actor.registrationTimestamp))", selectedColumnName);
 			break;
 
+		// OK
 		case "activeDaysInPeriod":
-			query = query.addSelect("IFNULL(periodActorStatistics.activeDays, 0)", selectedColumnName);
+			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.activeDaysToDate + sinceRegistrationActorStatistics.dailyActiveDay, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.activeDaysToDate + atPeriodStartActorStatistics.dailyActiveDay, 0)", selectedColumnName);
 			break;
+		// OK
 		case "activeDaysSinceRegistration":
-			query = query.addSelect("IFNULL(activeDaysSinceRegistration.activeDays, 0)", selectedColumnName);
+			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.activeDaysToDate + sinceRegistrationActorStatistics.dailyActiveDay, 0)", selectedColumnName);
 			break;
 
+		// OK
 		case "levelAtPeriodStart":
 			query = addStartLevelColumnSelects(query, selectedColumnName);
 			break;
+		// OK
 		case "levelAtPeriodEnd":
 			query = addEndLevelColumnSelects(query, selectedColumnName);
 			break;
+		// OK
 		case "levelAtPeriodEndWithChange":
 			query = addStartLevelColumnSelects(query, selectedColumnName);
 			query = addEndLevelColumnSelects(query, selectedColumnName);
@@ -675,11 +761,11 @@ function addStartLevelColumnSelects(query: SelectQueryBuilder<ActorTypeModel>, s
 		`${selectedColumnName}_startEdits`
 	);
 	query = query.addSelect(
-		"IFNULL(atPeriodStartActorStatistics.logEventsToDate, 0)",
+		"IFNULL(atPeriodStartActorStatistics.logEventsToDate + atPeriodStartActorStatistics.dailyLogEvents, 0)",
 		`${selectedColumnName}_startLogEvents`
 	);
 	query = query.addSelect(
-		"IFNULL(activeDaysSinceRegistrationAtPeriodStart.activeDays, 0)",
+		"IFNULL(atPeriodStartActorStatistics.activeDaysToDate + atPeriodStartActorStatistics.dailyActiveDay, 0)",
 		`${selectedColumnName}_startActiveDays`
 	);
 	return query;
@@ -695,7 +781,7 @@ function addEndLevelColumnSelects(query: SelectQueryBuilder<ActorTypeModel>, sel
 		`${selectedColumnName}_endLogEvents`
 	);
 	query = query.addSelect(
-		"IFNULL(activeDaysSinceRegistration.activeDays, 0)",
+		"IFNULL(sinceRegistrationActorStatistics.activeDaysToDate + sinceRegistrationActorStatistics.dailyActiveDay, 0)",
 		`${selectedColumnName}_endActiveDays`
 	);
 	return query;
@@ -717,7 +803,8 @@ function addColumnJoins(
 			case "editsInPeriod":
 			case "revertedEditsInPeriod":
 			case "characterChangesInPeriod":
-			case "thanksInPeriod":
+			case "receivedThanksInPeriod":
+			case "sentThanksInPeriod":
 			case "logEventsInPeriod":
 				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
 				break;
@@ -725,7 +812,8 @@ function addColumnJoins(
 			case "editsInPeriodPercentage":
 			case "revertedEditsInPeriodPercentage":
 			case "characterChangesInPeriodPercentage":
-			case "thanksInPeriodPercentage":
+			case "receivedThanksInPeriodPercentage":
+			case "sentThanksInPeriodPercentage":
 			case "logEventsInPeriodPercentage":
 				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
 				ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.push(column.type);
@@ -734,7 +822,8 @@ function addColumnJoins(
 			case "editsSinceRegistration":
 			case "revertedEditsSinceRegistration":
 			case "characterChangesSinceRegistration":
-			case "thanksSinceRegistration":
+			case "receivedThanksSinceRegistration":
+			case "sentThanksSinceRegistration":
 			case "logEventsSinceRegistration":
 				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
 				break;
@@ -742,7 +831,8 @@ function addColumnJoins(
 			case "editsSinceRegistrationPercentage":
 			case "revertedEditsSinceRegistrationPercentage":
 			case "characterChangesSinceRegistrationPercentage":
-			case "thanksSinceRegistrationPercentage":
+			case "receivedThanksSinceRegistrationPercentage":
+			case "sentThanksSinceRegistrationPercentage":
 			case "logEventsSinceRegistrationPercentage":
 				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
 				ctx.columns.requiredColumnsForSinceRegisteredWikiStatistics.push(column.type);
@@ -832,16 +922,16 @@ function addColumnJoins(
 				break;
 
 			case "levelAtPeriodStart":
-				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(
-					"editsSinceRegistration",
-					"logEventsSinceRegistration"
+				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(
+					"editsInPeriod",
+					"logEventsInPeriod",
 				);
 				break;
 
 			case "levelAtPeriodEnd":
-				ctx.columns.requiredColumnsForAtPeriodStartActorStatistics.push(
-					"editsAtPeriodStart",
-					"logEventsAtPeriodStart"
+				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(
+					"editsInPeriod",
+					"logEventsInPeriod"
 				);
 				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(
 					"editsSinceRegistration",
@@ -859,149 +949,68 @@ function addColumnJoins(
 	}
 
 	if (ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
-		if (!startDate) {
-			// TODO: error out
-		}
-
 		query = query.leftJoin(qb => {
-			let subQuery = qb.subQuery()
-				.select("pas.actorId", "actorId");
+			return qb.subQuery()
+				.select("lads.actorId", "actorId")
+				.addSelect("MAX(lads.date)", "lastDate")
+				.from(wikiEntities.actorDailyStatistics, "lads")
+				.where("lads.date < :startDate", { startDate: startDate })
+				.groupBy("lads.actorId");
+		}, "lastStatisticsBeforePeriodStart", "lastStatisticsBeforePeriodStart.actorId = actor.actorId");
 
-			if (arrayHasAny(
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics,
-				"editsInPeriod",
-				"editsInPeriodPercentage"
-			)) {
-				subQuery = subQuery.addSelect("SUM(pas.dailyEdits)", "actorEditsInPeriod");
-			}
-
-			if (arrayHasAny(
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics,
-				"revertedEditsInPeriod",
-				"revertedEditsInPeriodPercentage"
-			)) {
-				subQuery = subQuery.addSelect("SUM(pas.dailyRevertedEdits)", "actorRevertedEditsInPeriod");
-			}
-
-			if (arrayHasAny(ctx.columns.requiredColumnsForSelectedPeriodActorStatistics,
-				"characterChangesInPeriod",
-				"characterChangesInPeriodPercentage"
-			)) {
-				subQuery = subQuery.addSelect("SUM(pas.dailyCharacterChanges)", "actorCharacterChangesInPeriod");
-			}
-
-			if (arrayHasAny(ctx.columns.requiredColumnsForSelectedPeriodActorStatistics,
-				"thanksInPeriod",
-				"thanksInPeriodPercentage"
-			)) {
-				subQuery = subQuery.addSelect("SUM(pas.dailyThanks)", "actorThanksInPeriod");
-			}
-
-			if (arrayHasAny(
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics,
-				"logEventsInPeriod",
-				"logEventsInPeriodPercentage"
-			)) {
-				subQuery = subQuery.addSelect("SUM(pas.dailyLogEvents)", "actorLogEventsInPeriod");
-			}
-
-			if (ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.indexOf("activeDaysInPeriod")) {
-				subQuery = subQuery.addSelect("SUM(CASE WHEN pas.dailyEdits > 0 OR pas.dailyLogEvents > 0 THEN 1 ELSE 0 END)", "activeDays");
-			}
-
-			return subQuery
-				.from(wikiEntities.actorDailyStatistics, "pas")
-				.where(
-					"pas.date >= :startDate AND pas.date <= :endDate",
-					{ startDate: startDate, endDate: endDate }
-				)
-				.groupBy("pas.actorId");
-		}, "periodActorStatistics", "periodActorStatistics.actorId = actor.actorId");
+		query = query.innerJoin(
+			wikiEntities.actorDailyStatistics,
+			"atPeriodStartActorStatistics",
+			"atPeriodStartActorStatistics.actorId = actor.actorId AND atPeriodStartActorStatistics.date = lastStatisticsBeforePeriodStart.lastDate"
+		);
 	}
 
 	if (ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.length > 0) {
-		if (!startDate) {
-			// TODO: error out
-		}
-
-		query = query.leftJoin(qb => {
-			let subQuery: SelectQueryBuilder<DailyStatisticsTypeModel> = qb.subQuery();
-
-			if (ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.indexOf("editsInPeriodPercentage") !== -1) {
-				subQuery = subQuery.addSelect("SUM(pws.dailyEdits)", "wikiEditsInPeriod");
-			}
-
-			if (ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.indexOf("revertedEditsInPeriodPercentage") !== -1) {
-				subQuery = subQuery.addSelect("SUM(pws.dailyRevertedEdits)", "wikiRevertedEditsInPeriod");
-			}
-
-			if (ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.indexOf("characterChangesInPeriodPercentage") !== -1) {
-				subQuery = subQuery.addSelect("SUM(pws.dailyCharacterChanges)", "wikiCharacterChangesInPeriod");
-			}
-
-			if (ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.indexOf("thanksInPeriodPercentage") !== -1) {
-				subQuery = subQuery.addSelect("SUM(pws.dailyThanks)", "wikiThanksInPeriod");
-			}
-
-			if (ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.indexOf("logEventsInPeriodPercentage") !== -1) {
-				subQuery = subQuery.addSelect("SUM(pws.dailyLogEvents)", "wikiLogEventsInPeriod");
-			}
-
-			return subQuery
-				.from(wikiEntities.dailyStatistics, "pws")
-				.where(
-					"pws.date >= :startDate AND pws.date <= :endDate",
-					{ startDate: startDate, endDate: endDate }
-				);
-		}, "periodWikiStatistics", "true");
-	}
-
-	if (ctx.columns.requiredColumnsForAtPeriodStartActorStatistics.length > 0) {
-		query = query.leftJoin(qb => {
-			return qb.subQuery()
-				.select("lads.actorId", "actorId")
-				.addSelect("MAX(lads.date)", "lastDate")
-				.from(wikiEntities.actorDailyStatistics, "lads")
-				.where("lads.date < :startDate", { startDate: startDate, endDate: endDate })
-				.groupBy("lads.actorId");
-		}, "firstKnownDailyPeriodStatisticsDateByActor", "firstKnownDailyPeriodStatisticsDateByActor.actorId = actor.actorId");
-
-		query = query.leftJoin(
-			wikiEntities.actorDailyStatistics,
-			"atPeriodStartActorStatistics",
-			"atPeriodStartActorStatistics.actorId = actor.actorId AND atPeriodStartActorStatistics.date = firstKnownDailyPeriodStatisticsDateByActor.lastDate"
-		);
-	}
-
-	if (ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.length > 0) {
-		query = query.leftJoin(qb => {
-			return qb.subQuery()
-				.select("lads.actorId", "actorId")
-				.addSelect("MAX(lads.date)", "lastDate")
-				.from(wikiEntities.actorDailyStatistics, "lads")
-				.where("lads.date <= :date", { date: endDate })
-				.groupBy("lads.actorId");
-		}, "lastKnownDailyStatisticsDateByActor", "lastKnownDailyStatisticsDateByActor.actorId = actor.actorId");
-
-		query = query.leftJoin(
-			wikiEntities.actorDailyStatistics,
-			"sinceRegistrationActorStatistics",
-			"sinceRegistrationActorStatistics.actorId = actor.actorId AND sinceRegistrationActorStatistics.date = lastKnownDailyStatisticsDateByActor.lastDate"
-		);
-	}
-
-	if (ctx.columns.requiredColumnsForSinceRegisteredWikiStatistics.length > 0) {
 		query = query.leftJoin(qb => {
 			return qb.subQuery()
 				.select("MAX(lwds.date)", "lastDate")
 				.from(wikiEntities.dailyStatistics, "lwds")
-				.where("lwds.date <= :date", { date: endDate });
-		}, "lastKnownDailyStatisticsDateByWiki", "true");
+				.where("lwds.date < :startDate", { startDate: startDate });
+		}, "atPeriodStartWikiStatisticsDate", "true");
+
+		query = query.leftJoin(
+			wikiEntities.dailyStatistics,
+			"atPeriodStartWikiStatistics",
+			"atPeriodStartWikiStatistics.date = atPeriodStartWikiStatisticsDate.lastDate"
+		);
+	}
+
+	if (ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.length > 0
+		|| ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
+		query = query.leftJoin(qb => {
+			return qb.subQuery()
+				.select("lads.actorId", "actorId")
+				.addSelect("MAX(lads.date)", "lastDate")
+				.from(wikiEntities.actorDailyStatistics, "lads")
+				.where("lads.date <= :endDate", { endDate: endDate })
+				.groupBy("lads.actorId");
+		}, "lastActorStatisticsAtPeriodEnd", "lastActorStatisticsAtPeriodEnd.actorId = actor.actorId");
+
+		query = query.innerJoin(
+			wikiEntities.actorDailyStatistics,
+			"sinceRegistrationActorStatistics",
+			"sinceRegistrationActorStatistics.actorId = actor.actorId AND sinceRegistrationActorStatistics.date = lastActorStatisticsAtPeriodEnd.lastDate"
+		);
+	}
+
+	if (ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.length > 0
+		|| ctx.columns.requiredColumnsForSinceRegisteredWikiStatistics.length > 0) {
+		query = query.leftJoin(qb => {
+			return qb.subQuery()
+				.select("MAX(lwds.date)", "lastDate")
+				.from(wikiEntities.dailyStatistics, "lwds")
+				.where("lwds.date <= :endDate", { endDate: endDate });
+		}, "lastWikiStatisticsAtPeriodEnd", "true");
 
 		query = query.leftJoin(
 			wikiEntities.dailyStatistics,
 			"sinceStartWikiStatistics",
-			"sinceStartWikiStatistics.date = lastKnownDailyStatisticsDateByWiki.lastDate"
+			"sinceStartWikiStatistics.date = lastWikiStatisticsAtPeriodEnd.lastDate"
 		);
 	}
 
@@ -1010,7 +1019,7 @@ function addColumnJoins(
 	const needsLastEditDate = needsDaysBetweenFirstAndLastEdit || columns.findIndex(x => x.type === "lastEditDate") !== -1;
 
 	if (needsDaysBetweenFirstAndLastEdit || needsFirstEditDate || needsLastEditDate) {
-		query = query.leftJoin(qb => {
+		query = query.innerJoin(qb => {
 			let subQuery = qb.subQuery()
 				.select("ads.actorId", "actorId");
 
@@ -1027,377 +1036,232 @@ function addColumnJoins(
 				.where(
 					"ads.date <= :endDate", { endDate: endDate }
 				)
-				.andWhere("ads.daily_edits > 0")
+				.andWhere("ads.dailyEdits > 0")
 				.groupBy("ads.actorId");
 		}, "editDates", "editDates.actorId = actor.actorId");
 	}
 
-	if (columns.find(x => x.type === "firstLogEventDate" || x.type === "daysBetweenFirstAndLastLogEvent")) {
-		query = query.leftJoin(qb => {
-			return qb.subQuery()
-				.select("ads.actorId", "actorId")
-				.addSelect("MIN(date)", "date")
+	const needsDaysBetweenFirstAndLastLogEvent = columns.findIndex(x => x.type === "daysBetweenFirstAndLastLogEvent") !== -1;
+	const needsFirstLogEventDate = needsDaysBetweenFirstAndLastLogEvent || columns.findIndex(x => x.type === "firstLogEventDate") !== -1;
+	const needsLastLogEventDate = needsDaysBetweenFirstAndLastLogEvent || columns.findIndex(x => x.type === "lastLogEventDate") !== -1;
+
+	if (needsDaysBetweenFirstAndLastLogEvent || needsFirstLogEventDate || needsLastLogEventDate) {
+		query = query.innerJoin(qb => {
+			let subQuery = qb.subQuery()
+				.select("ads.actorId", "actorId");
+
+			if (needsFirstEditDate) {
+				subQuery = subQuery.addSelect("MIN(date)", "firstLogEventDate");
+			}
+
+			if (needsLastEditDate) {
+				subQuery = subQuery.addSelect("MAX(date)", "lastLogEventDate");
+			}
+
+			return subQuery
 				.from(wikiEntities.actorDailyStatistics, "ads")
 				.where(
 					"ads.date <= :endDate", { endDate: endDate }
 				)
-				.andWhere("ads.daily_log_events > 0")
+				.andWhere("ads.dailyLogEvents > 0")
 				.groupBy("ads.actorId");
-		}, "firstLogEventDate", "firstLogEventDate.actorId = actor.actorId");
-	}
-
-	if (columns.find(x => x.type === "lastLogEventDate" || x.type === "daysBetweenFirstAndLastLogEvent")) {
-		query = query.leftJoin(qb => {
-			return qb.subQuery()
-				.select("ads.actorId", "actorId")
-				.addSelect("MAX(date)", "date")
-				.from(wikiEntities.actorDailyStatistics, "ads")
-				.where(
-					"ads.date <= :endDate", { endDate: endDate }
-				)
-				.andWhere("ads.daily_log_events > 0")
-				.groupBy("ads.actorId");
-		}, "lastLogEventDate", "lastLogEventDate.actorId = actor.actorId");
-	}
-
-	if (columns.find(x => x.type === "levelAtPeriodStart" || x.type === "levelAtPeriodEndWithChange")) {
-		query = query.leftJoin(qb => {
-			return qb.subQuery()
-				.select("adsr.actorId", "actorId")
-				.addSelect("SUM(CASE WHEN adsr.dailyEdits > 0 OR adsr.dailyLogEvents > 0 THEN 1 ELSE 0 END)", "activeDays")
-				.from(wikiEntities.actorDailyStatistics, "adsr")
-				.where(
-					"adsr.date < :startDate",
-					{ startDate: startDate }
-				)
-				.groupBy("adsr.actorId");
-		}, "activeDaysSinceRegistrationAtPeriodStart", "activeDaysSinceRegistrationAtPeriodStart.actorId = actor.actorId");
-	}
-
-	if (columns.find(x => x.type === "activeDaysSinceRegistration"
-		|| x.type === "levelAtPeriodEnd"
-		|| x.type === "levelAtPeriodEndWithChange")
-	) {
-		query = query.leftJoin(qb => {
-			return qb.subQuery()
-				.select("adsr.actorId", "actorId")
-				.addSelect("SUM(CASE WHEN adsr.dailyEdits > 0 OR adsr.dailyLogEvents > 0 THEN 1 ELSE 0 END)", "activeDays")
-				.from(wikiEntities.actorDailyStatistics, "adsr")
-				.where(
-					"adsr.date <= :endDate",
-					{ endDate: endDate }
-				)
-				.groupBy("adsr.actorId");
-		}, "activeDaysSinceRegistration", "activeDaysSinceRegistration.actorId = actor.actorId");
+		}, "logEventDates", "logEntryDates.actorId = actor.actorId");
 	}
 
 	for (const namespaceCollection of ctx.columns.requiredNamespaceStatisticsColumns) {
 		const namespaceKey = formatNamespaceParameter(namespaceCollection.namespace);
 
 		if (namespaceCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
-			if (!startDate) {
-				// TODO: error out
-			}
-
 			query = query.leftJoin(qb => {
 				let subQuery = qb.subQuery()
-					.select("pas.actorId", "actorId");
+					.select("lads.actorId", "actorId")
+					.addSelect("MAX(lads.date)", "lastDate")
+					.from(wikiEntities.actorDailyStatisticsByNamespace, "lads")
+					.where("lads.date < :startDate", { startDate: startDate });
 
-				if (arrayHasAny(
-					namespaceCollection.requiredColumnsForSelectedPeriodActorStatistics,
-					"editsInNamespaceInPeriod",
-					"editsInNamespaceInPeriodPercentage"
-				)) {
-					subQuery = subQuery.addSelect("SUM(pas.dailyEdits)", "actorEditsInPeriod");
-				}
+				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "lads");
 
-				if (arrayHasAny(
-					namespaceCollection.requiredColumnsForSelectedPeriodActorStatistics,
-					"revertedEditsInNamespaceInPeriod",
-					"revertedEditsInNamespaceInPeriodPercentage"
-				)) {
-					subQuery = subQuery.addSelect("SUM(pas.dailyRevertedEdits)", "actorRevertedEditsInPeriod");
-				}
+				return subQuery.groupBy("lads.actorId");
+			}, `ns${namespaceKey}LastStatisticsBeforePeriodStart`, `ns${namespaceKey}LastStatisticsBeforePeriodStart.actorId = actor.actorId`);
 
-				if (arrayHasAny(namespaceCollection.requiredColumnsForSelectedPeriodActorStatistics,
-					"characterChangesInNamespaceInPeriod",
-					"characterChangesInNamespaceInPeriodPercentage"
-				)) {
-					subQuery = subQuery.addSelect("SUM(pas.dailyCharacterChanges)", "actorCharacterChangesInPeriod");
-				}
-
-				subQuery = subQuery
-					.from(wikiEntities.actorDailyStatisticsByNamespace, "pas")
-					.where(
-						"pas.date >= :startDate AND pas.date <= :endDate",
-						{ startDate: startDate, endDate: endDate }
-					);
-
-				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "pas");
-
-				return subQuery.groupBy("pas.actorId");
-			}, `ns${namespaceKey}PeriodActorStatistics`, `ns${namespaceKey}PeriodActorStatistics.actorId = actor.actorId`);
+			query = query.leftJoin(
+				wikiEntities.actorDailyStatisticsByNamespace,
+				`ns${namespaceKey}AtPeriodStartActorStatistics`,
+				`ns${namespaceKey}AtPeriodStartActorStatistics.actorId = actor.actorId`
+				+ ` AND ns${namespaceKey}AtPeriodStartActorStatistics.namespace = :namespace${namespaceCollection.namespace}`
+				+ ` AND ns${namespaceKey}AtPeriodStartActorStatistics.date = ns${namespaceKey}LastStatisticsBeforePeriodStart.lastDate`,
+				{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
+			);
 		}
 
 		if (namespaceCollection.requiredColumnsForSelectedPeriodWikiStatistics.length > 0) {
-			if (!startDate) {
-				// TODO: error out
-			}
-
 			query = query.leftJoin(qb => {
-				let subQuery: SelectQueryBuilder<DailyStatisticsByNamespaceTypeModel> = qb.subQuery();
+				const subQuery = qb.subQuery()
+					.select("MAX(lwds.date)", "lastDate")
+					.from(wikiEntities.dailyStatisticsByNamespace, "lwds")
+					.where("lwds.date < :startDate", { startDate: startDate });
 
-				if (namespaceCollection.requiredColumnsForSelectedPeriodWikiStatistics.indexOf("editsInNamespaceInPeriodPercentage") !== -1) {
-					subQuery = subQuery.addSelect("SUM(pws.dailyEdits)", "wikiEditsInPeriod");
-				}
+				return createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "lwds");
+			}, `ns${namespaceKey}AtPeriodStartWikiStatisticsDate`, "true");
 
-				if (namespaceCollection.requiredColumnsForSelectedPeriodWikiStatistics.indexOf("revertedEditsInNamespaceInPeriodPercentage") !== -1) {
-					subQuery = subQuery.addSelect("SUM(pws.dailyRevertedEdits)", "wikiRevertedEditsInPeriod");
-				}
-
-				if (namespaceCollection.requiredColumnsForSelectedPeriodWikiStatistics.indexOf("characterChangesInNamespaceInPeriodPercentage") !== -1) {
-					subQuery = subQuery.addSelect("SUM(pws.dailyCharacterChanges)", "wikiCharacterChangesInPeriod");
-				}
-
-				subQuery = subQuery
-					.from(wikiEntities.dailyStatisticsByNamespace, "pws")
-					.where(
-						"pws.date >= :startDate AND pws.date <= :endDate",
-						{ startDate: startDate, endDate: endDate }
-					);
-
-				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "pws");
-
-				return subQuery;
-			}, `ns${namespaceKey}PeriodWikiStatistics`, "true");
+			query = query.leftJoin(
+				wikiEntities.dailyStatisticsByNamespace,
+				`ns${namespaceKey}AtPeriodStartWikiStatistics`,
+				`ns${namespaceKey}AtPeriodStartWikiStatistics.date = ns${namespaceKey}AtPeriodStartWikiStatisticsDate.lastDate`
+				+ ` AND ns${namespaceKey}AtPeriodStartWikiStatistics.namespace = :namespace${namespaceCollection.namespace}`,
+				{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
+			);
 		}
 
-		if (namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0) {
+		if (namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0
+			|| namespaceCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
 			query = query.leftJoin(qb => {
 				let subQuery = qb.subQuery()
-					.select("adsn.actorId", "actorId");
+					.select("lads.actorId", "actorId")
+					.addSelect("MAX(lads.date)", "lastDate")
+					.from(wikiEntities.actorDailyStatisticsByNamespace, "lads")
+					.where("lads.date <= :endDate", { endDate: endDate })
+					.groupBy("lads.actorId");
 
-				if (arrayHasAny(namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics,
-					"editsInNamespaceSinceRegistration",
-					"editsInNamespaceSinceRegistrationPercentage")) {
-					subQuery = subQuery.addSelect("SUM(adsn.editsToDate + adsn.dailyEdits)", "totalEdits");
-				}
+				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "lads");
 
-				if (arrayHasAny(namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics,
-					"revertedEditsInNamespaceSinceRegistration",
-					"revertedEditsInNamespaceSinceRegistrationPercentage")) {
-					subQuery = subQuery.addSelect("SUM(adsn.revertedEditsToDate + adsn.dailyRevertedEdits)", "totalRevertedEdits");
-				}
+				return subQuery.groupBy("lads.actorId");
+			}, `ns${namespaceKey}LastActorStatisticsAtPeriodEnd`, `ns${namespaceKey}LastActorStatisticsAtPeriodEnd.actorId = actor.actorId`);
 
-				if (arrayHasAny(namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics,
-					"characterChangesInNamespaceSinceRegistration",
-					"characterChangesInNamespaceSinceRegistrationPercentage")) {
-					subQuery = subQuery.addSelect("SUM(adsn.characterChangesToDate + adsn.dailyCharacterChanges)", "totalCharacterChanges");
-				}
-
-				subQuery = subQuery
-					.from(wikiEntities.actorDailyStatisticsByNamespace, "adsn");
-
-				subQuery = subQuery.andWhere(qb => {
-					let lastDateSubQuery = qb.subQuery()
-						.select("MAX(adsnLastDate.date)", "lastDate")
-						.from(wikiEntities.actorDailyStatisticsByNamespace, "adsnLastDate")
-						.where("adsnLastDate.actorId = adsn.actorId")
-						.andWhere("adsnLastDate.date <= :date", { date: endDate });
-
-					lastDateSubQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, lastDateSubQuery, "adsnLastDate");
-
-					return "adsn.date = " + lastDateSubQuery.getQuery();
-				});
-
-				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "adsn");
-
-				subQuery.groupBy("adsn.actorId");
-
-				return subQuery;
-			}, `ns${namespaceKey}SinceRegistrationActorStatistics`, `ns${namespaceKey}SinceRegistrationActorStatistics.actorId = actor.actorId`);
+			query = query.leftJoin(
+				wikiEntities.actorDailyStatisticsByNamespace,
+				`ns${namespaceKey}SinceRegistrationActorStatistics`,
+				`ns${namespaceKey}SinceRegistrationActorStatistics.actorId = actor.actorId `
+				+ ` AND ns${namespaceKey}SinceRegistrationActorStatistics.namespace = :namespace${namespaceCollection.namespace}`
+				+ ` AND ns${namespaceKey}SinceRegistrationActorStatistics.date = ns${namespaceKey}LastActorStatisticsAtPeriodEnd.lastDate`,
+				{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
+			);
 		}
 
-		if (namespaceCollection.requiredColumnsForSinceRegisteredWikiStatistics.length > 0) {
+		if (namespaceCollection.requiredColumnsForSelectedPeriodWikiStatistics.length > 0
+			|| namespaceCollection.requiredColumnsForSinceRegisteredWikiStatistics.length > 0) {
 			query = query.leftJoin(qb => {
-				let subQuery = qb.subQuery();
+				const subQuery = qb.subQuery()
+					.select("MAX(lwds.date)", "lastDate")
+					.from(wikiEntities.dailyStatisticsByNamespace, "lwds")
+					.where("lwds.date <= :endDate", { endDate: endDate });
 
-				if (arrayHasAny(
-					namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics,
-					"editsInNamespaceSinceRegistration",
-					"editsInNamespaceSinceRegistrationPercentage")
-				) {
-					subQuery = subQuery.addSelect("SUM(dsn.editsToDate + dsn.dailyEdits)", "totalEdits");
-				}
+				return createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "lwds");
+			}, `ns${namespaceKey}LastWikiStatisticsAtPeriodEnd`, "true");
 
-				if (arrayHasAny(
-					namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics,
-					"revertedEditsInNamespaceSinceRegistration",
-					"revertedEditsInNamespaceSinceRegistrationPercentage")
-				) {
-					subQuery = subQuery.addSelect("SUM(dsn.revertedEditsToDate + dsn.dailyRevertedEdits)", "totalRevertedEdits");
-				}
-
-				if (arrayHasAny(
-					namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics,
-					"characterChangesInNamespaceSinceRegistration",
-					"characterChangesInNamespaceSinceRegistrationPercentage")
-				) {
-					subQuery = subQuery.addSelect("SUM(dsn.characterChangesToDate + dsn.dailyCharacterChanges)", "totalCharacterChanges");
-				}
-
-				subQuery = subQuery
-					.from(wikiEntities.dailyStatisticsByNamespace, "dsn");
-
-				subQuery = subQuery.andWhere(qb => {
-					let lastDateSubQuery = qb.subQuery()
-						.select("MAX(dsnLastDate.date)", "lastDate")
-						.from(wikiEntities.dailyStatisticsByNamespace, "dsnLastDate")
-						.where("dsnLastDate.date <= :date", { date: endDate });
-
-					lastDateSubQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, lastDateSubQuery, "dsnLastDate");
-
-					return "dsn.date = " + lastDateSubQuery.getQuery();
-				});
-
-				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "dsn");
-
-				return subQuery;
-			}, `ns${namespaceKey}SinceStartWikiStatistics`, "true");
+			query = query.leftJoin(
+				wikiEntities.dailyStatisticsByNamespace,
+				`ns${namespaceKey}SinceStartWikiStatistics`,
+				`ns${namespaceKey}SinceStartWikiStatistics.date = ns${namespaceKey}LastWikiStatisticsAtPeriodEnd.lastDate`
+				+ ` AND ns${namespaceKey}SinceStartWikiStatistics.namespace = :namespace${namespaceCollection.namespace}`,
+				{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
+			);
 		}
 	}
 
-	for (const changeTagCollection of ctx.columns.requiredChangeTagStatisticsColumns) {
-		const normalizedCtKey = changeTagCollection.serializedChangeTagFilter;
+	// for (const changeTagCollection of ctx.columns.requiredChangeTagStatisticsColumns) {
+	// 	const normalizedCtKey = changeTagCollection.serializedChangeTagFilter;
 
-		if (changeTagCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
-			if (!startDate) {
-				// TODO: error out
-			}
+	// 	if (changeTagCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
+	// 		query = query.leftJoin(qb => {
+	// 			let subQuery = qb.subQuery()
+	// 				.select("lads.actorId", "actorId")
+	// 				.addSelect("MAX(lads.date)", "lastDate")
+	// 				.from(wikiEntities.actorDailyStatisticsByNamespace, "lads")
+	// 				.where("lads.date < :startDate", { startDate: startDate });
 
-			query = query.leftJoin(qb => {
-				let subQuery = qb.subQuery()
-					.select("pas.actorId", "actorId");
+	// 			subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "lads");
 
-				if (changeTagCollection.requiredColumnsForSelectedPeriodActorStatistics.indexOf("editsInPeriodByChangeTag") !== -1) {
-					subQuery = subQuery.addSelect("SUM(pas.dailyEdits)", "editsInPeriod");
-				}
+	// 			return subQuery.groupBy("lads.actorId");
+	// 		}, `ct${normalizedCtKey}LastStatisticsBeforePeriodStart`, `ct${normalizedCtKey}LastStatisticsBeforePeriodStart.actorId = actor.actorId`);
 
-				if (changeTagCollection.requiredColumnsForSelectedPeriodActorStatistics.indexOf("characterChangesInPeriodByChangeTag") !== -1) {
-					subQuery = subQuery.addSelect("SUM(pas.dailyCharacterChanges)", "characterChangesInPeriod");
-				}
+	// 		query = query.leftJoin(
+	// 			wikiEntities.actorDailyStatisticsByNamespace,
+	// 			`ct${normalizedCtKey}AtPeriodStartActorStatistics`,
+	// 			`ct${normalizedCtKey}AtPeriodStartActorStatistics.actorId = actor.actorId`
+	// 			+ ` AND ct${normalizedCtKey}AtPeriodStartActorStatistics.namespace = :namespace${changeTagCollection.changeTagFilter}`
+	// 			+ ` AND ct${normalizedCtKey}AtPeriodStartActorStatistics.date = ct${normalizedCtKey}LastStatisticsBeforePeriodStart.lastDate`,
+	// 			{ [`namespace${normalizedCtKey.namespace}`]: changeTagCollection.namespace }
+	// 		);
+	// 	}
 
-				subQuery = subQuery
-					.from(wikiEntities.actorEditStatisticsByNamespaceAndChangeTag, "pas")
-					.where(
-						"pas.date >= :startDate AND pas.date <= :endDate",
-						{ startDate: startDate, endDate: endDate }
-					);
+	// 	if (changeTagCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0
+	// 		|| changeTagCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
+	// 		query = query.leftJoin(qb => {
+	// 			let subQuery = qb.subQuery()
+	// 				.select("lads.actorId", "actorId")
+	// 				.addSelect("MAX(lads.date)", "lastDate")
+	// 				.from(wikiEntities.actorDailyStatisticsByNamespace, "lads")
+	// 				.where("lads.date <= :endDate", { endDate: endDate })
+	// 				.groupBy("lads.actorId");
 
-				subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "pas");
+	// 			subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "lads");
 
-				return subQuery.groupBy("pas.actorId");
-			}, `ct${normalizedCtKey}PeriodActorStatistics`, `ct${normalizedCtKey}PeriodActorStatistics.actorId = actor.actorId`);
-		}
+	// 			return subQuery.groupBy("lads.actorId");
+	// 		}, `ct${normalizedCtKey}LastActorStatisticsAtPeriodEnd`, `ct${normalizedCtKey}LastActorStatisticsAtPeriodEnd.actorId = actor.actorId`);
 
-		if (changeTagCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0) {
-			query = query.leftJoin(qb => {
-				let subQuery = qb.subQuery()
-					.select("adsn.actorId", "actorId");
+	// 		query = query.leftJoin(
+	// 			wikiEntities.actorDailyStatisticsByNamespace,
+	// 			`ct${normalizedCtKey}SinceRegistrationActorStatistics`,
+	// 			`ct${normalizedCtKey}SinceRegistrationActorStatistics.actorId = actor.actorId `
+	// 			+ ` AND ct${normalizedCtKey}SinceRegistrationActorStatistics.namespace = :namespace${changeTagCollection.namespace}`
+	// 			+ ` AND ct${normalizedCtKey}SinceRegistrationActorStatistics.date = ct${normalizedCtKey}LastActorStatisticsAtPeriodEnd.lastDate`,
+	// 			{ [`namespace${changeTagCollection.namespace}`]: changeTagCollection.namespace }
+	// 		);
+	// 	}
+	// }
 
-				if (changeTagCollection.requiredColumnsForSinceRegisteredActorStatistics.indexOf("editsSinceRegistrationByChangeTag") !== -1) {
-					subQuery = subQuery.addSelect("SUM(adsn.editsToDate + adsn.dailyEdits)", "totalEdits");
-				}
+	// for (const logTypeCollection of ctx.columns.requiredLogTypeStatisticsColumns) {
+	// 	const normalizedLogKey = logTypeCollection.serializedLogFilter;
 
-				if (changeTagCollection.requiredColumnsForSinceRegisteredActorStatistics.indexOf("characterChangesSinceRegistrationByChangeTag") !== -1) {
-					subQuery = subQuery.addSelect("SUM(adsn.characterChangesToDate + adsn.dailyCharacterChanges)", "totalCharacterChanges");
-				}
+	// 	if (logTypeCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
+	// 		query = query.leftJoin(qb => {
+	// 			let subQuery = qb.subQuery()
+	// 				.select("lads.actorId", "actorId")
+	// 				.addSelect("MAX(lads.date)", "lastDate")
+	// 				.from(wikiEntities.actorDailyStatisticsByNamespace, "lads")
+	// 				.where("lads.date < :startDate", { startDate: startDate });
 
-				subQuery = subQuery
-					.from(wikiEntities.actorEditStatisticsByNamespaceAndChangeTag, "adsn");
+	// 			subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "lads");
 
-				subQuery = subQuery.andWhere(qb => {
-					let lastDateSubQuery = qb.subQuery()
-						.select("MAX(adsnLastDate.date)", "lastDate")
-						.from(wikiEntities.actorEditStatisticsByNamespaceAndChangeTag, "adsnLastDate")
-						.where("adsnLastDate.actorId = adsn.actorId")
-						.andWhere("adsnLastDate.date <= :date", { date: endDate });
+	// 			return subQuery.groupBy("lads.actorId");
+	// 		}, `ns${normalizedLogKey}LastStatisticsBeforePeriodStart`, `ns${normalizedLogKey}LastStatisticsBeforePeriodStart.actorId = actor.actorId`);
 
-					lastDateSubQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, lastDateSubQuery, "adsnLastDate");
+	// 		query = query.leftJoin(
+	// 			wikiEntities.actorDailyStatisticsByNamespace,
+	// 			`ns${normalizedLogKey}AtPeriodStartActorStatistics`,
+	// 			`ns${normalizedLogKey}AtPeriodStartActorStatistics.actorId = actor.actorId`
+	// 			+ ` AND ns${normalizedLogKey}AtPeriodStartActorStatistics.namespace = :namespace${logTypeCollection.namespace}`
+	// 			+ ` AND ns${normalizedLogKey}AtPeriodStartActorStatistics.date = ns${normalizedLogKey}LastStatisticsBeforePeriodStart.lastDate`,
+	// 			{ [`namespace${logTypeCollection.namespace}`]: logTypeCollection.namespace }
+	// 		);
+	// 	}
 
-					return "adsn.date = " + lastDateSubQuery.getQuery();
-				});
+	// 	if (logTypeCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0
+	// 		|| logTypeCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
+	// 		query = query.leftJoin(qb => {
+	// 			let subQuery = qb.subQuery()
+	// 				.select("lads.actorId", "actorId")
+	// 				.addSelect("MAX(lads.date)", "lastDate")
+	// 				.from(wikiEntities.actorDailyStatisticsByNamespace, "lads")
+	// 				.where("lads.date <= :endDate", { endDate: endDate })
+	// 				.groupBy("lads.actorId");
 
-				subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "adsn");
+	// 			subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "lads");
 
-				subQuery.groupBy("adsn.actorId");
+	// 			return subQuery.groupBy("lads.actorId");
+	// 		}, `ns${normalizedLogKey}LastActorStatisticsAtPeriodEnd`, `ns${normalizedLogKey}LastActorStatisticsAtPeriodEnd.actorId = actor.actorId`);
 
-				return subQuery;
-			}, `ct${normalizedCtKey}SinceRegistrationActorStatistics`, `ct${normalizedCtKey}SinceRegistrationActorStatistics.actorId = actor.actorId`);
-		}
-	}
-
-	for (const logTypeCollection of ctx.columns.requiredLogTypeStatisticsColumns) {
-		const normalizedLogKey = logTypeCollection.serializedLogFilter;
-
-		if (logTypeCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
-			if (!startDate) {
-				// TODO: error out
-			}
-
-			query = query.leftJoin(qb => {
-				let subQuery = qb.subQuery()
-					.select("pas.actorId", "actorId");
-
-				if (logTypeCollection.requiredColumnsForSelectedPeriodActorStatistics.indexOf("logEventsInPeriodByType") !== -1) {
-					subQuery = subQuery.addSelect("SUM(pas.dailyLogEvents)", "logEventsInPeriod");
-				}
-
-				subQuery = subQuery
-					.from(wikiEntities.actorLogStatisticsByNamespaceAndLogType, "pas")
-					.where(
-						"pas.date >= :startDate AND pas.date <= :endDate",
-						{ startDate: startDate, endDate: endDate }
-					);
-
-				subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "pas");
-
-				return subQuery.groupBy("pas.actorId");
-			}, `log${normalizedLogKey}PeriodActorStatistics`, `log${normalizedLogKey}PeriodActorStatistics.actorId = actor.actorId`);
-		}
-
-		if (logTypeCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0) {
-			query = query.leftJoin(qb => {
-				let subQuery = qb.subQuery()
-					.select("adsn.actorId", "actorId");
-
-				if (logTypeCollection.requiredColumnsForSinceRegisteredActorStatistics.indexOf("logEventsSinceRegistrationByType") !== -1) {
-					subQuery = subQuery.addSelect("SUM(adsn.logEventsToDate + adsn.dailyLogEvents)", "totalLogEvents");
-				}
-
-				subQuery = subQuery
-					.from(wikiEntities.actorLogStatisticsByNamespaceAndLogType, "adsn");
-
-				subQuery = subQuery.andWhere(qb => {
-					let lastDateSubQuery = qb.subQuery()
-						.select("MAX(adsnLastDate.date)", "lastDate")
-						.from(wikiEntities.actorLogStatisticsByNamespaceAndLogType, "adsnLastDate")
-						.where("adsnLastDate.actorId = adsn.actorId")
-						.andWhere("adsnLastDate.date <= :date", { date: endDate });
-
-					lastDateSubQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, lastDateSubQuery, "adsnLastDate");
-
-					return "adsn.date = " + lastDateSubQuery.getQuery();
-				});
-
-				subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "adsn");
-
-				subQuery.groupBy("adsn.actorId");
-
-				return subQuery;
-			}, `log${normalizedLogKey}SinceRegistrationActorStatistics`, `log${normalizedLogKey}SinceRegistrationActorStatistics.actorId = actor.actorId`);
-		}
-	}
+	// 		query = query.leftJoin(
+	// 			wikiEntities.actorDailyStatisticsByNamespace,
+	// 			`ns${normalizedLogKey}SinceRegistrationActorStatistics`,
+	// 			`ns${normalizedLogKey}SinceRegistrationActorStatistics.actorId = actor.actorId `
+	// 			+ ` AND ns${normalizedLogKey}SinceRegistrationActorStatistics.namespace = :namespace${logTypeCollection.namespace}`
+	// 			+ ` AND ns${normalizedLogKey}SinceRegistrationActorStatistics.date = ns${normalizedLogKey}LastActorStatisticsAtPeriodEnd.lastDate`,
+	// 			{ [`namespace${logTypeCollection.namespace}`]: logTypeCollection.namespace }
+	// 		);
+	// 	}
+	// }
 
 	return query;
 }
@@ -1496,7 +1360,6 @@ function getOrCreateNamespaceCollector(ctx: StatisticsQueryBuildingContext, name
 			namespace: namespace,
 			requiredColumnsForSelectedPeriodActorStatistics: [],
 			requiredColumnsForSelectedPeriodWikiStatistics: [],
-			requiredColumnsForAtPeriodStartActorStatistics: [],
 			requiredColumnsForSinceRegisteredActorStatistics: [],
 			requiredColumnsForSinceRegisteredWikiStatistics: []
 		};
@@ -1524,7 +1387,6 @@ function getOrCreateChangeTagCollector(ctx: StatisticsQueryBuildingContext, chan
 			changeTagFilter: changeTagFilter,
 			requiredColumnsForSelectedPeriodActorStatistics: [],
 			requiredColumnsForSelectedPeriodWikiStatistics: [],
-			requiredColumnsForAtPeriodStartActorStatistics: [],
 			requiredColumnsForSinceRegisteredActorStatistics: [],
 			requiredColumnsForSinceRegisteredWikiStatistics: []
 		};
@@ -1556,7 +1418,6 @@ function getOrCreateLogTypeCollector(ctx: StatisticsQueryBuildingContext, logFil
 			logFilter: logFilter,
 			requiredColumnsForSelectedPeriodActorStatistics: [],
 			requiredColumnsForSelectedPeriodWikiStatistics: [],
-			requiredColumnsForAtPeriodStartActorStatistics: [],
 			requiredColumnsForSinceRegisteredActorStatistics: [],
 			requiredColumnsForSinceRegisteredWikiStatistics: []
 		};
