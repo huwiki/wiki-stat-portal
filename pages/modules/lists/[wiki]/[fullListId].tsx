@@ -148,8 +148,8 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 				{
 					wikiId: this.props.wikiId,
 					listId: `${this.props.list.groupId}.${this.props.list.id}`,
-					startDate: "2021-11-13",
-					endDate: "2021-11-15",
+					startDate: "2021-06-01",
+					endDate: "2021-06-30",
 					languageCode: this.props.languageCode
 				},
 				{ timeout: 500000 }
@@ -160,12 +160,12 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 			} else {
 				this.failedToLoad = true;
 			}
-			this.isLoading = false;
 		}
 		catch (err) {
 			this.failedToLoad = true;
-			this.isLoading = false;
 		}
+
+		this.isLoading = false;
 	}
 
 	public render(): JSX.Element {
@@ -191,6 +191,12 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 	}
 
 	private renderContent(): JSX.Element {
+		if (this.failedToLoad) {
+			return <Callout intent={Intent.DANGER}>
+				{this.t("lists.failedToLoadList")}
+			</Callout>;
+		}
+
 		if (this.data.results.length === 0) {
 			return <Callout intent={Intent.PRIMARY}>
 				{this.t("lists.noUsersOnList")}
@@ -255,7 +261,7 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 
 			let cellContent: React.ReactNode = "–";
 			if (columnDefinition.type === "counter") {
-				cellContent = `${data}.`;
+				cellContent = typeof data === "number" ? `${data}.` : "";
 			} else if (columnDefinition.type === "userName") {
 				cellContent = this.renderUserName(actorId, data, columnDefinition);
 			} else if (columnDefinition.type === "userGroups") {
@@ -279,7 +285,7 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 				cellContent = data;
 			} else if (Array.isArray(data) && data.length === 3) {
 				cellContent = moment.utc(data).format("YYYY-MM-DD");
-			} else {
+			} else if (data != null) {
 				cellContent = `${typeof data}: ${data}`;
 			}
 

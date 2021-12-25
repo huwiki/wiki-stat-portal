@@ -2,9 +2,22 @@
 	width: 150px;
 }
 
+.listColumn-dataType-date {
+	width: 150px;
+}
+
 .listCell-type-userName {
 	.bp3-tag {
 		margin-left: 5px;
+	}
+}
+
+.userNameCell-firstRow {
+	display: flex;
+	align-items: center;
+
+	b {
+		flex: 1 1 auto;
 	}
 }
 
@@ -16,4 +29,8 @@
 .wikiStatList td.listCell-dataType-percentage,
 .wikiStatList td.listCell-dataType-float {
 	text-align: right;
+}
+
+table.bp3-html-table tr.listRow-fadeBot td {
+	color: rgba(128, 128, 84, 0.9);
 }

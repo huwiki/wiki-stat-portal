@@ -190,16 +190,16 @@
 					"namespace": 4
 				},
 				{
-					"type": "thanksInPeriod"
+					"type": "receivedThanksInPeriod"
 				},
 				{
-					"type": "thanksInPeriodPercentage"
+					"type": "receivedThanksInPeriodPercentage"
 				},
 				{
-					"type": "thanksSinceRegistration"
+					"type": "receivedThanksSinceRegistration"
 				},
 				{
-					"type": "thanksSinceRegistrationPercentage"
+					"type": "receivedThanksSinceRegistrationPercentage"
 				},
 				{
 					"type": "logEventsInPeriod"
@@ -452,6 +452,304 @@
 				},
 				{
 					"type": "editsInNamespaceSinceRegistration",
+					"namespace": 0,
+					"headerI18nKey": "lists.header.totalEditsInNs0"
+				},
+				{
+					"type": "firstEditDate",
+					"headerI18nKey": "lists.header.firstEdit"
+				},
+				{
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
+				},
+				{
+					"type": "daysSinceRegistration",
+					"headerI18nKey": "lists.header.daysSinceRegistration"
+				},
+				{
+					"type": "activeDaysSinceRegistration",
+					"headerI18nKey": "lists.header.activeDays"
+				},
+				{
+					"type": "averageEditsPerDaySinceRegistration",
+					"headerI18nKey": "lists.header.averageEditsPerDay"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "orderBy",
+					"direction": "descending"
+				}
+			],
+			"displaySettings": {
+				"fadeBots": true,
+				"skipBotsFromCounting": true
+			}
+		},
+		{
+			"id": "byEditCountInPeriod",
+			"groupId": "topLists",
+			"i18nKey": "lists.list.topLists.byEditCountInPeriod",
+			"itemCount": 500,
+			"columns": [
+				{
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "userGroups",
+					"headerI18nKey": "lists.header.rights"
+				},
+				{
+					"type": "editsSinceRegistration",
+					"headerI18nKey": "lists.header.totalEdits"
+				},
+				{
+					"columnId": "orderBy",
+					"type": "editsInPeriod",
+					"headerI18nKey": "lists.header.totalEditsInPeriod"
+				},
+				{
+					"columnId": "orderBy",
+					"type": "editsInNamespaceInPeriod",
+					"namespace": 0,
+					"headerI18nKey": "lists.header.totalEditsInPeriodInNs0"
+				},
+				{
+					"type": "firstEditDate",
+					"headerI18nKey": "lists.header.firstEdit"
+				},
+				{
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
+				},
+				{
+					"type": "daysSinceRegistration",
+					"headerI18nKey": "lists.header.daysSinceRegistration"
+				},
+				{
+					"type": "activeDaysInPeriod",
+					"headerI18nKey": "lists.header.activeDaysInPeriod"
+				},
+				{
+					"type": "averageEditsPerDayInPeriod",
+					"headerI18nKey": "lists.header.averageEditsPerDay"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "orderBy",
+					"direction": "descending"
+				}
+			],
+			"displaySettings": {
+				"fadeBots": true,
+				"skipBotsFromCounting": true
+			}
+		},
+		{
+			"id": "editorsByPatrolCount",
+			"groupId": "topLists",
+			"i18nKey": "lists.list.topLists.editorsByPatrolCount",
+			"itemCount": 500,
+			"userRequirements": {
+				"userGroups": [
+					"editor"
+				]
+			},
+			"columns": [
+				{
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.totalPatrolCount",
+					"columnId": "totalPatrolCount",
+					"logFilter": [
+						{
+							"logType": "review",
+							"logAction": "approve"
+						},
+						{
+							"logType": "review",
+							"logAction": "approve-i"
+						},
+						{
+							"logType": "review",
+							"logAction": "approve2"
+						},
+						{
+							"logType": "review",
+							"logAction": "approve2-i"
+						},
+						{
+							"logType": "review",
+							"logAction": "unapprove"
+						},
+						{
+							"logType": "review",
+							"logAction": "unapprove2"
+						}
+					]
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "totalPatrolCount",
+					"direction": "descending"
+				}
+			]
+		},
+		{
+			"id": "editorsByPatrolCountInPeriod",
+			"groupId": "topLists",
+			"i18nKey": "lists.list.topLists.editorsByPatrolCountInPeriod",
+			"itemCount": 500,
+			"userRequirements": {
+				"userGroups": [
+					"editor"
+				]
+			},
+			"columns": [
+				{
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.totalPatrolCount",
+					"columnId": "totalPatrolCount",
+					"logFilter": [
+						{
+							"logType": "review",
+							"logAction": "approve"
+						},
+						{
+							"logType": "review",
+							"logAction": "approve-i"
+						},
+						{
+							"logType": "review",
+							"logAction": "approve2"
+						},
+						{
+							"logType": "review",
+							"logAction": "approve2-i"
+						},
+						{
+							"logType": "review",
+							"logAction": "unapprove"
+						},
+						{
+							"logType": "review",
+							"logAction": "unapprove2"
+						}
+					]
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.inPeriodPatrolCount",
+					"columnId": "inPeriodPatrolCount",
+					"logFilter": [
+						{
+							"logType": "review",
+							"logAction": "approve"
+						},
+						{
+							"logType": "review",
+							"logAction": "approve-i"
+						},
+						{
+							"logType": "review",
+							"logAction": "approve2"
+						},
+						{
+							"logType": "review",
+							"logAction": "approve2-i"
+						},
+						{
+							"logType": "review",
+							"logAction": "unapprove"
+						},
+						{
+							"logType": "review",
+							"logAction": "unapprove2"
+						}
+					]
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "inPeriodPatrolCount",
+					"direction": "descending"
+				},
+				{
+					"columnId": "totalPatrolCount",
+					"direction": "descending"
+				}
+			]
+		},
+		{
+			"id": "botsByEditCount",
+			"groupId": "topLists",
+			"i18nKey": "lists.list.topLists.botsByEditCount",
+			"itemCount": 500,
+			"userRequirements": {
+				"userGroups": [
+					"bot",
+					"flaglessBot"
+				]
+			},
+			"columns": [
+				{
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "userGroups",
+					"headerI18nKey": "lists.header.rights"
+				},
+				{
+					"columnId": "orderBy",
+					"type": "editsSinceRegistration",
+					"headerI18nKey": "lists.header.totalEdits"
+				},
+				{
+					"type": "editsInNamespaceSinceRegistration",
 					"headerI18nKey": "lists.header.totalEditsInNs0",
 					"namespace": 0
 				},
@@ -484,10 +782,16 @@
 			]
 		},
 		{
-			"id": "byEditCountInPeriod",
+			"id": "botsByEditCountInPeriod",
 			"groupId": "topLists",
-			"i18nKey": "lists.list.topLists.byEditCountInPeriod",
+			"i18nKey": "lists.list.topLists.botsByEditCountInPeriod",
 			"itemCount": 500,
+			"userRequirements": {
+				"userGroups": [
+					"bot",
+					"flaglessBot"
+				]
+			},
 			"columns": [
 				{
 					"type": "counter",
@@ -549,78 +853,6 @@
 				{
 					"columnId": "orderBy",
 					"direction": "descending"
-				}
-			]
-		},
-		{
-			"id": "checkuserByCheckCount",
-			"groupId": "topLists",
-			"i18nKey": "lists.list.topLists.checkuserByCheckCount",
-			"itemCount": 500,
-			"columns": [
-				{
-					"columnId": "test",
-					"type": "counter"
-				}
-			],
-			"orderBy": [
-				{
-					"columnId": "test",
-					"direction": "ascending"
-				}
-			]
-		},
-		{
-			"id": "checkuserByCheckCountInPeriod",
-			"groupId": "topLists",
-			"i18nKey": "lists.list.topLists.checkuserByCheckCountInPeriod",
-			"itemCount": 500,
-			"columns": [
-				{
-					"columnId": "test",
-					"type": "counter"
-				}
-			],
-			"orderBy": [
-				{
-					"columnId": "test",
-					"direction": "ascending"
-				}
-			]
-		},
-		{
-			"id": "botsByEditCount",
-			"groupId": "topLists",
-			"i18nKey": "lists.list.topLists.botsByEditCount",
-			"itemCount": 500,
-			"columns": [
-				{
-					"columnId": "test",
-					"type": "counter"
-				}
-			],
-			"orderBy": [
-				{
-					"columnId": "test",
-					"direction": "ascending"
-				}
-			]
-		},
-		{
-			"id": "botsByEditCountInPeriod",
-			"groupId": "topLists",
-			"i18nKey": "lists.list.topLists.botsByEditCountInPeriod",
-			"itemCount": 500,
-			"columns": [
-				{
-					"columnId": "test",
-					"type": "counter"
-				}
-			],
-			"orderBy": [
-				{
-					"columnId": "test",
-					"direction": "ascending"
 				}
 			]
 		},

@@ -64,6 +64,7 @@ export function isLocalizedListConfiguration(obj: unknown): obj is LocalizedList
 
 export interface ListDisplaySettings {
 	fadeBots: boolean;
+	skipBotsFromCounting: boolean;
 }
 
 export type ListColumn =
@@ -97,16 +98,22 @@ const parameterlessListColumnTypes = [
 	"characterChangesSinceRegistration", // OK
 	"characterChangesSinceRegistrationPercentage", // OK
 
-	"thanksInPeriod", // OK
-	"thanksInPeriodPercentage", // OK
-	"thanksSinceRegistration", // OK
-	"thanksSinceRegistrationPercentage", // OK
+	"receivedThanksInPeriod", // OK
+	"receivedThanksInPeriodPercentage", // OK
+	"receivedThanksSinceRegistration", // OK
+	"receivedThanksSinceRegistrationPercentage", // OK
+
+	"sentThanksInPeriod", // OK
+	"sentThanksInPeriodPercentage", // OK
+	"sentThanksSinceRegistration", // OK
+	"sentThanksSinceRegistrationPercentage", // OK
 
 	"logEventsInPeriod", // OK
 	"logEventsInPeriodPercentage", // OK
 	"logEventsAtPeriodStart", // OK, internal for now
 	"logEventsSinceRegistration", // OK
 	"logEventsSinceRegistrationPercentage", // OK
+
 	"firstLogEventDate", // OK
 	"lastLogEventDate", // OK
 	"daysBetweenFirstAndLastLogEvent", // OK
@@ -116,7 +123,6 @@ const parameterlessListColumnTypes = [
 	"registrationDate", // OK
 	"daysSinceRegistration", // OK
 	"activeDaysInPeriod", // OK
-	"activeDaysAtPeriodStart", // OK, virtual for now
 	"activeDaysSinceRegistration", // OK
 
 	"levelAtPeriodStart", // OK

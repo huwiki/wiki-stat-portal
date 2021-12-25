@@ -166,10 +166,14 @@
 						"characterChangesInPeriodPercentage",
 						"characterChangesSinceRegistration",
 						"characterChangesSinceRegistrationPercentage",
-						"thanksInPeriod",
-						"thanksInPeriodPercentage",
-						"thanksSinceRegistration",
-						"thanksSinceRegistrationPercentage",
+						"receivedThanksInPeriod",
+						"receivedThanksInPeriodPercentage",
+						"receivedThanksSinceRegistration",
+						"receivedThanksSinceRegistrationPercentage",
+						"sentThanksInPeriod",
+						"sentThanksInPeriodPercentage",
+						"sentThanksSinceRegistration",
+						"sentThanksSinceRegistrationPercentage",
 						"logEventsInPeriod",
 						"logEventsInPeriodPercentage",
 						"logEventsSinceRegistration",
@@ -427,6 +431,9 @@
 			"additionalProperties": false,
 			"properties": {
 				"fadeBots": {
+					"type": "boolean"
+				},
+				"skipBotsFromCounting": {
 					"type": "boolean"
 				}
 			}

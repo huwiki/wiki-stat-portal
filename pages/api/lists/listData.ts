@@ -1,6 +1,7 @@
-import { parse, startOfDay } from "date-fns";
 import { isArray, isDate } from "lodash";
+import moment from "moment";
 import { NextApiRequest, NextApiResponse } from "next";
+import { FLAGLESS_BOT_VIRTUAL_GROUP_NAME } from "../../../common/consts";
 import { ListConfiguration } from "../../../common/modules/lists/listsConfiguration";
 import { MODULE_IDENTIFIERS } from "../../../common/modules/moduleIdentifiers";
 import { AppRunningContext } from "../../../server/appRunningContext";
@@ -96,17 +97,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 		let counter = 1;
 		for (const actorLike of resultActors) {
-			console.log(actorLike);
+			// console.log(actorLike);
 			const userGroups = actorGroupMap.get(actorLike.actorId) ?? null;
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const columns: any[] = [];
+			const isBot = userGroups && !!userGroups.find(x => x === "bot" || x === FLAGLESS_BOT_VIRTUAL_GROUP_NAME);
 
 			let columnIndex = 0;
 			for (const columnDefinition of list.columns) {
 				const dataFromQuery = actorLike[`column${columnIndex}`];
 
 				if (columnDefinition.type === "counter") {
-					columns.push(counter);
+					if (list.displaySettings?.skipBotsFromCounting === true && isBot) {
+						columns.push("");
+					} else {
+						columns.push(counter);
+					}
 				} else if (columnDefinition.type === "userName") {
 					columns.push(actorLike.actorName ?? "?");
 				} else if (columnDefinition.type === "userGroups") {
@@ -147,6 +153,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 					columns.push(dataFromQuery ?? null);
 				}
 
+
 				columnIndex++;
 			}
 
@@ -156,24 +163,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				actorGroups: userGroups,
 				data: columns,
 			});
-			counter++;
+
+			if (isBot === false || list.displaySettings?.skipBotsFromCounting !== true) {
+				counter++;
+			}
 		}
 
 		// TODO: format results
+		appCtx.logger.info("[api/lists/listData] returning data");
 
 		res.status(200).json(listData);
 	}
-	// catch (err) {
-	// 	appCtx.logger.error(err);
-	// 	appCtx.logger.error({
-	// 		errorMessage: "Error while serving list data",
-	// 		query: req.query,
-	// 		error: err
-	// 	});
-	// 	res.status(500).json({
-	// 		errorMessage: "Internal error while calculating data"
-	// 	});
-	// }
+	catch (err) {
+		appCtx.logger.error(err);
+		appCtx.logger.error({
+			errorMessage: "Error while serving list data",
+			query: req.query,
+			error: err
+		});
+		res.status(500).json({
+			errorMessage: "Internal error while calculating data"
+		});
+	}
 	finally {
 		conn.close();
 	}
@@ -212,7 +223,6 @@ const processParameters = (
 		return { isValid: false };
 	}
 
-
 	if (!rawFullListId || isArray(rawFullListId)) {
 		res.status(400).json({ errorMessage: "Invalid or missing listId parameter" });
 		return { isValid: false };
@@ -227,8 +237,7 @@ const processParameters = (
 		}
 
 		try {
-			startDate = parse(rawStartDate, "yyyy-MM-dd", startOfDay(new Date()));
-			console.log(startDate);
+			startDate = moment.utc(rawStartDate, "YYYY-MM-DD").startOf("day").toDate();
 		}
 		catch (err) {
 			res.status(400).json({ errorMessage: "Invalid startDate parameter" });
@@ -243,8 +252,7 @@ const processParameters = (
 
 	let endDate: Date;
 	try {
-		endDate = parse(rawEndDate, "yyyy-MM-dd", startOfDay(new Date()));
-		console.log(endDate);
+		endDate = moment.utc(rawEndDate, "YYYY-MM-DD").startOf("day").toDate();
 	}
 	catch (err) {
 		res.status(400).json({ errorMessage: "Invalid or missing endDate parameter" });

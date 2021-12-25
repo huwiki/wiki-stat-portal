@@ -162,6 +162,7 @@
 	"lists.list.activity.inactiveBots": "Inaktív botok",
 	"lists.list.activity.inactiveUsers": "Inaktív szerkesztők (nem volt szerkesztés az elmúlt 30 napban)",
 	"lists.noUsersOnList": "A lista egyetlen felhasználót sem tartalmaz.",
+	"lists.failedToLoadList": "Nem sikerült betölteni a listát.",
 	"lists.header.counter": "#",
 	"lists.header.user": "Szerkesztő",
 	"lists.header.rights": "Jogosultságok",
