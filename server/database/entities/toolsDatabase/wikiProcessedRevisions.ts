@@ -1,6 +1,6 @@
 import { Column, Entity, PrimaryColumn } from "typeorm";
 
-@Entity("wiki_processed_revisions_v2")
+@Entity("wiki_processed_revisions")
 export class WikiProcessedRevisions {
 	@PrimaryColumn({ type: "varchar", length: 30 })
 	public wiki: string;

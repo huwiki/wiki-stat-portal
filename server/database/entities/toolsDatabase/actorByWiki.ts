@@ -285,33 +285,33 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 	if (ENTITY_CACHE_BY_WIKI[wikiId])
 		return ENTITY_CACHE_BY_WIKI[wikiId];
 
-	const templateTableName = `${wikiId}_template_v2`;
-	const changeTagDefTableName = `${wikiId}_change_tag_def_v2`;
+	const templateTableName = `${wikiId}_template`;
+	const changeTagDefTableName = `${wikiId}_change_tag_def`;
 
-	const actorTableName = `${wikiId}_actor_v2`;
-	const actorGroupTableName = `${wikiId}_actor_groups_v2`;
-	const actorTalkTemplatesTableName = `${wikiId}_actor_talk_templates_v2`;
+	const actorTableName = `${wikiId}_actor`;
+	const actorGroupTableName = `${wikiId}_actor_groups`;
+	const actorTalkTemplatesTableName = `${wikiId}_actor_talk_templates`;
 
-	const dailyStatisticsTableName = `${wikiId}_daily_stats_v2`;
-	const actorDailyStatisticsTableName = `${wikiId}_actor_daily_stats_v2`;
+	const dailyStatisticsTableName = `${wikiId}_daily_stats`;
+	const actorDailyStatisticsTableName = `${wikiId}_actor_daily_stats`;
 
-	const dailyStatisticsByNamespaceTableName = `${wikiId}_daily_stats_by_ns_v2`;
-	const actorDailyStatisticsByNamespaceTableName = `${wikiId}_actor_daily_stats_by_ns_v2`;
+	const dailyStatisticsByNamespaceTableName = `${wikiId}_daily_stats_by_ns`;
+	const actorDailyStatisticsByNamespaceTableName = `${wikiId}_actor_daily_stats_by_ns`;
 
-	const editStatisticsByChangeTagTableName = `${wikiId}_edit_stats_by_tag_v2`;
-	const actorEditStatisticsByChangeTagTableName = `${wikiId}_actor_edit_stats_by_tag_v2`;
+	const editStatisticsByChangeTagTableName = `${wikiId}_edit_stats_by_tag`;
+	const actorEditStatisticsByChangeTagTableName = `${wikiId}_actor_edit_stats_by_tag`;
 
-	const editStatisticsByNamespaceAndChangeTagTableName = `${wikiId}_edit_stats_by_ns_tag_v2`;
-	const actorEditStatisticsByNamespaceAndChangeTagTableName = `${wikiId}_actor_edit_stats_by_ns_tag_v2`;
+	const editStatisticsByNamespaceAndChangeTagTableName = `${wikiId}_edit_stats_by_ns_tag`;
+	const actorEditStatisticsByNamespaceAndChangeTagTableName = `${wikiId}_actor_edit_stats_by_ns_tag`;
 
-	const logStatisticsByLogTypeTableName = `${wikiId}_log_stats_by_type_v2`;
-	const actorLogStatisticsByLogTypeTableName = `${wikiId}_actor_log_stats_by_type_v2`;
+	const logStatisticsByLogTypeTableName = `${wikiId}_log_stats_by_type`;
+	const actorLogStatisticsByLogTypeTableName = `${wikiId}_actor_log_stats_by_type`;
 
-	const logStatisticsByLogActionTableName = `${wikiId}_log_stats_by_action_v2`;
-	const actorLogStatisticsByLogActionTableName = `${wikiId}_actor_log_stats_by_action_v2`;
+	const logStatisticsByLogActionTableName = `${wikiId}_log_stats_by_action`;
+	const actorLogStatisticsByLogActionTableName = `${wikiId}_actor_log_stats_by_action`;
 
-	const logStatisticsByLogTypeAndLogActionTableName = `${wikiId}_log_stats_by_type_action_v2`;
-	const actorLogStatisticsByLogTypeAndLogActionTableName = `${wikiId}_actor_log_stats_by_type_action_v2`;
+	const logStatisticsByLogTypeAndLogActionTableName = `${wikiId}_log_stats_by_type_action`;
+	const actorLogStatisticsByLogTypeAndLogActionTableName = `${wikiId}_actor_log_stats_by_type_action`;
 
 	@Entity({ name: templateTableName })
 	class Template {
