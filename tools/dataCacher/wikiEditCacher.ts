@@ -98,6 +98,12 @@ interface ActorStatisticsUpdateCollection extends WikiStatisticsUpdateCollection
 	lastLogEntryTimestamp: moment.Moment | null;
 }
 
+interface TalkTemplateLinkResult {
+	referrerPageName: string;
+	templatePageId: number;
+	templatePageName: string;
+}
+
 interface RevertChangeTagParams {
 	isNew: boolean;
 	orginalRevisionId: number | false;
@@ -133,12 +139,16 @@ export class WikiEditCacher {
 	private wikiActors: Actor[] = [];
 	private wikiActorsById: Map<number, Actor> = new Map<number, Actor>();
 	private wikiActorsByName: Map<string, Actor> = new Map<string, Actor>();
-
-	private wikiChangeTagDefinitionsByName: Map<string, ChangeTagDefinition> = new Map();
+	private wikiTalkPageTemplateLinks: Map<number, Set<number>> = new Map();
+	private wikiChangeTagDefinitions: Map<number, string> = new Map();
+	private wikiTemplates: Map<number, string> = new Map();
 	private wikiRevertChangeTagIds: Set<number> = new Set();
 
-	private toolsActors: ActorTypeModel[] = [];
-	private toolsActorsById: Map<number, ActorTypeModel> = new Map<number, ActorTypeModel>();
+	private cachedActors: ActorTypeModel[] = [];
+	private cachedActorsById: Map<number, ActorTypeModel> = new Map<number, ActorTypeModel>();
+	private cachedTemplates: Map<number, string> = new Map();
+	private cachedChangeTagDefinitions: Map<number, string> = new Map();
+	private cachedTalkPageTemplateLinks: Map<number, Set<number>> = new Map();
 
 	constructor(options: WikiEditCacherOptions) {
 		this.appConfig = options.appCtx.appConfig;
@@ -152,11 +162,10 @@ export class WikiEditCacher {
 	public async run(): Promise<void> {
 		this.replicatedDatabaseConnection = await createConnectionToMediaWikiReplica(this.appConfig, this.wiki.id, this.wiki.replicaDatabaseName);
 
-		await this.getLastProcessInfo();
-		await this.getAllWikiActors();
-		await this.getWikiChangeTagDefinitions();
+		await this.getReplicaDatabaseContent();
+		await this.getCacheDatabaseContent();
 
-		await this.getActorsToUpdate();
+		await this.compareReplicaAndCacheActors();
 
 		for (; ;) {
 			if (!(await this.tryProcessNextRevisionBatch()))
@@ -181,9 +190,21 @@ export class WikiEditCacher {
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Finished processing ${this.totalProcessedRevisions} revisions for ${this.wiki.id}.`);
 	}
 
+	private async getCacheDatabaseContent() {
+		await this.getLastProcessInfo();
+		await this.getCachedTemplates();
+		await this.getCachedChangeTagDefinitions();
+		await this.getCachedTalkPageTemplateLinks();
+	}
+
 	private async getLastProcessInfo(): Promise<void> {
+		this.logger.info(`[getLastProcessInfo/${this.wiki.id}] Getting last process info from cache db`);
+
 		const wikiProcessEntry = await this.toolsConnection.getRepository(WikiProcessedRevisions)
 			.findOne({ where: { wiki: this.wiki.id } });
+
+		this.logger.info(`[getLastProcessInfo/${this.wiki.id}] Last process info fetched from cache db`);
+
 		this.lastProcessedRevisionId = wikiProcessEntry?.lastProcessedRevisionId ?? 0;
 		this.lastProcessedRevisionTimestamp = wikiProcessEntry && wikiProcessEntry.lastProcessedRevisionTimestamp
 			? moment.utc(wikiProcessEntry.lastProcessedRevisionTimestamp)
@@ -195,21 +216,108 @@ export class WikiEditCacher {
 			: null;
 	}
 
+	private async getCachedTemplates(): Promise<void> {
+		this.logger.info(`[getCachedTemplates/${this.wiki.id}] Getting templates from cache db`);
+		const rawCachedTemplates = await this.toolsConnection.getRepository(this.wikiStatisticsEntities.template)
+			.createQueryBuilder("template")
+			.getMany();
+
+		this.logger.info(`[getCachedTemplates/${this.wiki.id}] ${rawCachedTemplates.length} templates fetched from cache db`);
+
+		for (const rct of rawCachedTemplates) {
+			this.cachedTemplates.set(rct.templateId, rct.templateName);
+		}
+	}
+
+	private async getCachedChangeTagDefinitions(): Promise<void> {
+		this.logger.info(`[getCachedChangeTagDefinitions/${this.wiki.id}] Getting change tag definitions from cache db`);
+
+		const rawChangeTagDefinitions = await this.toolsConnection.getRepository(this.wikiStatisticsEntities.changeTagDefinition)
+			.createQueryBuilder("ctd")
+			.getMany();
+
+		this.logger.info(`[getCachedChangeTagDefinitions/${this.wiki.id}] ${rawChangeTagDefinitions.length} ctds fetched from cache db`);
+
+		for (const rcctd of rawChangeTagDefinitions) {
+			this.cachedChangeTagDefinitions.set(rcctd.changeTagDefinitionId, rcctd.changeTagDefinitionName);
+		}
+	}
+
+	private async getCachedTalkPageTemplateLinks(): Promise<void> {
+		this.logger.info(`[getCachedTalkPageTemplateLinks/${this.wiki.id}] Getting talk template links from replica db`);
+
+		const rawCachedTalkPageTemplateLinks = await this.toolsConnection.getRepository(this.wikiStatisticsEntities.actorTalkTemplate)
+			.createQueryBuilder("talkLink")
+			.getMany();
+
+		this.logger.info(`[getCachedTalkPageTemplateLinks/${this.wiki.id}] ${rawCachedTalkPageTemplateLinks.length} talk template links fetched from cache db`);
+
+		for (const rcttl of rawCachedTalkPageTemplateLinks) {
+			if (this.cachedTalkPageTemplateLinks.has(rcttl.actorId)) {
+				this.cachedTalkPageTemplateLinks.get(rcttl.actorId)?.add(rcttl.templatePageId);
+			} else {
+				this.cachedTalkPageTemplateLinks.set(rcttl.actorId, new Set<number>([rcttl.templatePageId]));
+			}
+		}
+	}
+
+	private async getReplicaDatabaseContent() {
+		const replicatedDbEntityManager = getManager(this.replicatedDatabaseConnection.name);
+		await this.getWikiChangeTagDefinitions();
+		await this.getAllWikiActors();
+		await this.getWikiTalkPageTemplateLinks(replicatedDbEntityManager);
+	}
+
 	private async getWikiChangeTagDefinitions(): Promise<void> {
-		this.logger.info(`[getAllWikiActors/${this.wiki.id}] getWikiChangeTagDefinitions: Getting change tag definitions from replica db`);
+		this.logger.info(`[getWikiChangeTagDefinitions/${this.wiki.id}] Getting change tag definitions from replica db`);
 		const ctds = await this.replicatedDatabaseConnection.getRepository(ChangeTagDefinition)
 			.createQueryBuilder("ctd")
 			.getMany();
 
-		this.logger.info(`[getAllWikiActors/${this.wiki.id}] getWikiChangeTagDefinitions: ${ctds.length} cts fetched from replica db`);
+		this.logger.info(`[getWikiChangeTagDefinitions/${this.wiki.id}] ${ctds.length} cts fetched from replica db`);
 
 		for (const ctd of ctds) {
-			this.wikiChangeTagDefinitionsByName.set(ctd.name, ctd);
+			this.wikiChangeTagDefinitions.set(ctd.id, ctd.name);
+
 			if (ctd.name === "mw-undo"
 				|| ctd.name === "mw-rollback"
 				|| ctd.name === "mw-manual-revert"
 			) {
 				this.wikiRevertChangeTagIds.add(ctd.id);
+			}
+		}
+	}
+
+	private async getWikiTalkPageTemplateLinks(em: EntityManager): Promise<void> {
+		this.logger.info(`[getWikiTalkTemplateLinks/${this.wiki.id}] Getting talk template links from replica db`);
+		const talkTemplateLinks = await em.query(`
+			SELECT
+				CONVERT(referrer.page_title USING utf8) as referrerPageName,
+				templatePage.page_id as templatePageId,
+				CONVERT(templatePage.page_title USING UTF8) as templateName
+			FROM templatelinks tl
+			LEFT JOIN page AS referrer ON tl.tl_from = referrer.page_id AND tl.tl_from_namespace = referrer.page_namespace
+			LEFT JOIN page AS templatePage ON templatePage.page_title = tl.tl_title AND templatePage.page_namespace = tl.tl_namespace
+			WHERE tl_from_namespace = 3
+				AND tl_namespace = 10
+				AND referrer.page_title NOT LIKE "%/%"
+				AND templatePage.page_id IS NOT NULL;
+		`) as TalkTemplateLinkResult[];
+
+		this.logger.info(`[getWikiTalkTemplateLinks/${this.wiki.id}] ${talkTemplateLinks.length} talk template links fetched from replica db`);
+
+		for (const ttl of talkTemplateLinks) {
+			this.wikiTemplates.set(ttl.templatePageId, ttl.templatePageName);
+
+			const referencedActor = this.wikiActorsByName.get(ttl.referrerPageName.replace(/_/g, " ")) ?? null;
+			if (referencedActor === null) {
+				continue;
+			}
+
+			if (this.wikiTalkPageTemplateLinks.has(referencedActor.id)) {
+				this.wikiTalkPageTemplateLinks.get(referencedActor.id)?.add(ttl.templatePageId);
+			} else {
+				this.wikiTalkPageTemplateLinks.set(referencedActor.id, new Set<number>([ttl.templatePageId]));
 			}
 		}
 	}
@@ -676,7 +784,7 @@ export class WikiEditCacher {
 		}
 	}
 
-	private async getActorsToUpdate(): Promise<void> {
+	private async compareReplicaAndCacheActors(): Promise<void> {
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] getActorsToUpdate: Getting actors from stat db`);
 		const existingStatActors = await this.toolsConnection.getRepository(this.wikiStatisticsEntities.actor)
 			.createQueryBuilder("toolsActor")
@@ -685,14 +793,14 @@ export class WikiEditCacher {
 			.getMany();
 
 		for (const toolsActor of existingStatActors) {
-			this.toolsActors.push(toolsActor);
-			this.toolsActorsById.set(toolsActor.actorId, toolsActor);
+			this.cachedActors.push(toolsActor);
+			this.cachedActorsById.set(toolsActor.actorId, toolsActor);
 		}
 
 		const unseenActorsToUpdate: ActorEntityUpdateData[] = [];
 
 		for (const wikiActor of this.wikiActors) {
-			const toolsDbActor = this.toolsActorsById.get(wikiActor.id);
+			const toolsDbActor = this.cachedActorsById.get(wikiActor.id);
 			if (!toolsDbActor) {
 				unseenActorsToUpdate.push({
 					mwDbActor: wikiActor,
@@ -760,15 +868,96 @@ export class WikiEditCacher {
 
 		const connMan = getManager(this.toolsConnection.name);
 		await connMan.transaction(async (em: EntityManager) => {
+			await this.saveChangeTagDefinitionsToDatabase(em);
+
+			await this.saveTemplatesToDatabase(em);
+
 			for (const actorStat of this.statsByActorList) {
 				await this.saveActorStatisticsToDatabase(em, actorStat);
 			}
 
-			await this.saveWikiDailyStatisticsToDatabase(this.statsByWiki, em);
+			await this.saveWikiStatisticsToDatabase(em);
 
 			await this.saveWikiProcessedRevisionInfo(em);
 		});
+	}
 
+	private async saveChangeTagDefinitionsToDatabase(em: EntityManager): Promise<void> {
+		for (const changeTagDefinitionId of this.wikiChangeTagDefinitions.keys()) {
+			if (this.cachedChangeTagDefinitions.has(changeTagDefinitionId)) {
+				const cachedName = this.cachedChangeTagDefinitions.get(changeTagDefinitionId);
+				const wikiName = this.wikiChangeTagDefinitions.get(changeTagDefinitionId);
+				if (cachedName !== wikiName) {
+					await em
+						.createQueryBuilder()
+						.update(this.wikiStatisticsEntities.changeTagDefinition)
+						.set({
+							changeTagDefinitionName: wikiName
+						})
+						.where("changeTagDefinitionId = :changeTagDefinitionId", { changeTagDefinitionId: changeTagDefinitionId })
+						.execute();
+				}
+			} else {
+				await em.createQueryBuilder()
+					.insert()
+					.into(this.wikiStatisticsEntities.changeTagDefinition)
+					.values({
+						changeTagDefinitionId: changeTagDefinitionId,
+						changeTagDefinitionName: this.wikiChangeTagDefinitions.get(changeTagDefinitionId)
+					})
+					.execute();
+			}
+		}
+
+		for (const removedChangeTagDefinitionId of [...this.cachedChangeTagDefinitions.keys()]
+			.filter(ele => this.wikiChangeTagDefinitions.has(ele) === false)
+		) {
+			this.logger.info(`[saveChangeTagDefinitionsToDatabase/${this.wiki.id}] Deleting ctd with id '${removedChangeTagDefinitionId}'...`);
+			await em.createQueryBuilder()
+				.delete()
+				.from(this.wikiStatisticsEntities.changeTagDefinition)
+				.where("changeTagDefinitionId = :changeTagDefinitionId", { changeTagDefinitionId: removedChangeTagDefinitionId })
+				.execute();
+		}
+	}
+
+	private async saveTemplatesToDatabase(em: EntityManager): Promise<void> {
+		for (const templateId of this.wikiTemplates.keys()) {
+			if (this.cachedTemplates.has(templateId)) {
+				const cachedName = this.cachedTemplates.get(templateId);
+				const wikiName = this.wikiTemplates.get(templateId);
+				if (cachedName !== wikiName) {
+					await em
+						.createQueryBuilder()
+						.update(this.wikiStatisticsEntities.template)
+						.set({
+							templateName: wikiName
+						})
+						.where("templateId = :templateId", { templateId: templateId })
+						.execute();
+				}
+			} else {
+				await em.createQueryBuilder()
+					.insert()
+					.into(this.wikiStatisticsEntities.template)
+					.values({
+						templateId: templateId,
+						templateName: this.wikiTemplates.get(templateId)
+					})
+					.execute();
+			}
+		}
+
+		for (const removedTemplateId of [...this.cachedTemplates.keys()]
+			.filter(ele => this.wikiTemplates.has(ele) === false)
+		) {
+			this.logger.info(`[saveTemplatesToDatabase/${this.wiki.id}] Deleting template with id '${removedTemplateId}'...`);
+			await em.createQueryBuilder()
+				.delete()
+				.from(this.wikiStatisticsEntities.template)
+				.where("templateId = :templateId", { templateId: removedTemplateId })
+				.execute();
+		}
 	}
 
 	private async saveActorStatisticsToDatabase(em: EntityManager, actorStat: ActorStatisticsUpdateCollection): Promise<void> {
@@ -848,16 +1037,32 @@ export class WikiEditCacher {
 				})
 				.execute();
 		}
+
+		const wikiActorTalkTemplateSet = this.wikiTalkPageTemplateLinks.get(actorStat.actorId);
+		const wikiActorTalkTemplates = wikiActorTalkTemplateSet
+			? [...wikiActorTalkTemplateSet.values()]
+			: [];
+
+		for (const talkTemplateId of wikiActorTalkTemplates) {
+			await em.createQueryBuilder()
+				.insert()
+				.into(this.wikiStatisticsEntities.actorTalkTemplate)
+				.values({
+					actorId: mwDbActor.id,
+					templatePageId: talkTemplateId
+				})
+				.execute();
+		}
 	}
 
 	private async updateActorInDatabase(actorStat: ActorStatisticsUpdateCollection, existingActor: ActorTypeModel, em: EntityManager): Promise<void> {
 		const mwDbActor = this.wikiActorsById.get(actorStat.actorId);
 		if (!mwDbActor) {
-			this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActorInDatabase: Failed to create actor for '${actorStat.actorName}', mediawiki actor not found`);
+			this.logger.info(`[updateActorInDatabase/${this.wiki.id}] Failed to create actor for '${actorStat.actorName}', mediawiki actor not found`);
 			return;
 		}
 
-		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActorInDatabase: Updating actor entity for '${actorStat.actorName}'`);
+		this.logger.info(`[updateActorInDatabase/${this.wiki.id}] Updating actor entity for '${actorStat.actorName}'`);
 
 		const isRegistrationTimestampFromFirstEdit = existingActor.registrationTimestamp != null
 			? existingActor.isRegistrationTimestampFromFirstEdit ?? undefined
@@ -922,7 +1127,7 @@ export class WikiEditCacher {
 		}
 
 		for (const groupToDelete of toolsDbUserGroups.filter(groupName => mwUserGroups.indexOf(groupName) === -1)) {
-			this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActor: Deleting groups for '${actorName}'...`);
+			this.logger.info(`[updateActorInDatabase/${this.wiki.id}] Deleting group ${groupToDelete} for '${actorName}'...`);
 			await em.createQueryBuilder()
 				.delete()
 				.from(this.wikiStatisticsEntities.actorGroup)
@@ -931,7 +1136,39 @@ export class WikiEditCacher {
 				.execute();
 		}
 
-		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActorInDatabase: Updating '${actorStat.actorName}' actor entity completed`);
+		const wikiTalkTemplateLinkSet = this.wikiTalkPageTemplateLinks.get(actorStat.actorId);
+		const wikiTalkTemplateLinks = wikiTalkTemplateLinkSet
+			? [...wikiTalkTemplateLinkSet.values()]
+			: [];
+		const cachedTalkTemplateLinkSet = this.cachedTalkPageTemplateLinks.get(actorStat.actorId);
+		const cachedTalkTemplateLinks = cachedTalkTemplateLinkSet
+			? [...cachedTalkTemplateLinkSet.values()]
+			: [];
+
+		for (const tlToAdd of wikiTalkTemplateLinks.filter(templateLinkId => cachedTalkTemplateLinks.indexOf(templateLinkId) === -1)) {
+			this.logger.info(`[updateActorInDatabase/${this.wiki.id}] Adding template link '${tlToAdd}' for '${actorName}'...`);
+
+			await em.createQueryBuilder()
+				.insert()
+				.into(this.wikiStatisticsEntities.actorTalkTemplate)
+				.values({
+					actorId: mwDbActor.id,
+					templatePageId: tlToAdd
+				})
+				.execute();
+		}
+
+		for (const tlToDelete of cachedTalkTemplateLinks.filter(templateLinkid => wikiTalkTemplateLinks.indexOf(templateLinkid) === -1)) {
+			this.logger.info(`[updateActorInDatabase/${this.wiki.id}] Deleting template link ${tlToDelete} for '${actorName}'...`);
+			await em.createQueryBuilder()
+				.delete()
+				.from(this.wikiStatisticsEntities.actorTalkTemplate)
+				.where("actorId = :actorId", { actorId: mwDbActor.id })
+				.andWhere("templatePageId = :templatePageId", { templatePageId: tlToDelete })
+				.execute();
+		}
+
+		this.logger.info(`[updateActorInDatabase/${this.wiki.id}] Updating '${actorStat.actorName}' actor entity completed`);
 	}
 
 	private async saveWikiStatisticsToDatabase(em: EntityManager) {

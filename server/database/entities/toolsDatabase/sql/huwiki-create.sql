@@ -3,6 +3,22 @@
 -- -----------------------------------------------------------------------------------------------------
 
 
+-- Templates table
+CREATE TABLE `huwiki_template_v2` (
+	`template_page_id` bigint(20) NOT NULL,
+	`template_name` varchar(255) CHARACTER SET utf8 NOT NULL
+	PRIMARY KEY (`template_page_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+
+-- Change tag definitions table
+CREATE TABLE `huwiki_change_tag_def_v2` (
+	`change_tag_def_id` bigint(20) NOT NULL,
+	`change_tag_def_name` varchar(255) CHARACTER SET utf8 NOT NULL
+	PRIMARY KEY (`change_tag_def_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+
 -- Actor table
 CREATE TABLE `huwiki_actor_v2` (
 	`actor_id` bigint(20) NOT NULL,
@@ -21,6 +37,20 @@ CREATE TABLE `huwiki_actor_groups_v2` (
 	`group_name` varchar(255) CHARACTER SET utf8 NOT NULL,
 	PRIMARY KEY (`actor_id`, `group_name`),
 	CONSTRAINT `huwiki_actor_groups_v2_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiki_actor_v2` (`actor_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE `huwiki_actor_groups_v2` (
+	`actor_id` bigint(20) NOT NULL,
+	`group_name` varchar(255) CHARACTER SET utf8 NOT NULL,
+	PRIMARY KEY (`actor_id`, `group_name`),
+	CONSTRAINT `huwiki_actor_groups_v2_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiki_actor_v2` (`actor_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE `huwiki_actor_talk_templates_v2` (
+	`actor_id` bigint(20) NOT NULL,
+	`template_page_id` bigint(20) NOT NULL,
+	PRIMARY KEY (`actor_id`, `template_page_id`),
+	CONSTRAINT `huwiki_actor_talk_templates_v2_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiki_actor_v2` (`actor_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 
