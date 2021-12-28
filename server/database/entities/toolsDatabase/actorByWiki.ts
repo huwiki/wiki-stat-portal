@@ -39,7 +39,6 @@ export class ActorGroupTypeModel {
 
 export class ActorTalkTemplateTypeModel {
 	public actorId: number;
-	public actor: ActorTypeModel;
 	public templatePageId: number;
 }
 
@@ -315,7 +314,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 	@Entity({ name: templateTableName })
 	class Template {
-		@PrimaryColumn({ name: "template_id", type: "bigint", unsigned: true })
+		@PrimaryColumn({ name: "template_page_id", type: "bigint", unsigned: true })
 		public templateId: number;
 
 		@Column({ name: "template_name", type: "varchar", length: 255, charset: "utf8" })
@@ -362,9 +361,6 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 		@OneToMany(() => ActorGroup, actorGroup => actorGroup.actor)
 		public actorGroups: ActorGroup[];
-
-		@OneToMany(() => ActorTalkTemplate, actorTalkTemplate => actorTalkTemplate.actor)
-		public actorTalkTemplates: ActorTalkTemplate[];
 	}
 
 	@Entity({ name: actorGroupTableName })
@@ -376,7 +372,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@JoinColumn({ name: "actor_id" })
 		public actor: Actor;
 
-		@Column({ name: "group_name", type: "varchar", length: 255, charset: "utf8" })
+		@PrimaryColumn({ name: "group_name", type: "varchar", length: 255, charset: "utf8" })
 		public groupName: string;
 	}
 
@@ -384,10 +380,6 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 	class ActorTalkTemplate {
 		@PrimaryColumn({ name: "actor_id", type: "bigint", unsigned: true })
 		public actorId: number;
-
-		@ManyToOne(() => Actor, actor => actor.actorGroups)
-		@JoinColumn({ name: "actor_id" })
-		public actor: Actor;
 
 		@PrimaryColumn({ name: "template_page_id", type: "bigint", unsigned: true })
 		public templatePageId: number;

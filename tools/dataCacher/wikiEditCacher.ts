@@ -294,7 +294,7 @@ export class WikiEditCacher {
 			SELECT
 				CONVERT(referrer.page_title USING utf8) as referrerPageName,
 				templatePage.page_id as templatePageId,
-				CONVERT(templatePage.page_title USING UTF8) as templateName
+				CONVERT(templatePage.page_title USING UTF8) as templatePageName
 			FROM templatelinks tl
 			LEFT JOIN page AS referrer ON tl.tl_from = referrer.page_id AND tl.tl_from_namespace = referrer.page_namespace
 			LEFT JOIN page AS templatePage ON templatePage.page_title = tl.tl_title AND templatePage.page_namespace = tl.tl_namespace
@@ -669,9 +669,8 @@ export class WikiEditCacher {
 			const typeBucket = stats.logEntriesByType.find(x => x.logType === logEntry.type);
 
 			if (!typeBucket) {
-				stats.logEntriesByTypeAndAction.push({
+				stats.logEntriesByType.push({
 					logType: logEntry.type,
-					logAction: logEntry.action,
 					editsByDate: [{ date: logEntryDate, logEntries: 1, }]
 				});
 			} else {
@@ -685,12 +684,11 @@ export class WikiEditCacher {
 		}
 
 		// Count by log action only
-		if (typeof logEntry.type === "string" && logEntry.type != "") {
+		if (typeof logEntry.action === "string" && logEntry.action != "") {
 			const actionBucket = stats.logEntriesByAction.find(x => x.logAction === logEntry.action);
 
 			if (!actionBucket) {
-				stats.logEntriesByTypeAndAction.push({
-					logType: logEntry.type,
+				stats.logEntriesByAction.push({
 					logAction: logEntry.action,
 					editsByDate: [{ date: logEntryDate, logEntries: 1, }]
 				});
@@ -788,11 +786,16 @@ export class WikiEditCacher {
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] getActorsToUpdate: Getting actors from stat db`);
 		const existingStatActors = await this.toolsConnection.getRepository(this.wikiStatisticsEntities.actor)
 			.createQueryBuilder("toolsActor")
-			.leftJoinAndSelect("toolsActor.actorGroups", "groups")
-			.where("toolsActor.isRegistered = :isRegistered", { isRegistered: 1 })
+			.getMany();
+
+		const existingStatActorGroups = await this.toolsConnection.getRepository(this.wikiStatisticsEntities.actorGroup)
+			.createQueryBuilder("actorGroup")
 			.getMany();
 
 		for (const toolsActor of existingStatActors) {
+			toolsActor.actorGroups = existingStatActorGroups
+				.filter(x => x.actorId === toolsActor.actorId);
+
 			this.cachedActors.push(toolsActor);
 			this.cachedActorsById.set(toolsActor.actorId, toolsActor);
 		}
@@ -806,7 +809,7 @@ export class WikiEditCacher {
 					mwDbActor: wikiActor,
 					toolsDbActor: null
 				});
-			} else {
+			} else if (toolsDbActor.isRegistered) {
 				const toolsDbActorGroups = new Set<string>((toolsDbActor.actorGroups || []).map(x => x.groupName));
 				const userActorGroups = new Set<string>((wikiActor.user.userGroups || []).map(x => x.groupName));
 
@@ -883,6 +886,8 @@ export class WikiEditCacher {
 	}
 
 	private async saveChangeTagDefinitionsToDatabase(em: EntityManager): Promise<void> {
+		this.logger.info(`[saveChangeTagDefinitionsToDatabase/${this.wiki.id}] Saving ${this.wikiChangeTagDefinitions.size} change tag definitions to database...`);
+
 		for (const changeTagDefinitionId of this.wikiChangeTagDefinitions.keys()) {
 			if (this.cachedChangeTagDefinitions.has(changeTagDefinitionId)) {
 				const cachedName = this.cachedChangeTagDefinitions.get(changeTagDefinitionId);
@@ -919,9 +924,13 @@ export class WikiEditCacher {
 				.where("changeTagDefinitionId = :changeTagDefinitionId", { changeTagDefinitionId: removedChangeTagDefinitionId })
 				.execute();
 		}
+
+		this.logger.info(`[saveChangeTagDefinitionsToDatabase/${this.wiki.id}] Completed saving change tag definitions to database.`);
 	}
 
 	private async saveTemplatesToDatabase(em: EntityManager): Promise<void> {
+		this.logger.info(`[saveChangeTagDefinitionsToDatabase/${this.wiki.id}] Saving ${this.wikiTemplates.size} templates to database...`);
+
 		for (const templateId of this.wikiTemplates.keys()) {
 			if (this.cachedTemplates.has(templateId)) {
 				const cachedName = this.cachedTemplates.get(templateId);
@@ -958,6 +967,8 @@ export class WikiEditCacher {
 				.where("templateId = :templateId", { templateId: removedTemplateId })
 				.execute();
 		}
+
+		this.logger.info(`[saveChangeTagDefinitionsToDatabase/${this.wiki.id}] Completed saving templates to database.`);
 	}
 
 	private async saveActorStatisticsToDatabase(em: EntityManager, actorStat: ActorStatisticsUpdateCollection): Promise<void> {
@@ -985,11 +996,16 @@ export class WikiEditCacher {
 	private async saveActorEntityToDatabase(actorStat: ActorStatisticsUpdateCollection, em: EntityManager) {
 		const existingActorArr = await em.getRepository(this.wikiStatisticsEntities.actor)
 			.createQueryBuilder("actor")
-			.leftJoinAndSelect("actor.actorGroups", "groups")
 			.where("actor.actorId = :actorId", { actorId: actorStat.actorId })
 			.getMany();
 
+		const existingActorGroups = await em.getRepository(this.wikiStatisticsEntities.actorGroup)
+			.createQueryBuilder("actorGroup")
+			.where("actorGroup.actorId = :actorId", { actorId: actorStat.actorId })
+			.getMany();
+
 		if (existingActorArr && existingActorArr.length === 1) {
+			existingActorArr[0].actorGroups = existingActorGroups ?? [];
 			await this.updateActorInDatabase(actorStat, existingActorArr[0], em);
 		} else {
 			await this.createActorInDatabase(actorStat, em);
@@ -1114,7 +1130,7 @@ export class WikiEditCacher {
 		const mwUserGroups = (mwDbActor.user?.userGroups ?? []).map(x => x.groupName);
 
 		for (const groupToAdd of mwUserGroups.filter(groupName => toolsDbUserGroups.indexOf(groupName) === -1)) {
-			this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] updateActor: Adding group '${groupToAdd}' for '${actorName}'...`);
+			this.logger.info(`[updateActorInDatabase/${this.wiki.id}] Adding group '${groupToAdd}' for '${actorName}'...`);
 
 			await em.createQueryBuilder()
 				.insert()
@@ -1982,7 +1998,7 @@ export class WikiEditCacher {
 
 	private async saveActorLogEntriesByDateAndActionToDatabase(actorStat: ActorStatisticsUpdateCollection, em: EntityManager) {
 		const nsItemCount = _.sumBy(actorStat.logEntriesByAction, x => x.editsByDate.length);
-		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating log entries by date, log type and namespace for ${actorStat.actorName} (${nsItemCount} items)...`);
+		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Persistence: Updating log entries by date and log action for ${actorStat.actorName} (${nsItemCount} items)...`);
 
 		for (const editsByNs of actorStat.logEntriesByAction) {
 			for (const editByDateNsAndCt of editsByNs.editsByDate) {

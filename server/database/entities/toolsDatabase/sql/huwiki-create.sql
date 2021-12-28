@@ -6,7 +6,7 @@
 -- Templates table
 CREATE TABLE `huwiki_template` (
 	`template_page_id` bigint(20) NOT NULL,
-	`template_name` varchar(255) CHARACTER SET utf8 NOT NULL
+	`template_name` varchar(255) CHARACTER SET utf8 NOT NULL,
 	PRIMARY KEY (`template_page_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
@@ -14,7 +14,7 @@ CREATE TABLE `huwiki_template` (
 -- Change tag definitions table
 CREATE TABLE `huwiki_change_tag_def` (
 	`change_tag_def_id` bigint(20) NOT NULL,
-	`change_tag_def_name` varchar(255) CHARACTER SET utf8 NOT NULL
+	`change_tag_def_name` varchar(255) CHARACTER SET utf8 NOT NULL,
 	PRIMARY KEY (`change_tag_def_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
@@ -31,12 +31,6 @@ CREATE TABLE `huwiki_actor` (
 	`first_log_entry_timestamp` datetime,
 	`last_log_entry_timestamp` datetime,
 	PRIMARY KEY (`actor_id`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
-CREATE TABLE `huwiki_actor_groups` (
-	`actor_id` bigint(20) NOT NULL,
-	`group_name` varchar(255) CHARACTER SET utf8 NOT NULL,
-	PRIMARY KEY (`actor_id`, `group_name`),
-	CONSTRAINT `huwiki_actor_groups_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiki_actor` (`actor_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 CREATE TABLE `huwiki_actor_groups` (
@@ -89,6 +83,8 @@ CREATE TABLE `huwiki_actor_daily_stats` (
 	`log_events_to_date` int(11) NOT NULL,
 	`daily_saward_log_events` int(11) NOT NULL,
 	`saward_log_events_to_date` int(11) NOT NULL,
+	`daily_active_day` int(11) NOT NULL,
+	`active_days_to_date` int(11) NOT NULL,
 	PRIMARY KEY (`actor_id`, `date`),
 	CONSTRAINT `huwiki_actor_daily_stats_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiki_actor` (`actor_id`) ON DELETE CASCADE ON UPDATE CASCADE,
 	INDEX `huwiki_actor_daily_stats_date` (`date`)
@@ -180,7 +176,7 @@ CREATE TABLE `huwiki_actor_edit_stats_by_ns_tag` (
 
 -- Statistics by log type
 CREATE TABLE `huwiki_log_stats_by_type` (
-	`log_action` varchar(32) CHARACTER SET utf8 NOT NULL,
+	`log_type` varchar(32) CHARACTER SET utf8 NOT NULL,
 	`date` date NOT NULL,
 	`daily_log_events` int(11) NOT NULL,
 	`log_events_to_date` int(11) NOT NULL,
