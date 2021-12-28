@@ -1,0 +1,18 @@
+SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE `huwiktionary_actor_log_stats_by_type_action_v2`;
+TRUNCATE TABLE `huwiktionary_log_stats_by_type_action_v2`;
+TRUNCATE TABLE `huwiktionary_actor_log_stats_by_action_v2`;
+TRUNCATE TABLE `huwiktionary_log_stats_by_action_v2`;
+TRUNCATE TABLE `huwiktionary_actor_log_stats_by_type_v2`;
+TRUNCATE TABLE `huwiktionary_log_stats_by_type_v2`;
+TRUNCATE TABLE `huwiktionary_actor_edit_stats_by_ns_tag_v2`;
+TRUNCATE TABLE `huwiktionary_edit_stats_by_ns_tag_v2`;
+TRUNCATE TABLE `huwiktionary_actor_edit_stats_by_tag_v2`;
+TRUNCATE TABLE `huwiktionary_edit_stats_by_tag_v2`;
+TRUNCATE TABLE `huwiktionary_actor_daily_stats_by_ns_v2`;
+TRUNCATE TABLE `huwiktionary_daily_stats_by_ns_v2`;
+TRUNCATE TABLE `huwiktionary_actor_daily_stats_v2`;
+TRUNCATE TABLE `huwiktionary_daily_stats_v2`;
+TRUNCATE TABLE `huwiktionary_actor_groups_v2`;
+TRUNCATE TABLE `huwiktionary_actor_v2`;
+SET FOREIGN_KEY_CHECKS = 1;

@@ -1,0 +1,16 @@
+DROP TABLE IF EXISTS `huwiki_actor_log_stats_by_type_action_v2`;
+DROP TABLE IF EXISTS `huwiki_log_stats_by_type_action_v2`;
+DROP TABLE IF EXISTS `huwiki_actor_log_stats_by_action_v2`;
+DROP TABLE IF EXISTS `huwiki_log_stats_by_action_v2`;
+DROP TABLE IF EXISTS `huwiki_actor_log_stats_by_type_v2`;
+DROP TABLE IF EXISTS `huwiki_log_stats_by_type_v2`;
+DROP TABLE IF EXISTS `huwiki_actor_edit_stats_by_ns_tag_v2`;
+DROP TABLE IF EXISTS `huwiki_edit_stats_by_ns_tag_v2`;
+DROP TABLE IF EXISTS `huwiki_actor_edit_stats_by_tag_v2`;
+DROP TABLE IF EXISTS `huwiki_edit_stats_by_tag_v2`;
+DROP TABLE IF EXISTS `huwiki_actor_daily_stats_by_ns_v2`;
+DROP TABLE IF EXISTS `huwiki_daily_stats_by_ns_v2`;
+DROP TABLE IF EXISTS `huwiki_actor_daily_stats_v2`;
+DROP TABLE IF EXISTS `huwiki_daily_stats_v2`;
+DROP TABLE IF EXISTS `huwiki_actor_groups_v2`;
+DROP TABLE IF EXISTS `huwiki_actor_v2`;

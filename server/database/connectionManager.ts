@@ -25,10 +25,16 @@ export const createConnectionToUserDatabase = async (appConfig: ApplicationConfi
 			entities.actorDailyStatistics,
 			entities.dailyStatisticsByNamespace,
 			entities.actorDailyStatisticsByNamespace,
+			entities.editStatisticsByChangeTag,
+			entities.actorEditStatisticsByChangeTag,
 			entities.editStatisticsByNamespaceAndChangeTag,
 			entities.actorEditStatisticsByNamespaceAndChangeTag,
-			entities.logStatisticsByNamespaceAndLogType,
-			entities.actorLogStatisticsByNamespaceAndLogType
+			entities.logStatisticsByLogType,
+			entities.actorLogStatisticsByLogType,
+			entities.logStatisticsByLogAction,
+			entities.actorLogStatisticsByLogAction,
+			entities.logStatisticsByLogTypeAndLogAction,
+			entities.actorLogStatisticsByLogTypeAndLogAction
 		);
 	}
 

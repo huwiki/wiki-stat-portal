@@ -1,0 +1,16 @@
+DROP TABLE IF EXISTS `huwikiquote_actor_log_stats_by_type_action_v2`;
+DROP TABLE IF EXISTS `huwikiquote_log_stats_by_type_action_v2`;
+DROP TABLE IF EXISTS `huwikiquote_actor_log_stats_by_action_v2`;
+DROP TABLE IF EXISTS `huwikiquote_log_stats_by_action_v2`;
+DROP TABLE IF EXISTS `huwikiquote_actor_log_stats_by_type_v2`;
+DROP TABLE IF EXISTS `huwikiquote_log_stats_by_type_v2`;
+DROP TABLE IF EXISTS `huwikiquote_actor_edit_stats_by_ns_tag_v2`;
+DROP TABLE IF EXISTS `huwikiquote_edit_stats_by_ns_tag_v2`;
+DROP TABLE IF EXISTS `huwikiquote_actor_edit_stats_by_tag_v2`;
+DROP TABLE IF EXISTS `huwikiquote_edit_stats_by_tag_v2`;
+DROP TABLE IF EXISTS `huwikiquote_actor_daily_stats_by_ns_v2`;
+DROP TABLE IF EXISTS `huwikiquote_daily_stats_by_ns_v2`;
+DROP TABLE IF EXISTS `huwikiquote_actor_daily_stats_v2`;
+DROP TABLE IF EXISTS `huwikiquote_daily_stats_v2`;
+DROP TABLE IF EXISTS `huwikiquote_actor_groups_v2`;
+DROP TABLE IF EXISTS `huwikiquote_actor_v2`;

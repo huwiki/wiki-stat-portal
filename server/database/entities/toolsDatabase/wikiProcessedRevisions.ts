@@ -17,6 +17,6 @@ export class WikiProcessedRevisions {
 	@Column({ name: "last_processed_log_timestamp", type: "datetime" })
 	public lastProcessedLogTimestamp: Date | null;
 
-	@Column({ name: "last_actor_update", type: "datetime" })
-	public lastActorUpdate: Date;
+	@Column({ name: "last_run", type: "datetime" })
+	public lastRun: Date;
 }
