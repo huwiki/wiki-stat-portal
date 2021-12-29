@@ -182,6 +182,7 @@
 	"lists.userLinks.contributions": "Szerkesztő közreműködései",
 	"cacheStatus.title": "Adatfeldolgozás állapota",
 	"cacheStatus.header.wikiId": "Wiki-azonosító",
+	"cacheStatus.header.lastRun": "Legutóbbi futás",
 	"cacheStatus.header.lastProcessedRevision": "Legutolsó feldolgozott szerkesztés",
 	"cacheStatus.header.lastProcessedLogEntry": "Legutolsó feldolgozott naplóbejegyzés",
 	"cacheStatus.dbId": "Adatbázisbeli azonosító:",

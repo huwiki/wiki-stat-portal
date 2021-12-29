@@ -15,6 +15,7 @@ import { GetPortalServerSidePropsResult } from "../server/interfaces/getPortalSe
 
 interface WikiCacheStatusInfo {
 	wikiId: string;
+	lastRun: number[] | null;
 	lastProcessedRevisionId: number;
 	lastProcessedRevisionTimestamp: number[] | null;
 	lastProcessedLogId: number;
@@ -44,26 +45,34 @@ class WikiCacheStatusInfoPage extends NextBasePage<WikiCacheStatusInfoPageProps>
 	private renderContent(): JSX.Element {
 		return <HTMLTable bordered striped condensed interactive>
 			<thead>
-				<th>{this.t("cacheStatus.header.wikiId")}</th>
-				<th>{this.t("cacheStatus.header.lastProcessedRevision")}</th>
-				<th>{this.t("cacheStatus.header.lastProcessedLogEntry")}</th>
+				<tr>
+					<th>{this.t("cacheStatus.header.wikiId")}</th>
+					<th>{this.t("cacheStatus.header.lastRun")}</th>
+					<th>{this.t("cacheStatus.header.lastProcessedRevision")}</th>
+					<th>{this.t("cacheStatus.header.lastProcessedLogEntry")}</th>
+				</tr>
 			</thead>
 			<tbody>
 				{this.props.wikiInfoList?.map(x => <tr key={x.wikiId}>
 					<td>{x.wikiId}</td>
 					<td>
+						{x.lastRun
+							? moment.utc(x.lastRun).format("YYYY-MM-DD HH:mm:ss")
+							: "–"}
+					</td>
+					<td>
 						<b>{this.t("cacheStatus.dbId")}</b> <code>{x.lastProcessedRevisionId}</code>
 						<br />
 						<b>{this.t("cacheStatus.timestamp")}</b> {x.lastProcessedRevisionTimestamp
 							? moment.utc(x.lastProcessedRevisionTimestamp).format("YYYY-MM-DD HH:mm:ss")
-							: "Unknown"}
+							: "–"}
 					</td>
 					<td>
 						<b>{this.t("cacheStatus.dbId")}</b> <code>{x.lastProcessedLogId}</code>
 						<br />
 						<b>{this.t("cacheStatus.timestamp")}</b> {x.lastProcessedLogTimestamp
 							? moment.utc(x.lastProcessedLogTimestamp).format("YYYY-MM-DD HH:mm:ss")
-							: "Unknown"}
+							: "–"}
 					</td>
 				</tr>)}
 			</tbody>
@@ -83,6 +92,9 @@ export const getServerSideProps = async (ctx: NextPageContext): Promise<GetPorta
 	for (const dbWpr of dbWprs) {
 		wikiInfoList.push({
 			wikiId: dbWpr.wiki,
+			lastRun: dbWpr.lastRun
+				? momentToNumberArray(moment.utc(dbWpr.lastRun))
+				: null,
 			lastProcessedRevisionId: dbWpr.lastProcessedRevisionId,
 			lastProcessedRevisionTimestamp: dbWpr.lastProcessedLogTimestamp
 				? momentToNumberArray(moment.utc(dbWpr.lastProcessedRevisionTimestamp))
