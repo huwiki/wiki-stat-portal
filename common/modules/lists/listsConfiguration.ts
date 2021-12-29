@@ -163,10 +163,15 @@ const columnsWithLogTypeParameter = [
 ] as const;
 export type ListColumnTypesWithLogTypeParameter = typeof columnsWithLogTypeParameter[number];
 
-export interface ParameterlessListColumn {
-	columnId: string;
-	type: ParameterlessListColumnTypes;
+interface ColumnCommonProperties {
+	columnId?: string;
 	headerI18nKey?: string;
+	filterByRule?: "moreThanZero";
+}
+
+export interface ParameterlessListColumn extends ColumnCommonProperties {
+	type: ParameterlessListColumnTypes;
+	filterByRule?: "moreThanZero";
 }
 
 export function isParameterlessListColumn(obj: unknown): obj is ParameterlessListColumn {
@@ -175,10 +180,8 @@ export function isParameterlessListColumn(obj: unknown): obj is ParameterlessLis
 		&& parameterlessListColumnTypes.indexOf(obj["type"]) !== -1;
 }
 
-export interface UserNameListColumn {
-	columnId: string;
-	type: "userName"; // OK
-	headerI18nKey?: string;
+export interface UserNameListColumn extends ColumnCommonProperties {
+	type: "userName";
 	userLinks?: UserLinksDefinition;
 }
 
@@ -193,10 +196,8 @@ export function isUserNameListColumn(obj: unknown): obj is UserNameListColumn {
 		&& obj["type"] === "userName";
 }
 
-export interface ListColumnWithNamespaceParameter {
-	columnId: string;
+export interface ListColumnWithNamespaceParameter extends ColumnCommonProperties {
 	type: ListColumnTypesWithNamespaceParameter;
-	headerI18nKey?: string;
 	namespace: number | number[];
 }
 
@@ -207,10 +208,8 @@ export function isListColumnWithNamespaceParameter(obj: unknown): obj is ListCol
 		&& typeof (obj["namespace"]) === "number";
 }
 
-export interface ListColumnWithChangeTagParameter {
-	columnId: string;
+export interface ListColumnWithChangeTagParameter extends ColumnCommonProperties {
 	type: ListColumnTypesWithChangeTagParameter;
-	headerI18nKey?: string;
 	changeTag: ChangeTagFilterDefinition | ChangeTagFilterDefinition[];
 }
 
@@ -226,10 +225,8 @@ export function isListColumnWithChangeTagParameter(obj: unknown): obj is ListCol
 		&& typeof (obj["changeTag"]) === "object";
 }
 
-export interface ListColumnWithLogTypeParameter {
-	columnId: string;
+export interface ListColumnWithLogTypeParameter extends ColumnCommonProperties {
 	type: ListColumnTypesWithLogTypeParameter;
-	headerI18nKey?: string;
 	logFilter: LogFilterDefinition | LogFilterDefinition[];
 }
 

@@ -101,8 +101,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			const userGroups = actorGroupMap.get(actorLike.actorId) ?? null;
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const columns: any[] = [];
-			const isBot = typeof userGroups !== "undefined"
-				? !!userGroups?.find(x => x === "bot" || x === FLAGLESS_BOT_VIRTUAL_GROUP_NAME)
+			const isBot = userGroups != null
+				? !!userGroups.find(x => x === "bot" || x === FLAGLESS_BOT_VIRTUAL_GROUP_NAME)
 				: false;
 
 			let columnIndex = 0;

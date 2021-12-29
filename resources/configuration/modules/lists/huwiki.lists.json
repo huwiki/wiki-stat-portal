@@ -446,7 +446,7 @@
 					"headerI18nKey": "lists.header.rights"
 				},
 				{
-					"columnId": "orderBy",
+					"columnId": "editsSinceRegistration",
 					"type": "editsSinceRegistration",
 					"headerI18nKey": "lists.header.totalEdits"
 				},
@@ -478,7 +478,7 @@
 			],
 			"orderBy": [
 				{
-					"columnId": "orderBy",
+					"columnId": "editsSinceRegistration",
 					"direction": "descending"
 				}
 			],
@@ -510,16 +510,16 @@
 					"headerI18nKey": "lists.header.rights"
 				},
 				{
+					"columnId": "editsSinceRegistration",
 					"type": "editsSinceRegistration",
 					"headerI18nKey": "lists.header.totalEdits"
 				},
 				{
-					"columnId": "orderBy",
+					"columnId": "editsInPeriod",
 					"type": "editsInPeriod",
 					"headerI18nKey": "lists.header.totalEditsInPeriod"
 				},
 				{
-					"columnId": "orderBy",
 					"type": "editsInNamespaceInPeriod",
 					"namespace": 0,
 					"headerI18nKey": "lists.header.totalEditsInPeriodInNs0"
@@ -547,7 +547,11 @@
 			],
 			"orderBy": [
 				{
-					"columnId": "orderBy",
+					"columnId": "editsInPeriod",
+					"direction": "descending"
+				},
+				{
+					"columnId": "editsSinceRegistration",
 					"direction": "descending"
 				}
 			],
@@ -561,11 +565,6 @@
 			"groupId": "topLists",
 			"i18nKey": "lists.list.topLists.editorsByPatrolCount",
 			"itemCount": 500,
-			"userRequirements": {
-				"userGroups": [
-					"editor"
-				]
-			},
 			"columns": [
 				{
 					"type": "counter",
@@ -578,6 +577,10 @@
 						"talkPage": true
 					},
 					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "userGroups",
+					"headerI18nKey": "lists.header.rights"
 				},
 				{
 					"type": "logEventsSinceRegistrationByType",
@@ -608,7 +611,8 @@
 							"logType": "review",
 							"logAction": "unapprove2"
 						}
-					]
+					],
+					"filterByRule": "moreThanZero"
 				}
 			],
 			"orderBy": [
@@ -623,11 +627,6 @@
 			"groupId": "topLists",
 			"i18nKey": "lists.list.topLists.editorsByPatrolCountInPeriod",
 			"itemCount": 500,
-			"userRequirements": {
-				"userGroups": [
-					"editor"
-				]
-			},
 			"columns": [
 				{
 					"type": "counter",
@@ -640,6 +639,10 @@
 						"talkPage": true
 					},
 					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "userGroups",
+					"headerI18nKey": "lists.header.rights"
 				},
 				{
 					"type": "logEventsSinceRegistrationByType",
@@ -670,7 +673,8 @@
 							"logType": "review",
 							"logAction": "unapprove2"
 						}
-					]
+					],
+					"filterByRule": "moreThanZero"
 				},
 				{
 					"type": "logEventsInPeriodByType",
@@ -860,17 +864,50 @@
 			"id": "usersWithAtLeast100Edits",
 			"groupId": "fullUserLists",
 			"i18nKey": "lists.list.fullUserLists.usersWithAtLeast100Edits",
-			"itemCount": 500,
+			"itemCount": 0,
+			"userRequirements": {
+				"totalEditsAtLeast": 100,
+				"registrationStatus": "registered"
+			},
 			"columns": [
 				{
-					"columnId": "test",
-					"type": "counter"
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"columnId": "editsSinceRegistration",
+					"type": "editsSinceRegistration",
+					"headerI18nKey": "lists.header.totalEdits"
+				},
+				{
+					"type": "firstEditDate",
+					"headerI18nKey": "lists.header.firstEdit"
+				},
+				{
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
+				},
+				{
+					"type": "activeDaysSinceRegistration",
+					"headerI18nKey": "lists.header.activeDays"
+				},
+				{
+					"type": "averageEditsPerDaySinceRegistration",
+					"headerI18nKey": "lists.header.averageEditsPerDay"
 				}
 			],
 			"orderBy": [
 				{
-					"columnId": "test",
-					"direction": "ascending"
+					"columnId": "editsSinceRegistration",
+					"direction": "descending"
 				}
 			]
 		},
@@ -878,17 +915,51 @@
 			"id": "anonsWithAtLeast100Edits",
 			"groupId": "fullUserLists",
 			"i18nKey": "lists.list.fullUserLists.anonsWithAtLeast100Edits",
-			"itemCount": 500,
+			"itemCount": 0,
+			"userRequirements": {
+				"totalEditsAtLeast": 100,
+				"registrationStatus": "anon"
+			},
 			"columns": [
 				{
-					"columnId": "test",
-					"type": "counter"
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"columnId": "editsSinceRegistration",
+					"type": "editsSinceRegistration",
+					"headerI18nKey": "lists.header.totalEdits"
+				},
+				{
+					"columnId": "firstEditDate",
+					"type": "firstEditDate",
+					"headerI18nKey": "lists.header.firstEdit"
+				},
+				{
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
+				},
+				{
+					"type": "activeDaysSinceRegistration",
+					"headerI18nKey": "lists.header.activeDays"
+				},
+				{
+					"type": "averageEditsPerDaySinceRegistration",
+					"headerI18nKey": "lists.header.averageEditsPerDay"
 				}
 			],
 			"orderBy": [
 				{
-					"columnId": "test",
-					"direction": "ascending"
+					"columnId": "editsSinceRegistration",
+					"direction": "descending"
 				}
 			]
 		},
@@ -896,19 +967,59 @@
 			"id": "first1000RegisteredUsers",
 			"groupId": "fullUserLists",
 			"i18nKey": "lists.list.fullUserLists.first1000RegisteredUsers",
-			"itemCount": 500,
+			"itemCount": 1000,
+			"userRequirements": {
+				"registrationStatus": "registered"
+			},
 			"columns": [
 				{
-					"columnId": "test",
-					"type": "counter"
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"columnId": "editsSinceRegistration",
+					"type": "editsSinceRegistration",
+					"headerI18nKey": "lists.header.totalEdits"
+				},
+				{
+					"columnId": "firstEditDate",
+					"type": "firstEditDate",
+					"headerI18nKey": "lists.header.firstEdit"
+				},
+				{
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
+				},
+				{
+					"type": "activeDaysSinceRegistration",
+					"headerI18nKey": "lists.header.activeDays"
+				},
+				{
+					"type": "averageEditsPerDaySinceRegistration",
+					"headerI18nKey": "lists.header.averageEditsPerDay"
 				}
 			],
 			"orderBy": [
 				{
-					"columnId": "test",
+					"columnId": "firstEditDate",
 					"direction": "ascending"
+				},
+				{
+					"columnId": "editsSinceRegistration",
+					"direction": "descending"
 				}
-			]
+			],
+			"displaySettings": {
+				"fadeBots": true
+			}
 		},
 		{
 			"id": "newUsers",

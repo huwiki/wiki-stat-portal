@@ -79,6 +79,7 @@ export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEnt
 
 	// Manage required filterings
 	query = addUserRequirementFilters(query, wikiEntities, userRequirements, endDate);
+	query = addColumnSelfFilterRules(query, columns);
 
 	query = addOrderBy(query, columns, orderBy);
 
@@ -280,6 +281,31 @@ function addUserRequirementFilters(
 	}
 	return query;
 }
+
+function addColumnSelfFilterRules(query: SelectQueryBuilder<ActorTypeModel>, columns: ListColumn[] | undefined,): SelectQueryBuilder<ActorTypeModel> {
+	if (!columns) {
+		return query;
+	}
+
+	let columnIndex = 0;
+	for (const column of columns) {
+		if (!column.filterByRule) {
+			columnIndex++;
+			continue;
+		}
+
+		console.log("cica");
+
+		if (column.filterByRule === "moreThanZero") {
+			query = query.andHaving(`column${columnIndex} > 0`);
+		}
+
+		columnIndex++;
+	}
+
+	return query;
+}
+
 
 function addColumSelects(
 	ctx: StatisticsQueryBuildingContext,
@@ -638,7 +664,7 @@ function addSingleColumSelect(
 			const logFilters = Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter];
 
 			query = query.addSelect(logFilters.map(log => {
-				return `IFNULL(log${serializeLogFilterDefinition(log)}SinceRegistrationActorStatistics.logEventsToDate + ct${serializeLogFilterDefinition(log)}SinceRegistrationActorStatistics.dailyLogEvents, 0)`;
+				return `IFNULL(log${serializeLogFilterDefinition(log)}SinceRegistrationActorStatistics.logEventsToDate + log${serializeLogFilterDefinition(log)}SinceRegistrationActorStatistics.dailyLogEvents, 0)`;
 			}).join(" + "), selectedColumnName);
 
 			break;

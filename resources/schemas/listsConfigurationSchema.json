@@ -196,6 +196,12 @@
 				},
 				"headerI18nKey": {
 					"type": "string"
+				},
+				"filterByRule": {
+					"type": "string",
+					"enum": [
+						"moreThanZero"
+					]
 				}
 			},
 			"required": [
@@ -277,6 +283,12 @@
 							"minItems": 1
 						}
 					]
+				},
+				"filterByRule": {
+					"type": "string",
+					"enum": [
+						"moreThanZero"
+					]
 				}
 			},
 			"required": [
@@ -315,6 +327,12 @@
 							},
 							"minItems": 1
 						}
+					]
+				},
+				"filterByRule": {
+					"type": "string",
+					"enum": [
+						"moreThanZero"
 					]
 				}
 			},
@@ -368,6 +386,12 @@
 							},
 							"minItems": 1
 						}
+					]
+				},
+				"filterByRule": {
+					"type": "string",
+					"enum": [
+						"moreThanZero"
 					]
 				}
 			},
