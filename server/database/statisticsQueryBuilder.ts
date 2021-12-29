@@ -104,6 +104,18 @@ function addUserRequirementJoins(
 		return query;
 	}
 
+	if (typeof userRequirements.userGroups !== "undefined" && userRequirements.userGroups.length > 0) {
+		for (const userGroup of userRequirements.userGroups) {
+			const sanitizedGroupName = sanitizeNameForSql(userGroup);
+			query = query.leftJoin(
+				wikiEntities.actorGroup,
+				`${sanitizedGroupName}GroupCheck`,
+				`${sanitizedGroupName}GroupCheck.actorId = actor.actorId AND ${sanitizedGroupName}GroupCheck.groupName = :${sanitizedGroupName}GroupName`,
+				{ [`${sanitizedGroupName}GroupName`]: userGroup }
+			);
+		}
+	}
+
 	if (typeof userRequirements.totalEditsAtLeast !== "undefined") {
 		query = query.leftJoin(wikiEntities.actorDailyStatistics, "totalEditsAtLeast", "totalEditsAtLeast.actorId = actor.actorId");
 	}
@@ -202,24 +214,11 @@ function addUserRequirementFilters(
 	if (typeof userRequirements.userGroups !== "undefined") {
 		const userGroups = userRequirements.userGroups;
 
-		query = query.andWhere(qb => {
-			const whereParameters = {};
-			const whereClause = userGroups
-				.map((group: string): string => {
-					whereParameters[`group_${group}`] = group;
-					return `gr.group_name = :group_${group}`;
-				})
-				.join(" OR ");
-
-			const subQuery = qb.subQuery()
-				.select("1")
-				.from(wikiEntities.actorGroup, "gr")
-				.where("gr.actor_id = actor.actorId")
-				.andWhere(`(${whereClause})`, whereParameters)
-				.getQuery();
-
-			return `EXISTS(${subQuery})`;
-		});
+		query = query.andWhere("("
+			+ userGroups.map((group: string): string => {
+				return `${sanitizeNameForSql(group)}GroupCheck.actorId = actor.actorId`;
+			}).join(" OR ")
+			+ ")");
 	}
 
 	// Total edits at least
@@ -1403,7 +1402,7 @@ function formatChangeTagFilterDefinitionCollection(changeTagFilter: ChangeTagFil
 }
 
 function serializeChangeTagFilterDefinition(changeTagFilter: ChangeTagFilterDefinition) {
-	return `${changeTagFilter.namespace ?? "any"}_${changeTagFilter.changeTagId}`.replace(/-/g, "_");
+	return sanitizeNameForSql(`${changeTagFilter.namespace ?? "any"}_${changeTagFilter.changeTagId}`);
 }
 
 function getOrCreateLogTypeCollector(ctx: StatisticsQueryBuildingContext, logFilter: LogFilterDefinition): LogTypeStatisticsRequiredColumns {
@@ -1434,5 +1433,9 @@ function formatLogFilterDefinitionCollection(logFilter: LogFilterDefinition | Lo
 }
 
 function serializeLogFilterDefinition(logFilter: LogFilterDefinition) {
-	return `${logFilter.logType ?? "any"}_${logFilter.logAction ?? "any"}`.replace(/-/g, "_");
+	return sanitizeNameForSql(`${logFilter.logType ?? "any"}_${logFilter.logAction ?? "any"}`);
+}
+
+function sanitizeNameForSql(userGroup: string) {
+	return userGroup.replace(/-/g, "_");
 }
