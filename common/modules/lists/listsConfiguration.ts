@@ -83,10 +83,14 @@ const parameterlessListColumnTypes = [
 	"editsAtPeriodStart", // OK, internal for now
 	"editsSinceRegistration", // OK
 	"editsSinceRegistrationPercentageToWikiTotal", // OK
+
 	"revertedEditsInPeriod", // OK
 	"revertedEditsInPeriodPercentageToWikiTotal", // OK
+	"revertedEditsInPeriodPercentageToOwnTotalEdits",
 	"revertedEditsSinceRegistration", // OK
 	"revertedEditsSinceRegistrationPercentageToWikiTotal", // OK
+	"revertedEditsSinceRegistrationPercentageToOwnTotalEdits",
+
 	"firstEditDate", // OK
 	"lastEditDate", // OK
 	"daysBetweenFirstAndLastEdit", // OK
@@ -134,12 +138,16 @@ export type ParameterlessListColumnTypes = typeof parameterlessListColumnTypes[n
 const columnsWithNamespaceParameter = [
 	"editsInNamespaceInPeriod", // OK
 	"editsInNamespaceInPeriodPercentageToWikiTotal", // OK
+	"editsInNamespaceInPeriodPercentageToOwnTotalEdits",
 	"editsInNamespaceSinceRegistration", // OK
 	"editsInNamespaceSinceRegistrationPercentageToWikiTotal", // OK
+	"editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits",
 	"revertedEditsInNamespaceInPeriod", // OK
 	"revertedEditsInNamespaceInPeriodPercentageToWikiTotal", // OK
+	"revertedEditsInNamespaceInPeriodPercentageToOwnTotalEdits",
 	"revertedEditsInNamespaceSinceRegistration", // OK
 	"revertedEditsInNamespaceSinceRegistrationPercentageToWikiTotal", // OK
+	"revertedEditsInNamespaceSinceRegistrationPercentageToOwnTotalEdits",
 	"characterChangesInNamespaceInPeriod", // OK
 	"characterChangesInNamespaceInPeriodPercentageToWikiTotal", // OK
 	"characterChangesInNamespaceSinceRegistration", // OK

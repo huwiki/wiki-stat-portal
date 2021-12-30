@@ -939,6 +939,15 @@
 					"headerI18nKey": "lists.header.totalEdits"
 				},
 				{
+					"type": "revertedEditsSinceRegistrationPercentageToOwnTotalEdits",
+					"headerI18nKey": "lists.header.revertedEditsPercentage"
+				},
+				{
+					"type": "editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits",
+					"namespace": 0,
+					"headerI18nKey": "lists.header.totalEditsInNs0PercentageToOwnTotalEdits"
+				},
+				{
 					"columnId": "firstEditDate",
 					"type": "firstEditDate",
 					"headerI18nKey": "lists.header.firstEdit"

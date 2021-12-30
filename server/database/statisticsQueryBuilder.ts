@@ -374,10 +374,23 @@ function addSingleColumSelect(
 						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyEdits, 0))`;
 				}).join(" + ") + ")"
 				+ " / "
-				+ "(" + namespaces.map(columnPart => {
-					return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.dailyEdits, 0) `
-						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartWikiStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartWikiStatistics.dailyEdits, 0))`;
+				+ "(IFNULL(sinceStartWikiStatistics.editsToDate + sinceStartWikiStatistics.dailyEdits, 0) "
+				+ "- IFNULL(atPeriodStartWikiStatistics.editsToDate + atPeriodStartWikiStatistics.dailyEdits, 0)"
+				+ ")"
+				+ ", 0)", selectedColumnName);
+			break;
+		}
+		case "editsInNamespaceInPeriodPercentageToOwnTotalEdits": {
+			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
+
+			query = query.addSelect(
+				"IFNULL((" + namespaces.map(columnPart => {
+					return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyEdits, 0) `
+						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyEdits, 0))`;
 				}).join(" + ") + ")"
+				+ " / "
+				+ "(IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.editsToDate + atPeriodStartActorStatistics.dailyEdits, 0))"
 				+ ", 0)", selectedColumnName);
 			break;
 		}
@@ -401,6 +414,19 @@ function addSingleColumSelect(
 				+ "(" + namespaces.map(columnPart => {
 					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.dailyEdits, 0)`;
 				}).join(" + ") + ")"
+				+ ", 0)", selectedColumnName);
+
+			break;
+		}
+		case "editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits": {
+			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
+
+			query = query.addSelect(
+				"IFNULL((" + namespaces.map(columnPart => {
+					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyEdits, 0)`;
+				}).join(" + ") + ")"
+				+ " / "
+				+ "IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0)"
 				+ ", 0)", selectedColumnName);
 
 			break;
@@ -436,6 +462,13 @@ function addSingleColumSelect(
 				+ "(IFNULL(sinceStartWikiStatistics.revertedEditsToDate + sinceStartWikiStatistics.dailyRevertedEdits, 0) "
 				+ "- IFNULL(atPeriodStartWikiStatistics.revertedEditsToDate + atPeriodStartWikiStatistics.dailyRevertedEdits, 0))", selectedColumnName);
 			break;
+		case "revertedEditsInPeriodPercentageToOwnTotalEdits":
+			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.revertedEditsToDate + atPeriodStartActorStatistics.dailyRevertedEdits, 0))"
+				+ " / "
+				+ "(IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0) "
+				+ "- IFNULL(atPeriodStartActorStatistics.editsToDate + atPeriodStartActorStatistics.dailyEdits, 0))", selectedColumnName);
+			break;
 		case "revertedEditsSinceRegistration":
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits, 0)", selectedColumnName);
 			break;
@@ -444,6 +477,12 @@ function addSingleColumSelect(
 				"IFNULL((sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits)"
 				+ " / "
 				+ "(sinceStartWikiStatistics.revertedEditsToDate + sinceStartWikiStatistics.dailyRevertedEdits), 0)", selectedColumnName);
+			break;
+		case "revertedEditsSinceRegistrationPercentageToOwnTotalEdits":
+			query = query.addSelect(
+				"IFNULL((sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits)"
+				+ " / "
+				+ "(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits), 0)", selectedColumnName);
 			break;
 
 		case "revertedEditsInNamespaceInPeriod": {
@@ -472,6 +511,22 @@ function addSingleColumSelect(
 				+ ", 0)", selectedColumnName);
 			break;
 		}
+		case "revertedEditsInNamespaceInPeriodPercentageToOwnTotalEdits": {
+			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
+
+			query = query.addSelect(
+				"IFNULL((" + namespaces.map(columnPart => {
+					return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyRevertedEdits, 0) `
+						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyRevertedEdits, 0))`;
+				}).join(" + ") + ")"
+				+ " / "
+				+ "(" + namespaces.map(columnPart => {
+					return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyRevertedEdits, 0) `
+						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyRevertedEdits, 0))`;
+				}).join(" + ") + ")"
+				+ ", 0)", selectedColumnName);
+			break;
+		}
 		case "revertedEditsInNamespaceSinceRegistration": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
@@ -492,6 +547,21 @@ function addSingleColumSelect(
 				+ " / "
 				+ "(" + namespaces.map(columnPart => {
 					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.dailyRevertedEdits, 0)`;
+				}).join(" + ") + ")"
+				+ ", 0)", selectedColumnName);
+
+			break;
+		}
+		case "revertedEditsInNamespaceSinceRegistrationPercentageToOwnTotalEdits": {
+			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
+
+			query = query.addSelect(
+				"IFNULL((" + namespaces.map(columnPart => {
+					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyRevertedEdits, 0)`;
+				}).join(" + ") + ")"
+				+ " / "
+				+ "(" + namespaces.map(columnPart => {
+					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyRevertedEdits, 0)`;
 				}).join(" + ") + ")"
 				+ ", 0)", selectedColumnName);
 
@@ -790,6 +860,7 @@ function addColumnJoins(
 		switch (column.type) {
 			case "editsInPeriod":
 			case "revertedEditsInPeriod":
+			case "revertedEditsInPeriodPercentageToOwnTotalEdits":
 			case "characterChangesInPeriod":
 			case "receivedThanksInPeriod":
 			case "sentThanksInPeriod":
@@ -809,6 +880,7 @@ function addColumnJoins(
 
 			case "editsSinceRegistration":
 			case "revertedEditsSinceRegistration":
+			case "revertedEditsSinceRegistrationPercentageToOwnTotalEdits":
 			case "characterChangesSinceRegistration":
 			case "receivedThanksSinceRegistration":
 			case "sentThanksSinceRegistration":
@@ -827,11 +899,17 @@ function addColumnJoins(
 				break;
 
 			case "editsInNamespaceInPeriod":
+			case "editsInNamespaceInPeriodPercentageToOwnTotalEdits":
 			case "revertedEditsInNamespaceInPeriod":
+			case "revertedEditsInNamespaceInPeriodPercentageToOwnTotalEdits":
 			case "characterChangesInNamespaceInPeriod": {
 				for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
 					const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
 					namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
+				}
+
+				if (column.type === "editsInNamespaceInPeriodPercentageToOwnTotalEdits") {
+					ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
 				}
 				break;
 			}
@@ -846,12 +924,19 @@ function addColumnJoins(
 				break;
 			}
 			case "editsInNamespaceSinceRegistration":
+			case "editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits":
 			case "revertedEditsInNamespaceSinceRegistration":
+			case "revertedEditsInNamespaceSinceRegistrationPercentageToOwnTotalEdits":
 			case "characterChangesInNamespaceSinceRegistration": {
 				for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
 					const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
 					namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
 				}
+
+				if (column.type === "editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits") {
+					ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
+				}
+
 				break;
 			}
 			case "editsInNamespaceSinceRegistrationPercentageToWikiTotal":
@@ -862,6 +947,7 @@ function addColumnJoins(
 					namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
 					namespaceCollector.requiredColumnsForSinceRegisteredWikiStatistics.push(column.type);
 				}
+
 				break;
 			}
 
