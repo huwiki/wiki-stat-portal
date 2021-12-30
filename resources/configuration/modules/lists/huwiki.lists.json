@@ -18,20 +18,20 @@
 					"type": "editsInPeriod"
 				},
 				{
-					"type": "editsInPeriodPercentage"
+					"type": "editsInPeriodPercentageToWikiTotal"
 				},
 				{
 					"type": "editsSinceRegistration"
 				},
 				{
-					"type": "editsSinceRegistrationPercentage"
+					"type": "editsSinceRegistrationPercentageToWikiTotal"
 				},
 				{
 					"type": "editsInNamespaceInPeriod",
 					"namespace": 0
 				},
 				{
-					"type": "editsInNamespaceInPeriodPercentage",
+					"type": "editsInNamespaceInPeriodPercentageToWikiTotal",
 					"namespace": 0
 				},
 				{
@@ -39,7 +39,7 @@
 					"namespace": 0
 				},
 				{
-					"type": "editsInNamespaceSinceRegistrationPercentage",
+					"type": "editsInNamespaceSinceRegistrationPercentageToWikiTotal",
 					"namespace": 0
 				},
 				{
@@ -47,7 +47,7 @@
 					"namespace": 4
 				},
 				{
-					"type": "editsInNamespaceInPeriodPercentage",
+					"type": "editsInNamespaceInPeriodPercentageToWikiTotal",
 					"namespace": 4
 				},
 				{
@@ -55,7 +55,7 @@
 					"namespace": 4
 				},
 				{
-					"type": "editsInNamespaceSinceRegistrationPercentage",
+					"type": "editsInNamespaceSinceRegistrationPercentageToWikiTotal",
 					"namespace": 4
 				},
 				{
@@ -66,7 +66,7 @@
 					]
 				},
 				{
-					"type": "editsInNamespaceInPeriodPercentage",
+					"type": "editsInNamespaceInPeriodPercentageToWikiTotal",
 					"namespace": [
 						0,
 						4
@@ -80,7 +80,7 @@
 					]
 				},
 				{
-					"type": "editsInNamespaceSinceRegistrationPercentage",
+					"type": "editsInNamespaceSinceRegistrationPercentageToWikiTotal",
 					"namespace": [
 						0,
 						4
@@ -105,20 +105,20 @@
 					"type": "revertedEditsInPeriod"
 				},
 				{
-					"type": "revertedEditsInPeriodPercentage"
+					"type": "revertedEditsInPeriodPercentageToWikiTotal"
 				},
 				{
 					"type": "revertedEditsSinceRegistration"
 				},
 				{
-					"type": "revertedEditsSinceRegistrationPercentage"
+					"type": "revertedEditsSinceRegistrationPercentageToWikiTotal"
 				},
 				{
 					"type": "revertedEditsInNamespaceInPeriod",
 					"namespace": 0
 				},
 				{
-					"type": "revertedEditsInNamespaceInPeriodPercentage",
+					"type": "revertedEditsInNamespaceInPeriodPercentageToWikiTotal",
 					"namespace": 0
 				},
 				{
@@ -126,7 +126,7 @@
 					"namespace": 0
 				},
 				{
-					"type": "revertedEditsInNamespaceSinceRegistrationPercentage",
+					"type": "revertedEditsInNamespaceSinceRegistrationPercentageToWikiTotal",
 					"namespace": 0
 				},
 				{
@@ -134,7 +134,7 @@
 					"namespace": 4
 				},
 				{
-					"type": "revertedEditsInNamespaceInPeriodPercentage",
+					"type": "revertedEditsInNamespaceInPeriodPercentageToWikiTotal",
 					"namespace": 4
 				},
 				{
@@ -142,27 +142,27 @@
 					"namespace": 4
 				},
 				{
-					"type": "revertedEditsInNamespaceSinceRegistrationPercentage",
+					"type": "revertedEditsInNamespaceSinceRegistrationPercentageToWikiTotal",
 					"namespace": 4
 				},
 				{
 					"type": "characterChangesInPeriod"
 				},
 				{
-					"type": "characterChangesInPeriodPercentage"
+					"type": "characterChangesInPeriodPercentageToWikiTotal"
 				},
 				{
 					"type": "characterChangesSinceRegistration"
 				},
 				{
-					"type": "characterChangesSinceRegistrationPercentage"
+					"type": "characterChangesSinceRegistrationPercentageToWikiTotal"
 				},
 				{
 					"type": "characterChangesInNamespaceInPeriod",
 					"namespace": 0
 				},
 				{
-					"type": "characterChangesInNamespaceInPeriodPercentage",
+					"type": "characterChangesInNamespaceInPeriodPercentageToWikiTotal",
 					"namespace": 0
 				},
 				{
@@ -170,7 +170,7 @@
 					"namespace": 0
 				},
 				{
-					"type": "characterChangesInNamespaceSinceRegistrationPercentage",
+					"type": "characterChangesInNamespaceSinceRegistrationPercentageToWikiTotal",
 					"namespace": 0
 				},
 				{
@@ -178,7 +178,7 @@
 					"namespace": 4
 				},
 				{
-					"type": "characterChangesInNamespaceInPeriodPercentage",
+					"type": "characterChangesInNamespaceInPeriodPercentageToWikiTotal",
 					"namespace": 4
 				},
 				{
@@ -186,32 +186,32 @@
 					"namespace": 4
 				},
 				{
-					"type": "characterChangesInNamespaceSinceRegistrationPercentage",
+					"type": "characterChangesInNamespaceSinceRegistrationPercentageToWikiTotal",
 					"namespace": 4
 				},
 				{
 					"type": "receivedThanksInPeriod"
 				},
 				{
-					"type": "receivedThanksInPeriodPercentage"
+					"type": "receivedThanksInPeriodPercentageToWikiTotal"
 				},
 				{
 					"type": "receivedThanksSinceRegistration"
 				},
 				{
-					"type": "receivedThanksSinceRegistrationPercentage"
+					"type": "receivedThanksSinceRegistrationPercentageToWikiTotal"
 				},
 				{
 					"type": "logEventsInPeriod"
 				},
 				{
-					"type": "logEventsInPeriodPercentage"
+					"type": "logEventsInPeriodPercentageToWikiTotal"
 				},
 				{
 					"type": "logEventsSinceRegistration"
 				},
 				{
-					"type": "logEventsSinceRegistrationPercentage"
+					"type": "logEventsSinceRegistrationPercentageToWikiTotal"
 				},
 				{
 					"type": "firstLogEventDate"
@@ -1115,16 +1115,37 @@
 			"id": "inactiveSysops",
 			"groupId": "activity",
 			"i18nKey": "lists.list.activity.inactiveSysops",
-			"itemCount": 500,
+			"itemCount": 0,
+			"userRequirements": {
+				"userGroups": [
+					"sysop"
+				]
+			},
 			"columns": [
 				{
-					"columnId": "test",
-					"type": "counter"
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"columnId": "lastEditDate",
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
+				},
+				{
+					"type": "lastLogEventDate"
 				}
 			],
 			"orderBy": [
 				{
-					"columnId": "test",
+					"columnId": "lastEditDate",
 					"direction": "ascending"
 				}
 			]
@@ -1133,11 +1154,31 @@
 			"id": "inactiveBureaucrats",
 			"groupId": "activity",
 			"i18nKey": "lists.list.activity.inactiveBureaucrats",
-			"itemCount": 500,
+			"itemCount": 0,
+			"userRequirements": {
+				"userGroups": [
+					"bureaucrat"
+				]
+			},
 			"columns": [
 				{
-					"columnId": "test",
-					"type": "counter"
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
+				},
+				{
+					"type": "lastLogEventDate"
 				}
 			],
 			"orderBy": [
@@ -1151,11 +1192,28 @@
 			"id": "inactiveInterfaceEditors",
 			"groupId": "activity",
 			"i18nKey": "lists.list.activity.inactiveInterfaceEditors",
-			"itemCount": 500,
+			"itemCount": 0,
+			"userRequirements": {
+				"userGroups": [
+					"interface-editor"
+				]
+			},
 			"columns": [
 				{
-					"columnId": "test",
-					"type": "counter"
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
 				}
 			],
 			"orderBy": [
@@ -1169,11 +1227,28 @@
 			"id": "inactiveInterfaceAdmins",
 			"groupId": "activity",
 			"i18nKey": "lists.list.activity.inactiveInterfaceAdmins",
-			"itemCount": 500,
+			"itemCount": 0,
+			"userRequirements": {
+				"userGroups": [
+					"interface-admin"
+				]
+			},
 			"columns": [
 				{
-					"columnId": "test",
-					"type": "counter"
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
 				}
 			],
 			"orderBy": [
@@ -1205,19 +1280,51 @@
 			"id": "inactiveUsers",
 			"groupId": "activity",
 			"i18nKey": "lists.list.activity.inactiveUsers",
-			"itemCount": 500,
+			"itemCount": 0,
+			"userRequirements": {
+				"totalEditsAtLeast": 100,
+				"registrationStatus": "registered",
+				"inPeriodEditsAtMost": {
+					"edits": 0,
+					"period": 30
+				}
+			},
 			"columns": [
 				{
-					"columnId": "test",
-					"type": "counter"
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "editsSinceRegistration",
+					"headerI18nKey": "lists.header.totalEdits"
+				},
+				{
+					"type": "firstEditDate",
+					"headerI18nKey": "lists.header.firstEdit"
+				},
+				{
+					"columnId": "lastEditDate",
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
 				}
 			],
 			"orderBy": [
 				{
-					"columnId": "test",
+					"columnId": "lastEditDate",
 					"direction": "ascending"
 				}
-			]
+			],
+			"displaySettings": {
+				"fadeBots": true
+			}
 		}
 	]
 }

@@ -338,7 +338,7 @@ function addSingleColumSelect(
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0) "
 				+ "- IFNULL(atPeriodStartActorStatistics.editsToDate + atPeriodStartActorStatistics.dailyEdits, 0)", selectedColumnName);
 			break;
-		case "editsInPeriodPercentage":
+		case "editsInPeriodPercentageToWikiTotal":
 			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0) "
 				+ "- IFNULL(atPeriodStartActorStatistics.editsToDate + atPeriodStartActorStatistics.dailyEdits, 0))"
 				+ " / "
@@ -348,7 +348,7 @@ function addSingleColumSelect(
 		case "editsSinceRegistration":
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0)", selectedColumnName);
 			break;
-		case "editsSinceRegistrationPercentage":
+		case "editsSinceRegistrationPercentageToWikiTotal":
 			query = query.addSelect(
 				"IFNULL((sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits)"
 				+ " / "
@@ -365,7 +365,7 @@ function addSingleColumSelect(
 
 			break;
 		}
-		case "editsInNamespaceInPeriodPercentage": {
+		case "editsInNamespaceInPeriodPercentageToWikiTotal": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
 			query = query.addSelect(
@@ -390,7 +390,7 @@ function addSingleColumSelect(
 
 			break;
 		}
-		case "editsInNamespaceSinceRegistrationPercentage": {
+		case "editsInNamespaceSinceRegistrationPercentageToWikiTotal": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
 			query = query.addSelect(
@@ -429,7 +429,7 @@ function addSingleColumSelect(
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits, 0) "
 				+ "- IFNULL(atPeriodStartActorStatistics.revertedEditsToDate + atPeriodStartActorStatistics.dailyRevertedEdits, 0)", selectedColumnName);
 			break;
-		case "revertedEditsInPeriodPercentage":
+		case "revertedEditsInPeriodPercentageToWikiTotal":
 			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits, 0) "
 				+ "- IFNULL(atPeriodStartActorStatistics.revertedEditsToDate + atPeriodStartActorStatistics.dailyRevertedEdits, 0))"
 				+ " / "
@@ -439,7 +439,7 @@ function addSingleColumSelect(
 		case "revertedEditsSinceRegistration":
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits, 0)", selectedColumnName);
 			break;
-		case "revertedEditsSinceRegistrationPercentage":
+		case "revertedEditsSinceRegistrationPercentageToWikiTotal":
 			query = query.addSelect(
 				"IFNULL((sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits)"
 				+ " / "
@@ -456,7 +456,7 @@ function addSingleColumSelect(
 
 			break;
 		}
-		case "revertedEditsInNamespaceInPeriodPercentage": {
+		case "revertedEditsInNamespaceInPeriodPercentageToWikiTotal": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
 			query = query.addSelect(
@@ -482,7 +482,7 @@ function addSingleColumSelect(
 			break;
 			break;
 		}
-		case "revertedEditsInNamespaceSinceRegistrationPercentage": {
+		case "revertedEditsInNamespaceSinceRegistrationPercentageToWikiTotal": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
 			query = query.addSelect(
@@ -501,7 +501,7 @@ function addSingleColumSelect(
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.characterChangesToDate + sinceRegistrationActorStatistics.dailyCharacterChanges, 0) "
 				+ "- IFNULL(atPeriodStartActorStatistics.characterChangesToDate + atPeriodStartActorStatistics.dailyCharacterChanges, 0)", selectedColumnName);
 			break;
-		case "characterChangesInPeriodPercentage":
+		case "characterChangesInPeriodPercentageToWikiTotal":
 			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.characterChangesToDate + sinceRegistrationActorStatistics.dailyCharacterChanges, 0) "
 				+ "- IFNULL(atPeriodStartActorStatistics.characterChangesToDate + atPeriodStartActorStatistics.dailyCharacterChanges, 0))"
 				+ " / "
@@ -511,7 +511,7 @@ function addSingleColumSelect(
 		case "characterChangesSinceRegistration":
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.characterChangesToDate + sinceRegistrationActorStatistics.dailyCharacterChanges, 0)", selectedColumnName);
 			break;
-		case "characterChangesSinceRegistrationPercentage":
+		case "characterChangesSinceRegistrationPercentageToWikiTotal":
 			query = query.addSelect(
 				"IFNULL((sinceRegistrationActorStatistics.characterChangesToDate + sinceRegistrationActorStatistics.dailyCharacterChanges)"
 				+ " / "
@@ -527,7 +527,7 @@ function addSingleColumSelect(
 
 			break;
 		}
-		case "characterChangesInNamespaceInPeriodPercentage": {
+		case "characterChangesInNamespaceInPeriodPercentageToWikiTotal": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
 			query = query.addSelect(
@@ -552,7 +552,7 @@ function addSingleColumSelect(
 
 			break;
 		}
-		case "characterChangesInNamespaceSinceRegistrationPercentage": {
+		case "characterChangesInNamespaceSinceRegistrationPercentageToWikiTotal": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
 			query = query.addSelect(
@@ -590,7 +590,7 @@ function addSingleColumSelect(
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.receivedThanksToDate + sinceRegistrationActorStatistics.dailyReceivedThanks, 0) "
 				+ "- IFNULL(atPeriodStartActorStatistics.receivedThanksToDate + atPeriodStartActorStatistics.dailyReceivedThanks, 0)", selectedColumnName);
 			break;
-		case "receivedThanksInPeriodPercentage":
+		case "receivedThanksInPeriodPercentageToWikiTotal":
 			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.receivedThanksToDate + sinceRegistrationActorStatistics.dailyReceivedThanks, 0) "
 				+ "- IFNULL(atPeriodStartActorStatistics.receivedThanksToDate + atPeriodStartActorStatistics.dailyReceivedThanks, 0))"
 				+ " / "
@@ -600,7 +600,7 @@ function addSingleColumSelect(
 		case "receivedThanksSinceRegistration":
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.receivedThanksToDate + sinceRegistrationActorStatistics.dailyReceivedThanks, 0)", selectedColumnName);
 			break;
-		case "receivedThanksSinceRegistrationPercentage":
+		case "receivedThanksSinceRegistrationPercentageToWikiTotal":
 			query = query.addSelect(
 				"IFNULL((sinceRegistrationActorStatistics.receivedThanksToDate + sinceRegistrationActorStatistics.dailyReceivedThanks)"
 				+ " / "
@@ -611,7 +611,7 @@ function addSingleColumSelect(
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.sentThanksToDate + sinceRegistrationActorStatistics.dailySentThanks, 0) "
 				+ "- IFNULL(atPeriodStartActorStatistics.sentThanksToDate + atPeriodStartActorStatistics.dailySentThanks, 0)", selectedColumnName);
 			break;
-		case "sentThanksInPeriodPercentage":
+		case "sentThanksInPeriodPercentageToWikiTotal":
 			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.sentThanksToDate + sinceRegistrationActorStatistics.dailySentThanks, 0) "
 				+ "- IFNULL(atPeriodStartActorStatistics.sentThanksToDate + atPeriodStartActorStatistics.dailySentThanks, 0))"
 				+ " / "
@@ -621,7 +621,7 @@ function addSingleColumSelect(
 		case "sentThanksSinceRegistration":
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.sentThanksToDate + sinceRegistrationActorStatistics.dailySentThanks, 0)", selectedColumnName);
 			break;
-		case "sentThanksSinceRegistrationPercentage":
+		case "sentThanksSinceRegistrationPercentageToWikiTotal":
 			query = query.addSelect(
 				"IFNULL((sinceRegistrationActorStatistics.sentThanksToDate + sinceRegistrationActorStatistics.dailySentThanks)"
 				+ " / "
@@ -632,7 +632,7 @@ function addSingleColumSelect(
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents, 0) "
 				+ "- IFNULL(atPeriodStartActorStatistics.logEventsToDate + atPeriodStartActorStatistics.dailyLogEvents, 0)", selectedColumnName);
 			break;
-		case "logEventsInPeriodPercentage":
+		case "logEventsInPeriodPercentageToWikiTotal":
 			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents, 0) "
 				+ "- IFNULL(atPeriodStartActorStatistics.logEventsToDate + atPeriodStartActorStatistics.dailyLogEvents, 0))"
 				+ " / "
@@ -642,7 +642,7 @@ function addSingleColumSelect(
 		case "logEventsSinceRegistration":
 			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents, 0)", selectedColumnName);
 			break;
-		case "logEventsSinceRegistrationPercentage":
+		case "logEventsSinceRegistrationPercentageToWikiTotal":
 			query = query.addSelect(
 				"IFNULL((sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents)"
 				+ " / "
@@ -797,12 +797,12 @@ function addColumnJoins(
 				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
 				break;
 
-			case "editsInPeriodPercentage":
-			case "revertedEditsInPeriodPercentage":
-			case "characterChangesInPeriodPercentage":
-			case "receivedThanksInPeriodPercentage":
-			case "sentThanksInPeriodPercentage":
-			case "logEventsInPeriodPercentage":
+			case "editsInPeriodPercentageToWikiTotal":
+			case "revertedEditsInPeriodPercentageToWikiTotal":
+			case "characterChangesInPeriodPercentageToWikiTotal":
+			case "receivedThanksInPeriodPercentageToWikiTotal":
+			case "sentThanksInPeriodPercentageToWikiTotal":
+			case "logEventsInPeriodPercentageToWikiTotal":
 				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
 				ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.push(column.type);
 				break;
@@ -816,12 +816,12 @@ function addColumnJoins(
 				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
 				break;
 
-			case "editsSinceRegistrationPercentage":
-			case "revertedEditsSinceRegistrationPercentage":
-			case "characterChangesSinceRegistrationPercentage":
-			case "receivedThanksSinceRegistrationPercentage":
-			case "sentThanksSinceRegistrationPercentage":
-			case "logEventsSinceRegistrationPercentage":
+			case "editsSinceRegistrationPercentageToWikiTotal":
+			case "revertedEditsSinceRegistrationPercentageToWikiTotal":
+			case "characterChangesSinceRegistrationPercentageToWikiTotal":
+			case "receivedThanksSinceRegistrationPercentageToWikiTotal":
+			case "sentThanksSinceRegistrationPercentageToWikiTotal":
+			case "logEventsSinceRegistrationPercentageToWikiTotal":
 				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
 				ctx.columns.requiredColumnsForSinceRegisteredWikiStatistics.push(column.type);
 				break;
@@ -835,9 +835,9 @@ function addColumnJoins(
 				}
 				break;
 			}
-			case "editsInNamespaceInPeriodPercentage":
-			case "revertedEditsInNamespaceInPeriodPercentage":
-			case "characterChangesInNamespaceInPeriodPercentage": {
+			case "editsInNamespaceInPeriodPercentageToWikiTotal":
+			case "revertedEditsInNamespaceInPeriodPercentageToWikiTotal":
+			case "characterChangesInNamespaceInPeriodPercentageToWikiTotal": {
 				for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
 					const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
 					namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
@@ -854,9 +854,9 @@ function addColumnJoins(
 				}
 				break;
 			}
-			case "editsInNamespaceSinceRegistrationPercentage":
-			case "revertedEditsInNamespaceSinceRegistrationPercentage":
-			case "characterChangesInNamespaceSinceRegistrationPercentage": {
+			case "editsInNamespaceSinceRegistrationPercentageToWikiTotal":
+			case "revertedEditsInNamespaceSinceRegistrationPercentageToWikiTotal":
+			case "characterChangesInNamespaceSinceRegistrationPercentageToWikiTotal": {
 				for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
 					const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
 					namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
@@ -1053,7 +1053,7 @@ function addColumnJoins(
 				)
 				.andWhere("ads.dailyLogEvents > 0")
 				.groupBy("ads.actorId");
-		}, "logEventDates", "logEntryDates.actorId = actor.actorId");
+		}, "logEventDates", "logEventDates.actorId = actor.actorId");
 	}
 
 	for (const namespaceCollection of ctx.columns.requiredNamespaceStatisticsColumns) {

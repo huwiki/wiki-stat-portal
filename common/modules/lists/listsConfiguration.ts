@@ -79,14 +79,14 @@ const parameterlessListColumnTypes = [
 	"userGroups", // OK
 
 	"editsInPeriod", // OK
-	"editsInPeriodPercentage", // OK
+	"editsInPeriodPercentageToWikiTotal", // OK
 	"editsAtPeriodStart", // OK, internal for now
 	"editsSinceRegistration", // OK
-	"editsSinceRegistrationPercentage", // OK
+	"editsSinceRegistrationPercentageToWikiTotal", // OK
 	"revertedEditsInPeriod", // OK
-	"revertedEditsInPeriodPercentage", // OK
+	"revertedEditsInPeriodPercentageToWikiTotal", // OK
 	"revertedEditsSinceRegistration", // OK
-	"revertedEditsSinceRegistrationPercentage", // OK
+	"revertedEditsSinceRegistrationPercentageToWikiTotal", // OK
 	"firstEditDate", // OK
 	"lastEditDate", // OK
 	"daysBetweenFirstAndLastEdit", // OK
@@ -94,25 +94,25 @@ const parameterlessListColumnTypes = [
 	"averageEditsPerDayInPeriod", // OK
 
 	"characterChangesInPeriod", // OK
-	"characterChangesInPeriodPercentage", // OK
+	"characterChangesInPeriodPercentageToWikiTotal", // OK
 	"characterChangesSinceRegistration", // OK
-	"characterChangesSinceRegistrationPercentage", // OK
+	"characterChangesSinceRegistrationPercentageToWikiTotal", // OK
 
 	"receivedThanksInPeriod", // OK
-	"receivedThanksInPeriodPercentage", // OK
+	"receivedThanksInPeriodPercentageToWikiTotal", // OK
 	"receivedThanksSinceRegistration", // OK
-	"receivedThanksSinceRegistrationPercentage", // OK
+	"receivedThanksSinceRegistrationPercentageToWikiTotal", // OK
 
 	"sentThanksInPeriod", // OK
-	"sentThanksInPeriodPercentage", // OK
+	"sentThanksInPeriodPercentageToWikiTotal", // OK
 	"sentThanksSinceRegistration", // OK
-	"sentThanksSinceRegistrationPercentage", // OK
+	"sentThanksSinceRegistrationPercentageToWikiTotal", // OK
 
 	"logEventsInPeriod", // OK
-	"logEventsInPeriodPercentage", // OK
+	"logEventsInPeriodPercentageToWikiTotal", // OK
 	"logEventsAtPeriodStart", // OK, internal for now
 	"logEventsSinceRegistration", // OK
-	"logEventsSinceRegistrationPercentage", // OK
+	"logEventsSinceRegistrationPercentageToWikiTotal", // OK
 
 	"firstLogEventDate", // OK
 	"lastLogEventDate", // OK
@@ -133,17 +133,17 @@ export type ParameterlessListColumnTypes = typeof parameterlessListColumnTypes[n
 
 const columnsWithNamespaceParameter = [
 	"editsInNamespaceInPeriod", // OK
-	"editsInNamespaceInPeriodPercentage", // OK
+	"editsInNamespaceInPeriodPercentageToWikiTotal", // OK
 	"editsInNamespaceSinceRegistration", // OK
-	"editsInNamespaceSinceRegistrationPercentage", // OK
+	"editsInNamespaceSinceRegistrationPercentageToWikiTotal", // OK
 	"revertedEditsInNamespaceInPeriod", // OK
-	"revertedEditsInNamespaceInPeriodPercentage", // OK
+	"revertedEditsInNamespaceInPeriodPercentageToWikiTotal", // OK
 	"revertedEditsInNamespaceSinceRegistration", // OK
-	"revertedEditsInNamespaceSinceRegistrationPercentage", // OK
+	"revertedEditsInNamespaceSinceRegistrationPercentageToWikiTotal", // OK
 	"characterChangesInNamespaceInPeriod", // OK
-	"characterChangesInNamespaceInPeriodPercentage", // OK
+	"characterChangesInNamespaceInPeriodPercentageToWikiTotal", // OK
 	"characterChangesInNamespaceSinceRegistration", // OK
-	"characterChangesInNamespaceSinceRegistrationPercentage", // OK
+	"characterChangesInNamespaceSinceRegistrationPercentageToWikiTotal", // OK
 	"activeDaysInNamespaceInPeriod", // OK
 	"activeDaysInNamespaceSinceRegistration", // OK
 ] as const;
