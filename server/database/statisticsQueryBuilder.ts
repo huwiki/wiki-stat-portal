@@ -267,17 +267,17 @@ function addUserRequirementFilters(
 			? userRequirements.totalEditsAtMost
 			: userRequirements.totalEditsAtMost.edits;
 
-		query = query.andWhere("totalEditsAtMost.editsToDate + totalEditsAtMost.dailyEdits <= :edits", { edits: editsAtLeast });
+		query = query.andWhere("IFNULL(totalEditsAtMost.editsToDate + totalEditsAtMost.dailyEdits, 0) <= :edits", { edits: editsAtLeast });
 	}
 
 	// Period edits at least
 	if (typeof userRequirements.inPeriodEditsAtLeast !== "undefined") {
-		query = query.andWhere("periodEditsAtLeast.periodEdits >= :editsAtLeast", { editsAtLeast: userRequirements.inPeriodEditsAtLeast.edits });
+		query = query.andWhere("IFNULL(periodEditsAtLeast.periodEdits, 0) >= :editsAtLeast", { editsAtLeast: userRequirements.inPeriodEditsAtLeast.edits });
 	}
 
 	// Period edits at most
 	if (typeof userRequirements.inPeriodEditsAtMost !== "undefined") {
-		query = query.andWhere("periodEditsAtMost.periodEdits >= :editsAtMost", { editsAtMost: userRequirements.inPeriodEditsAtMost.edits });
+		query = query.andWhere("IFNULL(periodEditsAtMost.periodEdits, 0) <= :editsAtMost", { editsAtMost: userRequirements.inPeriodEditsAtMost.edits });
 	}
 	return query;
 }
