@@ -89,7 +89,9 @@ const DATATYPE_MAP: { [index: string]: CellDataTypes } = {
 	"characterChangesInPeriodByChangeTag": "integer",
 	"characterChangesSinceRegistrationByChangeTag": "integer",
 	"logEventsInPeriodByType": "integer",
-	"logEventsSinceRegistrationByType": "integer"
+	"logEventsSinceRegistrationByType": "integer",
+	"firstLogEventDateByType": "date",
+	"lastLogEventDateByType": "date",
 };
 
 
@@ -154,8 +156,8 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 				{
 					wikiId: this.props.wikiId,
 					listId: `${this.props.list.groupId}.${this.props.list.id}`,
-					startDate: "2021-06-01",
-					endDate: "2021-06-30",
+					startDate: "2021-12-01",
+					endDate: "2021-12-31",
 					languageCode: this.props.languageCode
 				},
 				{ timeout: 500000 }

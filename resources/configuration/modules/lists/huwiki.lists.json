@@ -561,6 +561,570 @@
 			}
 		},
 		{
+			"id": "sysopsByLogEventCount",
+			"groupId": "topLists",
+			"i18nKey": "lists.list.topLists.sysopsByLogEventCount",
+			"itemCount": 0,
+			"columns": [
+				{
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "userGroups",
+					"headerI18nKey": "lists.header.rights"
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.sysop.totalLogEventCount",
+					"columnId": "totalLogEventCount",
+					"logFilter": [
+						{
+							"logType": "delete",
+							"logAction": "delete"
+						},
+						{
+							"logType": "delete",
+							"logAction": "revision"
+						},
+						{
+							"logType": "delete",
+							"logAction": "event"
+						},
+						{
+							"logType": "delete",
+							"logAction": "restore"
+						},
+						{
+							"logType": "block",
+							"logAction": "block"
+						},
+						{
+							"logType": "block",
+							"logAction": "reblock"
+						},
+						{
+							"logType": "block",
+							"logAction": "unblock"
+						},
+						{
+							"logType": "protect",
+							"logAction": "protect"
+						},
+						{
+							"logType": "protect",
+							"logAction": "modify"
+						},
+						{
+							"logType": "stable",
+							"logAction": "config"
+						},
+						{
+							"logType": "stable",
+							"logAction": "modify"
+						},
+						{
+							"logType": "protect",
+							"logAction": "unprotect"
+						},
+						{
+							"logType": "stable",
+							"logAction": "reset"
+						},
+						{
+							"logType": "rights",
+							"logAction": "rights"
+						},
+						{
+							"logType": "merge",
+							"logAction": "merge"
+						},
+						{
+							"logType": "import",
+							"logAction": "interwiki"
+						},
+						{
+							"logType": "import",
+							"logAction": "upload"
+						},
+						{
+							"logType": "abusefilter",
+							"logAction": "create"
+						},
+						{
+							"logType": "abusefilter",
+							"logAction": "modify"
+						},
+						{
+							"logType": "contentmodel",
+							"logAction": "new"
+						},
+						{
+							"logType": "contentmodel",
+							"logAction": "change"
+						}
+					],
+					"filterByRule": "moreThanZero"
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.sysop.delete",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "delete",
+							"logAction": "delete"
+						}
+					],
+					"filterByRule": "moreThanZero"
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.sysop.revisionDelete",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "delete",
+							"logAction": "revision"
+						}
+					]
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.sysop.logDelete",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "delete",
+							"logAction": "event"
+						}
+					]
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.sysop.restore",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "delete",
+							"logAction": "restore"
+						}
+					]
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.sysop.block",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "block",
+							"logAction": "block"
+						},
+						{
+							"logType": "block",
+							"logAction": "reblock"
+						}
+					]
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.sysop.unblock",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "block",
+							"logAction": "unblock"
+						}
+					]
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.sysop.protect",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "protect",
+							"logAction": "protect"
+						},
+						{
+							"logType": "protect",
+							"logAction": "modify"
+						},
+						{
+							"logType": "stable",
+							"logAction": "config"
+						},
+						{
+							"logType": "stable",
+							"logAction": "modify"
+						}
+					]
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.sysop.unprotect",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "protect",
+							"logAction": "unprotect"
+						},
+						{
+							"logType": "stable",
+							"logAction": "reset"
+						}
+					]
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.sysop.rights",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "rights",
+							"logAction": "rights"
+						}
+					]
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.sysop.merge",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "merge",
+							"logAction": "merge"
+						}
+					]
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.sysop.import",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "import",
+							"logAction": "interwiki"
+						},
+						{
+							"logType": "import",
+							"logAction": "upload"
+						}
+					]
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.sysop.abusefilter",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "abusefilter",
+							"logAction": "create"
+						},
+						{
+							"logType": "abusefilter",
+							"logAction": "modify"
+						}
+					]
+				},
+				{
+					"type": "logEventsSinceRegistrationByType",
+					"headerI18nKey": "lists.header.sysop.contentmodel",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "contentmodel",
+							"logAction": "new"
+						},
+						{
+							"logType": "contentmodel",
+							"logAction": "change"
+						}
+					]
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "totalLogEventCount",
+					"direction": "descending"
+				}
+			]
+		},
+		{
+			"id": "sysopsByLogEventCountInPeriod",
+			"groupId": "topLists",
+			"i18nKey": "lists.list.topLists.sysopsByLogEventCountInPeriod",
+			"itemCount": 0,
+			"columns": [
+				{
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "userGroups",
+					"headerI18nKey": "lists.header.rights"
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.sysop.totalLogEventCount",
+					"columnId": "totalLogEventCount",
+					"logFilter": [
+						{
+							"logType": "delete",
+							"logAction": "delete"
+						},
+						{
+							"logType": "delete",
+							"logAction": "revision"
+						},
+						{
+							"logType": "delete",
+							"logAction": "event"
+						},
+						{
+							"logType": "delete",
+							"logAction": "restore"
+						},
+						{
+							"logType": "block",
+							"logAction": "block"
+						},
+						{
+							"logType": "block",
+							"logAction": "reblock"
+						},
+						{
+							"logType": "block",
+							"logAction": "unblock"
+						},
+						{
+							"logType": "protect",
+							"logAction": "protect"
+						},
+						{
+							"logType": "protect",
+							"logAction": "modify"
+						},
+						{
+							"logType": "stable",
+							"logAction": "config"
+						},
+						{
+							"logType": "stable",
+							"logAction": "modify"
+						},
+						{
+							"logType": "protect",
+							"logAction": "unprotect"
+						},
+						{
+							"logType": "stable",
+							"logAction": "reset"
+						},
+						{
+							"logType": "rights",
+							"logAction": "rights"
+						},
+						{
+							"logType": "merge"
+						},
+						{
+							"logType": "import"
+						},
+						{
+							"logType": "abusefilter"
+						},
+						{
+							"logType": "contentmodel"
+						}
+					],
+					"filterByRule": "moreThanZero"
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.sysop.delete",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "delete",
+							"logAction": "delete"
+						}
+					],
+					"filterByRule": "moreThanZero"
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.sysop.revisionDelete",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "delete",
+							"logAction": "revision"
+						}
+					]
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.sysop.logDelete",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "delete",
+							"logAction": "event"
+						}
+					]
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.sysop.restore",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "delete",
+							"logAction": "restore"
+						}
+					]
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.sysop.block",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "block",
+							"logAction": "block"
+						},
+						{
+							"logType": "block",
+							"logAction": "reblock"
+						}
+					]
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.sysop.unblock",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "block",
+							"logAction": "unblock"
+						}
+					]
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.sysop.protect",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "protect",
+							"logAction": "protect"
+						},
+						{
+							"logType": "protect",
+							"logAction": "modify"
+						},
+						{
+							"logType": "stable",
+							"logAction": "config"
+						},
+						{
+							"logType": "stable",
+							"logAction": "modify"
+						}
+					]
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.sysop.unprotect",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "protect",
+							"logAction": "unprotect"
+						},
+						{
+							"logType": "stable",
+							"logAction": "reset"
+						}
+					]
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.sysop.rights",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "rights",
+							"logAction": "rights"
+						}
+					]
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.sysop.merge",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "merge"
+						}
+					]
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.sysop.import",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "import"
+						}
+					]
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.sysop.abusefilter",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "abusefilter"
+						}
+					]
+				},
+				{
+					"type": "logEventsInPeriodByType",
+					"headerI18nKey": "lists.header.sysop.contentmodel",
+					"columnId": "total",
+					"logFilter": [
+						{
+							"logType": "contentmodel"
+						}
+					]
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "totalLogEventCount",
+					"direction": "descending"
+				}
+			]
+		},
+		{
 			"id": "editorsByPatrolCount",
 			"groupId": "topLists",
 			"i18nKey": "lists.list.topLists.editorsByPatrolCount",
@@ -1034,16 +1598,56 @@
 			"id": "newUsers",
 			"groupId": "newUsers",
 			"i18nKey": "lists.list.newUsers.newUsers",
-			"itemCount": 500,
+			"itemCount": 0,
+			"userRequirements": {
+				"registrationStatus": "registered",
+				"registrationAgeAtMost": 30,
+				"totalEditsAtLeast": 1
+			},
 			"columns": [
 				{
-					"columnId": "test",
-					"type": "counter"
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"columnId": "userName",
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"columnId": "editsSinceRegistration",
+					"type": "editsSinceRegistration",
+					"headerI18nKey": "lists.header.totalEdits"
+				},
+				{
+					"columnId": "registrationDate",
+					"type": "registrationDate",
+					"headerI18nKey": "lists.header.registrationDate"
+				},
+				{
+					"type": "firstEditDate",
+					"headerI18nKey": "lists.header.firstEdit"
+				},
+				{
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
 				}
 			],
 			"orderBy": [
 				{
-					"columnId": "test",
+					"columnId": "editsSinceRegistration",
+					"direction": "descending"
+				},
+				{
+					"columnId": "registrationDate",
+					"direction": "ascending"
+				},
+				{
+					"columnId": "userName",
 					"direction": "ascending"
 				}
 			]
@@ -1052,16 +1656,50 @@
 			"id": "usersToWelcome",
 			"groupId": "newUsers",
 			"i18nKey": "lists.list.newUsers.usersToWelcome",
-			"itemCount": 500,
+			"itemCount": 0,
+			"userRequirements": {
+				"registrationStatus": "registered",
+				"registrationAgeAtMost": 30
+			},
 			"columns": [
 				{
-					"columnId": "test",
-					"type": "counter"
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"columnId": "userName",
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "editsSinceRegistration",
+					"headerI18nKey": "lists.header.totalEdits"
+				},
+				{
+					"columnId": "registrationDate",
+					"type": "registrationDate",
+					"headerI18nKey": "lists.header.registrationDate"
+				},
+				{
+					"type": "firstEditDate",
+					"headerI18nKey": "lists.header.firstEdit"
+				},
+				{
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
 				}
 			],
 			"orderBy": [
 				{
-					"columnId": "test",
+					"columnId": "registrationDate",
+					"direction": "ascending"
+				},
+				{
+					"columnId": "userName",
 					"direction": "ascending"
 				}
 			]
@@ -1149,7 +1787,25 @@
 					"headerI18nKey": "lists.header.lastEdit"
 				},
 				{
-					"type": "lastLogEventDate"
+					"type": "lastLogEventDateByType",
+					"logFilter": [
+						{
+							"logType": "abusefilter"
+						},
+						{
+							"logType": "block"
+						},
+						{
+							"logType": "delete"
+						},
+						{
+							"logType": "protect"
+						},
+						{
+							"logType": "rights"
+						}
+					],
+					"headerI18nKey": "lists.header.lastLogEvent"
 				}
 			],
 			"orderBy": [
@@ -1183,17 +1839,20 @@
 					"headerI18nKey": "lists.header.user"
 				},
 				{
-					"type": "lastEditDate",
-					"headerI18nKey": "lists.header.lastEdit"
-				},
-				{
-					"type": "lastLogEventDate"
+					"columnId": "lastLogEventDate",
+					"type": "lastLogEventDateByType",
+					"logFilter": [
+						{
+							"logType": "rights"
+						}
+					],
+					"headerI18nKey": "lists.header.lastLogEvent"
 				}
 			],
 			"orderBy": [
 				{
-					"columnId": "test",
-					"direction": "ascending"
+					"columnId": "lastLogEventDate",
+					"direction": "descending"
 				}
 			]
 		},
@@ -1203,6 +1862,10 @@
 			"i18nKey": "lists.list.activity.inactiveInterfaceEditors",
 			"itemCount": 0,
 			"userRequirements": {
+				"inPeriodEditsAtMost": {
+					"edits": 0,
+					"period": 180
+				},
 				"userGroups": [
 					"interface-editor"
 				]
@@ -1227,8 +1890,8 @@
 			],
 			"orderBy": [
 				{
-					"columnId": "test",
-					"direction": "ascending"
+					"columnId": "lastEditDate",
+					"direction": "descending"
 				}
 			]
 		},
@@ -1238,6 +1901,10 @@
 			"i18nKey": "lists.list.activity.inactiveInterfaceAdmins",
 			"itemCount": 0,
 			"userRequirements": {
+				"inPeriodEditsAtMost": {
+					"edits": 0,
+					"period": 180
+				},
 				"userGroups": [
 					"interface-admin"
 				]
@@ -1262,8 +1929,8 @@
 			],
 			"orderBy": [
 				{
-					"columnId": "test",
-					"direction": "ascending"
+					"columnId": "lastEditDate",
+					"direction": "descending"
 				}
 			]
 		},
@@ -1271,17 +1938,39 @@
 			"id": "inactiveBots",
 			"groupId": "activity",
 			"i18nKey": "lists.list.activity.inactiveBots",
-			"itemCount": 500,
+			"itemCount": 0,
+			"userRequirements": {
+				"inPeriodEditsAtMost": {
+					"edits": 0,
+					"period": 365
+				},
+				"userGroups": [
+					"bot"
+				]
+			},
 			"columns": [
 				{
-					"columnId": "test",
-					"type": "counter"
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"columnId": "lastEditDate",
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
 				}
 			],
 			"orderBy": [
 				{
-					"columnId": "test",
-					"direction": "ascending"
+					"columnId": "lastEditDate",
+					"direction": "descending"
 				}
 			]
 		},

@@ -8,7 +8,6 @@ import { ActorTypeModel, WikiStatisticsTypesResult } from "./entities/toolsDatab
 type RequiredColumns = {
 	requiredColumnsForSelectedPeriodActorStatistics: AllColumnTypes[];
 	requiredColumnsForSelectedPeriodWikiStatistics: AllColumnTypes[];
-	//requiredColumnsForAtPeriodStartActorStatistics: AllColumnTypes[];
 	requiredColumnsForSinceRegisteredActorStatistics: AllColumnTypes[];
 	requiredColumnsForSinceRegisteredWikiStatistics: AllColumnTypes[];
 }
@@ -21,6 +20,8 @@ type NamespaceRequiredColumns = RequiredColumns & {
 type LogTypeStatisticsRequiredColumns = RequiredColumns & {
 	serializedLogFilter: string;
 	logFilter: LogFilterDefinition;
+	needsFirstLogEntryDate: boolean;
+	needsLastEntryDate: boolean;
 };
 
 type ChangeTagStatisticsRequiredColumns = RequiredColumns & {
@@ -740,6 +741,35 @@ function addSingleColumSelect(
 			break;
 		}
 
+		case "firstLogEventDateByType": {
+			const logFilters = Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter];
+			if (logFilters.length === 1) {
+				query = query.addSelect(
+					`DATE(IFNULL(log${serializeLogFilterDefinition(logFilters[0])}LastActorStatisticsAtPeriodEnd.firstDate, "2100-01-01"))`,
+					selectedColumnName
+				);
+			} else {
+				query = query.addSelect("DATE(LEAST(" + logFilters.map(log => {
+					return `IFNULL(log${serializeLogFilterDefinition(log)}LastActorStatisticsAtPeriodEnd.firstDate, "2100-01-01")`;
+				}).join(", ") + "))", selectedColumnName);
+			}
+			break;
+		}
+
+		case "lastLogEventDateByType": {
+			const logFilters = Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter];
+			if (logFilters.length === 1) {
+				query = query.addSelect(
+					`DATE(IFNULL(log${serializeLogFilterDefinition(logFilters[0])}LastActorStatisticsAtPeriodEnd.lastDate, "1900-01-01"))`,
+					selectedColumnName
+				);
+			} else {
+				query = query.addSelect("DATE(GREATEST(" + logFilters.map(log => {
+					return `IFNULL(log${serializeLogFilterDefinition(log)}LastActorStatisticsAtPeriodEnd.lastDate, "1900-01-01")`;
+				}).join(", ") + "))", selectedColumnName);
+			}
+			break;
+		}
 		case "firstEditDate":
 			query = query.addSelect("editDates.firstEditDate", selectedColumnName);
 			break;
@@ -978,15 +1008,29 @@ function addColumnJoins(
 
 			case "logEventsInPeriodByType": {
 				for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
-					const namespaceCollector = getOrCreateLogTypeCollector(ctx, logFilter);
-					namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
+					const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
+					logTypeCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
 				}
 				break;
 			}
 			case "logEventsSinceRegistrationByType": {
 				for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
-					const namespaceCollector = getOrCreateLogTypeCollector(ctx, logFilter);
-					namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
+					const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
+					logTypeCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
+				}
+				break;
+			}
+			case "firstLogEventDateByType": {
+				for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
+					const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
+					logTypeCollector.needsFirstLogEntryDate = true;
+				}
+				break;
+			}
+			case "lastLogEventDateByType": {
+				for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
+					const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
+					logTypeCollector.needsLastEntryDate = true;
 				}
 				break;
 			}
@@ -1425,13 +1469,32 @@ function addColumnJoins(
 
 		if (logTypeCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0
 			|| logTypeCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0
+			|| logTypeCollection.needsFirstLogEntryDate
+			|| logTypeCollection.needsLastEntryDate
 		) {
-			if (typeof logTypeCollection.logFilter.logAction === "string" && typeof logTypeCollection.logFilter.logType === "string") {
+			const entity =
+				typeof logTypeCollection.logFilter.logAction === "string" && typeof logTypeCollection.logFilter.logType === "string" ? wikiEntities.actorLogStatisticsByLogTypeAndLogAction
+					: typeof logTypeCollection.logFilter.logAction === "string" ? wikiEntities.actorLogStatisticsByLogAction
+						: typeof logTypeCollection.logFilter.logType === "string" ? wikiEntities.actorLogStatisticsByLogType
+							: null;
+
+			if (entity) {
 				query = query.leftJoin(qb => {
 					let subQuery = qb.subQuery()
-						.select("lads.actorId", "actorId")
-						.addSelect("MAX(lads.date)", "lastDate")
-						.from(wikiEntities.actorLogStatisticsByLogTypeAndLogAction, "lads")
+						.select("lads.actorId", "actorId");
+
+					if (logTypeCollection.needsFirstLogEntryDate) {
+						subQuery = subQuery.addSelect("MIN(lads.date)", "firstDate");
+					}
+
+					if (logTypeCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0
+						|| logTypeCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0
+						|| logTypeCollection.needsLastEntryDate
+					) {
+						subQuery = subQuery.addSelect("MAX(lads.date)", "lastDate");
+					}
+
+					subQuery = subQuery.from(entity, "lads")
 						.where("lads.date <= :endDate", { endDate: endDate })
 						.groupBy("lads.actorId");
 
@@ -1439,7 +1502,13 @@ function addColumnJoins(
 
 					return subQuery.groupBy("lads.actorId");
 				}, `log${normalizedLogKey}LastActorStatisticsAtPeriodEnd`, `log${normalizedLogKey}LastActorStatisticsAtPeriodEnd.actorId = actor.actorId`);
+			}
+		}
 
+		if (logTypeCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0
+			|| logTypeCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0
+		) {
+			if (typeof logTypeCollection.logFilter.logAction === "string" && typeof logTypeCollection.logFilter.logType === "string") {
 				query = query.leftJoin(
 					wikiEntities.actorLogStatisticsByLogTypeAndLogAction,
 					`log${normalizedLogKey}SinceRegistrationActorStatistics`,
@@ -1453,19 +1522,6 @@ function addColumnJoins(
 					}
 				);
 			} else if (typeof logTypeCollection.logFilter.logAction === "string") {
-				query = query.leftJoin(qb => {
-					let subQuery = qb.subQuery()
-						.select("lads.actorId", "actorId")
-						.addSelect("MAX(lads.date)", "lastDate")
-						.from(wikiEntities.actorLogStatisticsByLogAction, "lads")
-						.where("lads.date <= :endDate", { endDate: endDate })
-						.groupBy("lads.actorId");
-
-					subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "lads");
-
-					return subQuery.groupBy("lads.actorId");
-				}, `log${normalizedLogKey}LastActorStatisticsAtPeriodEnd`, `log${normalizedLogKey}LastActorStatisticsAtPeriodEnd.actorId = actor.actorId`);
-
 				query = query.leftJoin(
 					wikiEntities.actorLogStatisticsByLogAction,
 					`log${normalizedLogKey}SinceRegistrationActorStatistics`,
@@ -1477,18 +1533,6 @@ function addColumnJoins(
 					}
 				);
 			} else if (typeof logTypeCollection.logFilter.logType === "string") {
-				query = query.leftJoin(qb => {
-					let subQuery = qb.subQuery()
-						.select("lads.actorId", "actorId")
-						.addSelect("MAX(lads.date)", "lastDate")
-						.from(wikiEntities.actorLogStatisticsByLogType, "lads")
-						.where("lads.date <= :endDate", { endDate: endDate })
-						.groupBy("lads.actorId");
-
-					subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "lads");
-
-					return subQuery.groupBy("lads.actorId");
-				}, `log${normalizedLogKey}LastActorStatisticsAtPeriodEnd`, `log${normalizedLogKey}LastActorStatisticsAtPeriodEnd.actorId = actor.actorId`);
 
 				query = query.leftJoin(
 					wikiEntities.actorLogStatisticsByLogType,
@@ -1590,8 +1634,12 @@ function addOrderBy(
 			continue;
 		}
 
+		const referencedColumn = columns[referencedColumnIndex];
+
 		query = query.addOrderBy(
-			`column${referencedColumnIndex} `,
+			referencedColumn.type === "userName"
+				? "actorName"
+				: `column${referencedColumnIndex} `,
 			orderBy.direction === "descending" ? "DESC" : "ASC"
 		);
 	}
@@ -1667,7 +1715,9 @@ function getOrCreateLogTypeCollector(ctx: StatisticsQueryBuildingContext, logFil
 			requiredColumnsForSelectedPeriodActorStatistics: [],
 			requiredColumnsForSelectedPeriodWikiStatistics: [],
 			requiredColumnsForSinceRegisteredActorStatistics: [],
-			requiredColumnsForSinceRegisteredWikiStatistics: []
+			requiredColumnsForSinceRegisteredWikiStatistics: [],
+			needsFirstLogEntryDate: false,
+			needsLastEntryDate: false
 		};
 		ctx.columns.requiredLogTypeStatisticsColumns.push(existingCollector);
 	}

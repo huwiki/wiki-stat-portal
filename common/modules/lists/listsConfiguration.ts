@@ -167,7 +167,9 @@ export type ListColumnTypesWithChangeTagParameter = typeof columnsWithChangeTagP
 
 const columnsWithLogTypeParameter = [
 	"logEventsInPeriodByType", // OK
-	"logEventsSinceRegistrationByType" // OK
+	"logEventsSinceRegistrationByType", // OK
+	"firstLogEventDateByType",
+	"lastLogEventDateByType",
 ] as const;
 export type ListColumnTypesWithLogTypeParameter = typeof columnsWithLogTypeParameter[number];
 

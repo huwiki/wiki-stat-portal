@@ -374,7 +374,9 @@
 					"type": "string",
 					"enum": [
 						"logEventsInPeriodByType",
-						"logEventsSinceRegistrationByType"
+						"logEventsSinceRegistrationByType",
+						"firstLogEventDateByType",
+						"lastLogEventDateByType"
 					]
 				},
 				"headerI18nKey": {
