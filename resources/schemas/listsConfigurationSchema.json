@@ -324,12 +324,12 @@
 				"changeTag": {
 					"anyOf": [
 						{
-							"$ref": "#/definitions/changeTagFilterParameter"
+							"$ref": "common.json#/definitions/changeTagFilterParameter"
 						},
 						{
 							"type": "array",
 							"items": {
-								"$ref": "#/definitions/changeTagFilterParameter"
+								"$ref": "common.json#/definitions/changeTagFilterParameter"
 							},
 							"minItems": 1
 						}
@@ -345,22 +345,6 @@
 			"required": [
 				"type",
 				"changeTag"
-			]
-		},
-		"changeTagFilterParameter": {
-			"type": "object",
-			"properties": {
-				"changeTagId": {
-					"type": "integer",
-					"minimum": 0
-				},
-				"namespace": {
-					"type": "integer",
-					"minimum": 0
-				}
-			},
-			"required": [
-				"changeTagId"
 			]
 		},
 		"columnWithLogTypeParameter": {

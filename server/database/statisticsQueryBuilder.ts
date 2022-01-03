@@ -1,15 +1,32 @@
-import { addDays, subDays } from "date-fns";
+import moment from "moment";
 import { Connection, SelectQueryBuilder } from "typeorm";
-import { UserRequirements } from "../../common/modules/commonConfiguration";
-import { AllColumnTypes, ChangeTagFilterDefinition, ListColumn, ListOrderBy, LogFilterDefinition } from "../../common/modules/lists/listsConfiguration";
+import { UserGroup, UserRequirements, UserStatisticsInPeriodRequirement, UserStatisticsInTimeRequirement } from "../../common/modules/commonConfiguration";
+import { ChangeTagFilterDefinition, ListColumn, ListOrderBy, LogFilterDefinition } from "../../common/modules/lists/listsConfiguration";
 import { AppRunningContext } from "../appRunningContext";
 import { ActorTypeModel, WikiStatisticsTypesResult } from "./entities/toolsDatabase/actorByWiki";
 
+type JoinedTableType =
+	"beforePeriodStart"
+	| "atPeriodEnd";
+
+type JoinedTableSubject =
+	"wiki"
+	| "actor";
+
+
+type RequiredDates = {
+	neededActorPeriodStarts: moment.Moment[];
+	neededActorPeriodEnds: moment.Moment[];
+	neededWikiPeriodStarts: moment.Moment[];
+	neededWikiPeriodEnds: moment.Moment[];
+};
+
 type RequiredColumns = {
-	requiredColumnsForSelectedPeriodActorStatistics: AllColumnTypes[];
-	requiredColumnsForSelectedPeriodWikiStatistics: AllColumnTypes[];
-	requiredColumnsForSinceRegisteredActorStatistics: AllColumnTypes[];
-	requiredColumnsForSinceRegisteredWikiStatistics: AllColumnTypes[];
+	neededDates: RequiredDates;
+	needsSelectedPeriodActorStatistics: boolean;
+	needsSelectedPeriodWikiStatistics: boolean;
+	needsSinceRegisteredActorStatistics: boolean;
+	needsSinceRegisteredWikiStatistics: boolean;
 }
 
 
@@ -50,16 +67,24 @@ export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEnt
 	columns?: ListColumn[],
 	orderBy?: ListOrderBy[],
 	itemCount?: number;
-	startDate?: Date,
-	endDate: Date
+	startDate?: moment.Moment,
+	endDate: moment.Moment
 }): Promise<ActorLike[]> {
 
 	const ctx: StatisticsQueryBuildingContext = {
 		columns: {
-			requiredColumnsForSelectedPeriodActorStatistics: [],
-			requiredColumnsForSelectedPeriodWikiStatistics: [],
-			requiredColumnsForSinceRegisteredActorStatistics: [],
-			requiredColumnsForSinceRegisteredWikiStatistics: [],
+			neededDates: {
+				neededActorPeriodStarts: [],
+				neededActorPeriodEnds: [],
+				neededWikiPeriodStarts: [],
+				neededWikiPeriodEnds: []
+			},
+			needsSelectedPeriodActorStatistics: false,
+			needsSelectedPeriodWikiStatistics: false,
+
+			needsSinceRegisteredActorStatistics: false,
+			needsSinceRegisteredWikiStatistics: false,
+
 			requiredNamespaceStatisticsColumns: [],
 			requiredLogTypeStatisticsColumns: [],
 			requiredChangeTagStatisticsColumns: [],
@@ -72,14 +97,14 @@ export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEnt
 		.addSelect("actor.actorName", "actorName");
 
 	// Manage selects from column definitions
-	query = addColumSelects(ctx, query, columns);
+	query = addColumSelects(ctx, query, columns, startDate, endDate);
 
 	// Manage required joins
-	query = addUserRequirementJoins(query, wikiEntities, userRequirements, endDate);
+	query = addUserRequirementJoins(ctx, query, wikiEntities, userRequirements, startDate, endDate);
 	query = addColumnJoins(ctx, query, wikiEntities, columns, startDate, endDate);
 
 	// Manage required filterings
-	query = addUserRequirementFilters(query, wikiEntities, userRequirements, endDate);
+	query = addUserRequirementFilters(query, wikiEntities, userRequirements, startDate, endDate);
 	query = addColumnSelfFilterRules(query, columns);
 
 	query = addOrderBy(query, columns, orderBy);
@@ -97,17 +122,25 @@ export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEnt
 }
 
 function addUserRequirementJoins(
+	ctx: StatisticsQueryBuildingContext,
 	query: SelectQueryBuilder<ActorTypeModel>,
 	wikiEntities: WikiStatisticsTypesResult,
 	userRequirements: UserRequirements | undefined,
-	endDate: Date
+	startDate: moment.Moment | undefined,
+	endDate: moment.Moment
 ) {
 	if (!userRequirements) {
 		return query;
 	}
 
-	if (typeof userRequirements.userGroups !== "undefined" && userRequirements.userGroups.length > 0) {
-		for (const userGroup of userRequirements.userGroups) {
+	if ((typeof userRequirements.userGroups !== "undefined" && userRequirements.userGroups.length > 0)
+		|| (typeof userRequirements.notInUserGroups !== "undefined" && userRequirements.notInUserGroups.length > 0)) {
+		const allMentionedUserGroups = new Set<UserGroup>([
+			...(userRequirements.userGroups ?? []),
+			...(userRequirements.notInUserGroups || []),
+		]);
+
+		for (const userGroup of allMentionedUserGroups) {
 			const sanitizedGroupName = sanitizeNameForSql(userGroup);
 			query = query.leftJoin(
 				wikiEntities.actorGroup,
@@ -118,54 +151,101 @@ function addUserRequirementJoins(
 		}
 	}
 
-	if (typeof userRequirements.totalEditsAtLeast !== "undefined") {
-		query = query.leftJoin(wikiEntities.actorDailyStatistics, "totalEditsAtLeast", "totalEditsAtLeast.actorId = actor.actorId");
+	for (const ele of [
+		userRequirements.totalEditsAtLeast,
+		userRequirements.totalEditsAtMost,
+		userRequirements.totalRevertedEditsAtLeast,
+		userRequirements.totalRevertedEditsAtMost,
+		userRequirements.totalReceivedThanksAtLeast,
+		userRequirements.totalReceivedThanksAtMost,
+		userRequirements.totalActiveDaysAtLeast,
+		userRequirements.totalActiveDaysAtMost,
+	]) {
+		if (!ele)
+			continue;
+
+		const epochDate = typeof ele === "number"
+			? endDate
+			: moment.utc(endDate).subtract(ele.epoch * -1, "days");
+
+		addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, epochDate);
 	}
 
-	if (typeof userRequirements.totalEditsAtMost !== "undefined") {
-		query = query.leftJoin(wikiEntities.actorDailyStatistics, "totalEditsAtMost", "totalEditsAtMost.actorId = actor.actorId");
-	}
+	for (const ele of [
+		userRequirements.inPeriodEditsAtLeast,
+		userRequirements.inPeriodEditsAtMost,
+		userRequirements.inPeriodRevertedEditsAtLeast,
+		userRequirements.inPeriodRevertedEditsAtMost,
+		userRequirements.inPeriodReceivedThanksAtLeast,
+		userRequirements.inPeriodReceivedThanksAtMost,
+		userRequirements.inPeriodActiveDaysAtLeast,
+		userRequirements.inPeriodActiveDaysAtMost
+	]) {
+		if (!ele)
+			continue;
 
-	if (typeof userRequirements.inPeriodEditsAtLeast !== "undefined") {
-		const periodEditsCalculationStartDate = typeof userRequirements.inPeriodEditsAtLeast.epoch === "number"
-			? subDays(endDate, userRequirements.inPeriodEditsAtLeast.period + userRequirements.inPeriodEditsAtLeast.epoch * -1)
-			: subDays(endDate, userRequirements.inPeriodEditsAtLeast.period);
-		const periodEditsCalculationEndDate = typeof userRequirements.inPeriodEditsAtLeast.epoch === "number"
-			? subDays(endDate, userRequirements.inPeriodEditsAtLeast.epoch * -1)
+		const periodStatCalculationStartDate = typeof ele.epoch === "number"
+			? moment.utc(endDate).subtract(ele.period + ele.epoch * -1, "days")
+			: moment.utc(endDate).subtract(ele.period, "days");
+		const periodStatCalculationEndDate = typeof ele.epoch === "number"
+			? moment.utc(endDate).subtract(ele.epoch * -1, "days")
 			: endDate;
 
-		query = query.leftJoin(qb => {
-			return qb.subQuery()
-				.select("peal.actorId", "actorId")
-				.addSelect("SUM(peal.dailyEdits)", "periodEdits")
-				.from(wikiEntities.actorDailyStatistics, "peal")
-				.where(
-					"peal.date >= :startDate AND peal.date <= :endDate",
-					{ startDate: periodEditsCalculationStartDate, endDate: periodEditsCalculationEndDate }
-				)
-				.groupBy("peal.actorId");
-		}, "periodEditsAtLeast", "periodEditsAtLeast.actorId = actor.actorId");
+		addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodStarts, periodStatCalculationStartDate);
+		addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, periodStatCalculationEndDate);
 	}
 
-	if (typeof userRequirements.inPeriodEditsAtMost !== "undefined") {
-		const periodEditsCalculationStartDate = typeof userRequirements.inPeriodEditsAtMost.epoch === "number"
-			? subDays(endDate, userRequirements.inPeriodEditsAtMost.period + userRequirements.inPeriodEditsAtMost.epoch * -1)
-			: subDays(endDate, userRequirements.inPeriodEditsAtMost.period);
-		const periodEditsCalculationEndDate = typeof userRequirements.inPeriodEditsAtMost.epoch === "number"
-			? subDays(endDate, userRequirements.inPeriodEditsAtMost.epoch * -1)
+	for (const ele of [
+		userRequirements.totalEditsMilestoneReachedInPeriod,
+		userRequirements.totalRevertedEditsMilestoneReachedInPeriod,
+		userRequirements.totalReceivedThanksMilestoneReachedInPeriod,
+		userRequirements.totalActiveDaysMilestoneReachedInPeriod,
+	]) {
+		if (!ele)
+			continue;
+
+		addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodStarts, startDate);
+		addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
+	}
+
+	for (const ele of [
+		userRequirements.totalEditsWithChangeTagAtLeast,
+		userRequirements.totalEditsWithChangeTagAtMost
+	]) {
+		if (!ele)
+			continue;
+
+		const epochDate = typeof ele.epoch !== "number"
+			? endDate
+			: moment.utc(endDate).subtract(ele.epoch * -1, "days");
+
+		for (const ct of Array.isArray(ele.changeTag) ? ele.changeTag : [ele.changeTag]) {
+			const ctCollector = getOrCreateChangeTagCollector(ctx, ct);
+			ctCollector.needsSinceRegisteredActorStatistics = true;
+			addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodEnds, epochDate);
+		}
+	}
+
+	for (const ele of [
+		userRequirements.inPeriodEditsWithChangeTagAtLeast,
+		userRequirements.inPeriodEditsWithChangeTagAtMost
+	]) {
+		if (!ele)
+			continue;
+
+		const periodStatCalculationStartDate = typeof ele.epoch === "number"
+			? moment.utc(endDate).subtract(ele.period + ele.epoch * -1, "days")
+			: moment.utc(endDate).subtract(ele.period, "days");
+		const periodStatCalculationEndDate = typeof ele.epoch === "number"
+			? moment.utc(endDate).subtract(ele.epoch * -1, "days")
 			: endDate;
 
-		query = query.leftJoin(qb => {
-			return qb.subQuery()
-				.select("peam.actorId", "actorId")
-				.addSelect("SUM(peam.dailyEdits)", "periodEdits")
-				.from(wikiEntities.actorDailyStatistics, "peam")
-				.where(
-					"peam.date >= :startDate AND peam.date <= :endDate",
-					{ startDate: periodEditsCalculationStartDate, endDate: periodEditsCalculationEndDate }
-				)
-				.groupBy("peam.actorId");
-		}, "periodEditsAtMost", "periodEditsAtMost.actorId = actor.actorId");
+		for (const ct of Array.isArray(ele.changeTag) ? ele.changeTag : [ele.changeTag]) {
+			const ctCollector = getOrCreateChangeTagCollector(ctx, ct);
+			ctCollector.needsSelectedPeriodActorStatistics = true;
+			addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodStarts, periodStatCalculationStartDate);
+			addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodEnds, periodStatCalculationEndDate);
+		}
 	}
 
 	return query;
@@ -175,7 +255,8 @@ function addUserRequirementFilters(
 	query: SelectQueryBuilder<ActorTypeModel>,
 	wikiEntities: WikiStatisticsTypesResult,
 	userRequirements: UserRequirements | undefined,
-	endDate: Date
+	startDate: moment.Moment | undefined,
+	endDate: moment.Moment
 ) {
 	if (!userRequirements) {
 		return query;
@@ -193,8 +274,8 @@ function addUserRequirementFilters(
 	// Registration age at least
 	if (typeof userRequirements.registrationAgeAtLeast === "number") {
 		query = query.andWhere(
-			"DATEDIFF(:epoch, actor.registrationTimestamp) >= :registrationAgeAtLeast",
-			{ epoch: endDate, registrationAgeAtLeast: userRequirements.registrationAgeAtLeast }
+			"DATEDIFF(:endDate, actor.registrationTimestamp) >= :registrationAgeAtLeast",
+			{ endDate: endDate.toDate(), registrationAgeAtLeast: userRequirements.registrationAgeAtLeast }
 		);
 		needsRegDateFilter = true;
 	}
@@ -202,14 +283,14 @@ function addUserRequirementFilters(
 	// Registration age at most
 	if (typeof userRequirements.registrationAgeAtMost === "number") {
 		query = query.andWhere(
-			"DATEDIFF(:epoch, actor.registrationTimestamp) <= :registrationAgeAtMost",
-			{ epoch: endDate, registrationAgeAtMost: userRequirements.registrationAgeAtMost }
+			"DATEDIFF(:endDate, actor.registrationTimestamp) <= :registrationAgeAtMost",
+			{ endDate: endDate.toDate(), registrationAgeAtMost: userRequirements.registrationAgeAtMost }
 		);
 		needsRegDateFilter = true;
 	}
 
 	if (needsRegDateFilter) {
-		query = query.andWhere("actor.registrationTimestamp < :nextDate", { nextDate: addDays(endDate, 1) });
+		query = query.andWhere("actor.registrationTimestamp < :nextDate", { nextDate: moment.utc(endDate).add(1, "day").toDate() });
 	}
 
 	// User groups
@@ -223,67 +304,495 @@ function addUserRequirementFilters(
 			+ ")");
 	}
 
+	let templateIndex = 0;
+	if (typeof userRequirements.hasTalkTemplates !== "undefined") {
+		for (const templateName of userRequirements.hasTalkTemplates) {
+			query = query.andWhere(qb => {
+				const subQuery = qb.subQuery()
+					.select("1")
+					.from(wikiEntities.actorTalkTemplate, "att")
+					.innerJoin(
+						wikiEntities.template,
+						"tmpl",
+						"tmpl.templatePageId = att.templatePageId "
+
+					)
+					.where("att.actorId = actor.actorId")
+					.andWhere(
+						`tmpl.templateName = :template${templateIndex}Name`,
+						{ [`template${templateIndex}Name`]: templateName }
+					)
+					.getQuery();
+
+				return `EXISTS(${subQuery})`;
+			});
+
+			templateIndex++;
+		}
+	}
+
+	if (typeof userRequirements.hasNoTalkTemplates !== "undefined") {
+		for (const templateName of userRequirements.hasTalkTemplates) {
+			query = query.andWhere(qb => {
+				const subQuery = qb.subQuery()
+					.select("1")
+					.from(wikiEntities.actorTalkTemplate, "att")
+					.innerJoin(
+						wikiEntities.template,
+						"tmpl",
+						"tmpl.templatePageId = att.templatePageId "
+
+					)
+					.where("att.actorId = actor.actorId")
+					.andWhere(
+						`tmpl.templateName = :template${templateIndex}Name`,
+						{ [`template${templateIndex}Name`]: templateName }
+					)
+					.getQuery();
+
+				return `NOT EXISTS(${subQuery})`;
+			});
+
+			templateIndex++;
+		}
+	}
+
+	// Not in user groups
+	if (typeof userRequirements.notInUserGroups !== "undefined") {
+		const userGroups = userRequirements.notInUserGroups;
+
+		query = query.andWhere("("
+			+ userGroups.map((group: string): string => {
+				return `${sanitizeNameForSql(group)}GroupCheck.actorId <> actor.actorId`;
+			}).join(" AND ")
+			+ ")");
+	}
+
 	// Total edits at least
 	if (typeof userRequirements.totalEditsAtLeast !== "undefined") {
-		const totalEditsEpochDate = typeof userRequirements.totalEditsAtLeast === "number"
-			? endDate
-			: subDays(endDate, userRequirements.totalEditsAtLeast.epoch * -1);
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalEditsAtLeast, endDate);
 
-		query = query.andWhere(qb => {
-			const subQuery = qb.subQuery()
-				.select("MAX(iats.date)", "date")
-				.from(wikiEntities.actorDailyStatistics, "iats")
-				.where("iats.date <= :date", { date: totalEditsEpochDate })
-				.andWhere("iats.actorId = actor.actorId")
-				.getQuery();
-
-			return "totalEditsAtLeast.date = " + subQuery;
-		});
-
-		const editsAtLeast = typeof userRequirements.totalEditsAtLeast === "number"
+		const totalEditsAtLeast = typeof userRequirements.totalEditsAtLeast === "number"
 			? userRequirements.totalEditsAtLeast
-			: userRequirements.totalEditsAtLeast.edits;
+			: userRequirements.totalEditsAtLeast.count;
 
-		query = query.andWhere("totalEditsAtLeast.editsToDate + totalEditsAtLeast.dailyEdits >= :edits", { edits: editsAtLeast });
+		query = query.andWhere(
+			`${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits >= :totalEditsAtLeast`,
+			{ totalEditsAtLeast: totalEditsAtLeast }
+		);
 	}
 
 	// Total edits at most
 	if (typeof userRequirements.totalEditsAtMost !== "undefined") {
-		const totalEditsEpochDate = typeof userRequirements.totalEditsAtMost === "number"
-			? endDate
-			: subDays(endDate, userRequirements.totalEditsAtMost.epoch * -1);
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalEditsAtMost, endDate);
 
-		query = query.andWhere(qb => {
-			const subQuery = qb.subQuery()
-				.select("MAX(iats.date)", "date")
-				.from(wikiEntities.actorDailyStatistics, "iats")
-				.where("iats.date <= :date", { date: totalEditsEpochDate })
-				.andWhere("iats.actorId = actor.actorId")
-				.getQuery();
-
-			return "totalEditsAtMost.date = " + subQuery;
-		});
-
-		const editsAtLeast = typeof userRequirements.totalEditsAtMost === "number"
+		const totalEditsAtMost = typeof userRequirements.totalEditsAtMost === "number"
 			? userRequirements.totalEditsAtMost
-			: userRequirements.totalEditsAtMost.edits;
+			: userRequirements.totalEditsAtMost.count;
 
-		query = query.andWhere("IFNULL(totalEditsAtMost.editsToDate + totalEditsAtMost.dailyEdits, 0) <= :edits", { edits: editsAtLeast });
+		query = query.andWhere(
+			`${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits <= :totalEditsAtMost`,
+			{ totalEditsAtMost: totalEditsAtMost }
+		);
 	}
+
+	// Total edits milestone reached in period
+	if (typeof userRequirements.totalEditsMilestoneReachedInPeriod !== "undefined"
+		&& userRequirements.totalEditsMilestoneReachedInPeriod.length > 0
+		&& typeof startDate !== "undefined"
+	) {
+		const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+		const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+		const whereParameters: { [index: string]: unknown } = {};
+		query = query.andWhere(
+			"(" + userRequirements.totalEditsMilestoneReachedInPeriod.map((milestone, index) => {
+				const milestoneParameterKey = `totalEditsMilestone${index}`;
+				whereParameters[milestoneParameterKey] = milestone;
+				return `IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) >= :${milestoneParameterKey}`
+					+ `AND IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0) < :${milestoneParameterKey}`;
+			}).join(" OR ") + ")",
+			whereParameters
+		);
+	}
+
 
 	// Period edits at least
 	if (typeof userRequirements.inPeriodEditsAtLeast !== "undefined") {
-		query = query.andWhere("IFNULL(periodEditsAtLeast.periodEdits, 0) >= :editsAtLeast", { editsAtLeast: userRequirements.inPeriodEditsAtLeast.edits });
+		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
+			userRequirements.inPeriodEditsAtLeast, endDate
+		);
+
+		query = query.andWhere(
+			`IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
+			+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0)`
+			+ " >= :inPeriodEditsAtLeast",
+			{ inPeriodEditsAtLeast: userRequirements.inPeriodEditsAtLeast.count }
+		);
 	}
 
 	// Period edits at most
 	if (typeof userRequirements.inPeriodEditsAtMost !== "undefined") {
-		query = query.andWhere("IFNULL(periodEditsAtMost.periodEdits, 0) <= :editsAtMost", { editsAtMost: userRequirements.inPeriodEditsAtMost.edits });
+		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
+			userRequirements.inPeriodEditsAtMost, endDate
+		);
+
+		query = query.andWhere(
+			`IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
+			+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0)`
+			+ " >= :inPeriodEditsAtLeast",
+			{ inPeriodEditsAtLeast: userRequirements.inPeriodEditsAtMost.count }
+		);
 	}
+
+	// Total edits with change tag at least
+	if (typeof userRequirements.totalEditsWithChangeTagAtLeast !== "undefined") {
+		const changeTags = Array.isArray(userRequirements.totalEditsWithChangeTagAtLeast.changeTag)
+			? userRequirements.totalEditsWithChangeTagAtLeast.changeTag
+			: [userRequirements.totalEditsWithChangeTagAtLeast.changeTag];
+
+		query = query.andWhere(
+			changeTags.map(ct => {
+				const totalEditsEpochDate = typeof userRequirements.totalEditsWithChangeTagAtLeast?.epoch !== "number"
+					? endDate
+					: moment.utc(endDate).subtract(userRequirements.totalEditsWithChangeTagAtLeast.epoch * -1, "days");
+
+				const actorEndTableName = makePeriodJoinTableName(totalEditsEpochDate, "atPeriodEnd", "actor", `Ct${serializeChangeTagFilterDefinition(ct)}`);
+
+				return `IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0)`;
+			}).join(" + ") + " >= :totalEditsWithChangeTagAtLeast",
+			{ totalEditsWithChangeTagAtLeast: userRequirements.totalEditsWithChangeTagAtLeast.edits });
+	}
+
+	// Total edits with change tag at most
+	if (typeof userRequirements.totalEditsWithChangeTagAtMost !== "undefined") {
+		const changeTags = Array.isArray(userRequirements.totalEditsWithChangeTagAtMost.changeTag)
+			? userRequirements.totalEditsWithChangeTagAtMost.changeTag
+			: [userRequirements.totalEditsWithChangeTagAtMost.changeTag];
+
+		query = query.andWhere(
+			changeTags.map(ct => {
+				const totalEditsEpochDate = typeof userRequirements.totalEditsWithChangeTagAtMost?.epoch !== "number"
+					? endDate
+					: moment.utc(endDate).subtract(userRequirements.totalEditsWithChangeTagAtMost.epoch * -1, "days");
+
+				const actorEndTableName = makePeriodJoinTableName(totalEditsEpochDate, "atPeriodEnd", "actor", `Ct${serializeChangeTagFilterDefinition(ct)}`);
+
+				return `IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0)`;
+			}).join(" + ") + " <= :totalEditsWithChangeTagAtMost",
+			{ totalEditsWithChangeTagAtMost: userRequirements.totalEditsWithChangeTagAtMost.edits });
+	}
+
+	// Period edits with change tag at least
+	if (typeof userRequirements.inPeriodEditsWithChangeTagAtLeast !== "undefined") {
+		const reqInPeriod = userRequirements.inPeriodEditsWithChangeTagAtLeast;
+		const changeTags = Array.isArray(userRequirements.inPeriodEditsWithChangeTagAtLeast.changeTag)
+			? userRequirements.inPeriodEditsWithChangeTagAtLeast.changeTag
+			: [userRequirements.inPeriodEditsWithChangeTagAtLeast.changeTag];
+
+		query = query.andWhere(
+			changeTags.map(ct => {
+				const periodStatCalculationStartDate = typeof reqInPeriod.epoch === "number"
+					? moment.utc(endDate).subtract(reqInPeriod.period + reqInPeriod.epoch * -1, "days")
+					: moment.utc(endDate).subtract(reqInPeriod.period, "days");
+				const periodStatCalculationEndDate = typeof reqInPeriod.epoch === "number"
+					? moment.utc(endDate).subtract(reqInPeriod.epoch * -1, "days")
+					: endDate;
+
+				const actorStartTableName = makePeriodJoinTableName(periodStatCalculationStartDate, "beforePeriodStart", "actor", `Ct${serializeChangeTagFilterDefinition(ct)}`);
+				const actorEndTableName = makePeriodJoinTableName(periodStatCalculationEndDate, "atPeriodEnd", "actor", `Ct${serializeChangeTagFilterDefinition(ct)}`);
+
+				return `(IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
+					+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0))`;
+			}).join(" + ") + " <= :inPeriodEditsWithChangeTagAtLeast",
+			{ inPeriodEditsWithChangeTagAtLeast: userRequirements.inPeriodEditsWithChangeTagAtLeast.edits }
+		);
+	}
+
+	// Period edits with change tag at most
+	if (typeof userRequirements.inPeriodEditsWithChangeTagAtMost !== "undefined") {
+		const reqInPeriod = userRequirements.inPeriodEditsWithChangeTagAtMost;
+		const changeTags = Array.isArray(userRequirements.inPeriodEditsWithChangeTagAtMost.changeTag)
+			? userRequirements.inPeriodEditsWithChangeTagAtMost.changeTag
+			: [userRequirements.inPeriodEditsWithChangeTagAtMost.changeTag];
+
+		query = query.andWhere(
+			changeTags.map(ct => {
+				const periodStatCalculationStartDate = typeof reqInPeriod.epoch === "number"
+					? moment.utc(endDate).subtract(reqInPeriod.period + reqInPeriod.epoch * -1, "days")
+					: moment.utc(endDate).subtract(reqInPeriod.period, "days");
+				const periodStatCalculationEndDate = typeof reqInPeriod.epoch === "number"
+					? moment.utc(endDate).subtract(reqInPeriod.epoch * -1, "days")
+					: endDate;
+
+				const actorStartTableName = makePeriodJoinTableName(periodStatCalculationStartDate, "beforePeriodStart", "actor", `Ct${serializeChangeTagFilterDefinition(ct)}`);
+				const actorEndTableName = makePeriodJoinTableName(periodStatCalculationEndDate, "atPeriodEnd", "actor", `Ct${serializeChangeTagFilterDefinition(ct)}`);
+
+				return `(IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
+					+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0))`;
+			}).join(" + ") + " <= :inPeriodEditsWithChangeTagAtMost",
+			{ inPeriodEditsWithChangeTagAtMost: userRequirements.inPeriodEditsWithChangeTagAtMost.edits }
+		);
+	}
+
+	// Total reverted edits at least
+	if (typeof userRequirements.totalRevertedEditsAtLeast !== "undefined") {
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalRevertedEditsAtLeast, endDate);
+
+		const totalRevertedEditsAtLeast = typeof userRequirements.totalRevertedEditsAtLeast === "number"
+			? userRequirements.totalRevertedEditsAtLeast
+			: userRequirements.totalRevertedEditsAtLeast.count;
+
+		query = query.andWhere(
+			`${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits >= :totalRevertedEditsAtLeast`,
+			{ totalRevertedEditsAtLeast: totalRevertedEditsAtLeast }
+		);
+	}
+
+	// Total reverted edits at most
+	if (typeof userRequirements.totalRevertedEditsAtMost !== "undefined") {
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalRevertedEditsAtMost, endDate);
+
+		const totalRevertedEditsAtMost = typeof userRequirements.totalRevertedEditsAtMost === "number"
+			? userRequirements.totalRevertedEditsAtMost
+			: userRequirements.totalRevertedEditsAtMost.count;
+
+		query = query.andWhere(
+			`${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits <= :totalRevertedEditsAtMost`,
+			{ totalRevertedEditsAtMost: totalRevertedEditsAtMost }
+		);
+	}
+
+	// Total reverted edits milestone reached in period
+	if (typeof userRequirements.totalRevertedEditsMilestoneReachedInPeriod !== "undefined"
+		&& userRequirements.totalRevertedEditsMilestoneReachedInPeriod.length > 0
+		&& typeof startDate !== "undefined"
+	) {
+		const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+		const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+		const whereParameters: { [index: string]: unknown } = {};
+		query = query.andWhere(
+			"(" + userRequirements.totalEditsMilestoneReachedInPeriod.map((milestone, index) => {
+				const milestoneParameterKey = `totalRevertedEditsMilestone${index}`;
+				whereParameters[milestoneParameterKey] = milestone;
+				return `IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0) >= :${milestoneParameterKey}`
+					+ `AND IFNULL(${actorStartTableName}.revertedEditsToDate + ${actorStartTableName}.dailyRevertedEdits, 0) < :${milestoneParameterKey}`;
+			}).join(" OR ") + ")",
+			whereParameters
+		);
+	}
+
+	// Period reverted edits at least
+	if (typeof userRequirements.inPeriodRevertedEditsAtLeast !== "undefined") {
+		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
+			userRequirements.inPeriodRevertedEditsAtLeast, endDate
+		);
+
+		query = query.andWhere(
+			`IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0) `
+			+ `- IFNULL(${actorStartTableName}.revertedEditsToDate + ${actorStartTableName}.dailyRevertedEdits, 0)`
+			+ " >= :inPeriodRevertedEditsAtLeast",
+			{ inPeriodRevertedEditsAtLeast: userRequirements.inPeriodRevertedEditsAtLeast.count }
+		);
+	}
+
+	// Period reverted edits at most
+	if (typeof userRequirements.inPeriodRevertedEditsAtMost !== "undefined") {
+		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
+			userRequirements.inPeriodRevertedEditsAtMost, endDate
+		);
+
+		query = query.andWhere(
+			`IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0) `
+			+ `- IFNULL(${actorStartTableName}.revertedEditsToDate + ${actorStartTableName}.dailyRevertedEdits, 0)`
+			+ " >= :inPeriodEditsAtLeast",
+			{ inPeriodRevertedEditsAtMost: userRequirements.inPeriodRevertedEditsAtMost.count }
+		);
+	}
+
+	// Total received thanks at least
+	if (typeof userRequirements.totalReceivedThanksAtLeast !== "undefined") {
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalReceivedThanksAtLeast, endDate);
+
+		const totalReceivedThanksAtLeast = typeof userRequirements.totalReceivedThanksAtLeast === "number"
+			? userRequirements.totalReceivedThanksAtLeast
+			: userRequirements.totalReceivedThanksAtLeast.count;
+
+		query = query.andWhere(
+			`${actorEndTableName}.receivedThanksToDate + ${actorEndTableName}.dailyReceivedThanks >= :totalReceivedThanksAtLeast`,
+			{ totalReceivedThanksAtLeast: totalReceivedThanksAtLeast }
+		);
+	}
+
+	// Total received thanks at most
+	if (typeof userRequirements.totalReceivedThanksAtMost !== "undefined") {
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalReceivedThanksAtMost, endDate);
+
+		const totalReceivedThanksAtMost = typeof userRequirements.totalReceivedThanksAtMost === "number"
+			? userRequirements.totalReceivedThanksAtMost
+			: userRequirements.totalReceivedThanksAtMost.count;
+
+		query = query.andWhere(
+			`${actorEndTableName}.receivedThanksToDate + ${actorEndTableName}.dailyReceivedThanks <= :totalReceivedThanksAtMost`,
+			{ totalReceivedThanksAtMost: totalReceivedThanksAtMost }
+		);
+	}
+
+	// Total received thanks milestone reached in period
+	if (typeof userRequirements.totalReceivedThanksMilestoneReachedInPeriod !== "undefined"
+		&& userRequirements.totalReceivedThanksMilestoneReachedInPeriod.length > 0
+		&& typeof startDate !== "undefined"
+	) {
+		const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+		const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+		const whereParameters: { [index: string]: unknown } = {};
+		query = query.andWhere(
+			"(" + userRequirements.totalReceivedThanksMilestoneReachedInPeriod.map((milestone, index) => {
+				const milestoneParameterKey = `totalReceivedThanksMilestone${index}`;
+				whereParameters[milestoneParameterKey] = milestone;
+				return `IFNULL(${actorEndTableName}.receivedThanksToDate + ${actorEndTableName}.dailyReceivedThanks, 0) >= :${milestoneParameterKey}`
+					+ `AND IFNULL(${actorStartTableName}.receivedThanksToDate + ${actorStartTableName}.dailyReceivedThanks, 0) < :${milestoneParameterKey}`;
+			}).join(" OR ") + ")",
+			whereParameters
+		);
+	}
+
+	// Period received thanks at least
+	if (typeof userRequirements.inPeriodReceivedThanksAtLeast !== "undefined") {
+		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
+			userRequirements.inPeriodReceivedThanksAtLeast, endDate
+		);
+
+		query = query.andWhere(
+			`IFNULL(${actorEndTableName}.receivedThanksToDate + ${actorEndTableName}.dailyReceivedThanks, 0) `
+			+ `- IFNULL(${actorStartTableName}.receivedThanksToDate + ${actorStartTableName}.dailyReceivedThanks, 0)`
+			+ " >= :inPeriodReceivedThanksAtLeast",
+			{ inPeriodReceivedThanksAtLeast: userRequirements.inPeriodReceivedThanksAtLeast.count }
+		);
+	}
+
+	// Period received thanks at most
+	if (typeof userRequirements.inPeriodReceivedThanksAtMost !== "undefined") {
+		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
+			userRequirements.inPeriodReceivedThanksAtMost, endDate
+		);
+
+		query = query.andWhere(
+			`IFNULL(${actorEndTableName}.receivedThanksToDate + ${actorEndTableName}.dailyReceivedThanks, 0) `
+			+ `- IFNULL(${actorStartTableName}.receivedThanksToDate + ${actorStartTableName}.dailyReceivedThanks, 0)`
+			+ " >= :inPeriodEditsAtLeast",
+			{ inPeriodReceivedThanksAtMost: userRequirements.inPeriodReceivedThanksAtMost.count }
+		);
+	}
+
+	// Total active days at least
+	if (typeof userRequirements.totalActiveDaysAtLeast !== "undefined") {
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalActiveDaysAtLeast, endDate);
+
+		const totalActiveDaysAtLeast = typeof userRequirements.totalActiveDaysAtLeast === "number"
+			? userRequirements.totalActiveDaysAtLeast
+			: userRequirements.totalActiveDaysAtLeast.count;
+
+		query = query.andWhere(
+			`${actorEndTableName}.activeDaysToDate + ${actorEndTableName}.dailyActiveDay >= :totalActiveDaysAtLeast`,
+			{ totalActiveDaysAtLeast: totalActiveDaysAtLeast }
+		);
+	}
+
+	// Total active days at most
+	if (typeof userRequirements.totalActiveDaysAtMost !== "undefined") {
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalActiveDaysAtMost, endDate);
+
+		const totalActiveDaysAtMost = typeof userRequirements.totalActiveDaysAtMost === "number"
+			? userRequirements.totalActiveDaysAtMost
+			: userRequirements.totalActiveDaysAtMost.count;
+
+		query = query.andWhere(
+			`${actorEndTableName}.activeDaysToDate + ${actorEndTableName}.dailyActiveDay <= :totalActiveDaysAtMost`,
+			{ totalActiveDaysAtMost: totalActiveDaysAtMost }
+		);
+	}
+
+	// Total active days milestone reached in period
+	if (typeof userRequirements.totalActiveDaysMilestoneReachedInPeriod !== "undefined"
+		&& userRequirements.totalActiveDaysMilestoneReachedInPeriod.length > 0
+		&& typeof startDate !== "undefined"
+	) {
+		const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+		const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+		const whereParameters: { [index: string]: unknown } = {};
+		query = query.andWhere(
+			"(" + userRequirements.totalActiveDaysMilestoneReachedInPeriod.map((milestone, index) => {
+				const milestoneParameterKey = `totalActiveDaysMilestone${index}`;
+				whereParameters[milestoneParameterKey] = milestone;
+				return `IFNULL(${actorEndTableName}.activeDaysToDate + ${actorEndTableName}.dailyActiveDay, 0) >= :${milestoneParameterKey}`
+					+ `AND IFNULL(${actorStartTableName}.activeDaysToDate + ${actorStartTableName}.dailyActiveDay, 0) < :${milestoneParameterKey}`;
+			}).join(" OR ") + ")",
+			whereParameters
+		);
+	}
+
+	// Period active days at least
+	if (typeof userRequirements.inPeriodActiveDaysAtLeast !== "undefined") {
+		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
+			userRequirements.inPeriodActiveDaysAtLeast, endDate
+		);
+
+		query = query.andWhere(
+			`IFNULL(${actorEndTableName}.activeDaysToDate + ${actorEndTableName}.dailyActiveDay, 0) `
+			+ `- IFNULL(${actorStartTableName}.activeDaysToDate + ${actorStartTableName}.dailyActiveDay, 0)`
+			+ " >= :inPeriodActiveDaysAtLeast",
+			{ inPeriodActiveDaysAtLeast: userRequirements.inPeriodActiveDaysAtLeast.count }
+		);
+	}
+
+	// Period active days at most
+	if (typeof userRequirements.inPeriodActiveDaysAtMost !== "undefined") {
+		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
+			userRequirements.inPeriodActiveDaysAtMost, endDate
+		);
+
+		query = query.andWhere(
+			`IFNULL(${actorEndTableName}.activeDaysToDate + ${actorEndTableName}.dailyActiveDay, 0) `
+			+ `- IFNULL(${actorStartTableName}.activeDaysToDate + ${actorStartTableName}.dailyActiveDay, 0)`
+			+ " >= :inPeriodEditsAtLeast",
+			{ inPeriodActiveDaysAtMost: userRequirements.inPeriodActiveDaysAtMost.count }
+		);
+	}
+
 	return query;
 }
 
-function addColumnSelfFilterRules(query: SelectQueryBuilder<ActorTypeModel>, columns: ListColumn[] | undefined,): SelectQueryBuilder<ActorTypeModel> {
+function getTableNameForUserTotalRequirement(req: number | UserStatisticsInTimeRequirement, endDate: moment.Moment) {
+	const totalEditsEpochDate = typeof req === "number"
+		? endDate
+		: moment.utc(endDate).subtract(req.epoch * -1, "days");
+
+	const actorEndTableName = makePeriodJoinTableName(totalEditsEpochDate, "atPeriodEnd", "actor");
+	return actorEndTableName;
+}
+
+function getTableNamesForUserPeriodRequirement(reqInPeriod: UserStatisticsInPeriodRequirement, endDate: moment.Moment, prefix = "") {
+	const periodStatCalculationStartDate = typeof reqInPeriod.epoch === "number"
+		? moment.utc(endDate).subtract(reqInPeriod.period + reqInPeriod.epoch * -1, "days")
+		: moment.utc(endDate).subtract(reqInPeriod.period, "days");
+	const periodStatCalculationEndDate = typeof reqInPeriod.epoch === "number"
+		? moment.utc(endDate).subtract(reqInPeriod.epoch * -1, "days")
+		: endDate;
+
+	const actorStartTableName = makePeriodJoinTableName(periodStatCalculationStartDate, "beforePeriodStart", "actor", prefix);
+	const actorEndTableName = makePeriodJoinTableName(periodStatCalculationEndDate, "atPeriodEnd", "actor", prefix);
+
+	return { actorEndTableName, actorStartTableName };
+}
+
+function addColumnSelfFilterRules(
+	query: SelectQueryBuilder<ActorTypeModel>,
+	columns: ListColumn[] | undefined
+): SelectQueryBuilder<ActorTypeModel> {
 	if (!columns) {
 		return query;
 	}
@@ -294,8 +803,6 @@ function addColumnSelfFilterRules(query: SelectQueryBuilder<ActorTypeModel>, col
 			columnIndex++;
 			continue;
 		}
-
-		console.log("cica");
 
 		if (column.filterByRule === "moreThanZero") {
 			query = query.andHaving(`column${columnIndex} > 0`);
@@ -311,14 +818,16 @@ function addColumnSelfFilterRules(query: SelectQueryBuilder<ActorTypeModel>, col
 function addColumSelects(
 	ctx: StatisticsQueryBuildingContext,
 	query: SelectQueryBuilder<ActorTypeModel>,
-	columns: ListColumn[] | undefined
+	columns: ListColumn[] | undefined,
+	startDate: moment.Moment | undefined,
+	endDate: moment.Moment
 ): SelectQueryBuilder<ActorTypeModel> {
 	if (!columns || columns.length === 0)
 		return query;
 
 	let columnIndex = 0;
 	for (const column of columns) {
-		query = addSingleColumSelect(ctx, query, column, columnIndex);
+		query = addSingleColumSelect(ctx, query, column, columnIndex, startDate, endDate);
 
 		columnIndex++;
 	}
@@ -330,38 +839,60 @@ function addSingleColumSelect(
 	ctx: StatisticsQueryBuildingContext,
 	query: SelectQueryBuilder<ActorTypeModel>,
 	column: ListColumn,
-	columnIndex: number
+	columnIndex: number,
+	startDate: moment.Moment | undefined,
+	endDate: moment.Moment
 ): SelectQueryBuilder<ActorTypeModel> {
 	const selectedColumnName = `column${columnIndex}`;
 
 	switch (column.type) {
-		case "editsInPeriod":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.editsToDate + atPeriodStartActorStatistics.dailyEdits, 0)", selectedColumnName);
+		case "editsInPeriod": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
+				+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0)`, selectedColumnName);
 			break;
-		case "editsInPeriodPercentageToWikiTotal":
-			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.editsToDate + atPeriodStartActorStatistics.dailyEdits, 0))"
+		}
+		case "editsInPeriodPercentageToWikiTotal": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const wikiStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki");
+			const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki");
+
+			query = query.addSelect(`(IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
+				+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0))`
 				+ " / "
-				+ "(IFNULL(sinceStartWikiStatistics.editsToDate + sinceStartWikiStatistics.dailyEdits, 0) "
-				+ "- IFNULL(atPeriodStartWikiStatistics.editsToDate + atPeriodStartWikiStatistics.dailyEdits, 0))", selectedColumnName);
+				+ `(IFNULL(${wikiEndTableName}.editsToDate + ${wikiEndTableName}.dailyEdits, 0) `
+				+ `- IFNULL(${wikiStartTableName}.editsToDate + ${wikiStartTableName}.dailyEdits, 0))`, selectedColumnName);
 			break;
-		case "editsSinceRegistration":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0)", selectedColumnName);
+		}
+		case "editsSinceRegistration": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0)`, selectedColumnName);
 			break;
-		case "editsSinceRegistrationPercentageToWikiTotal":
+		}
+		case "editsSinceRegistrationPercentageToWikiTotal": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki");
+
 			query = query.addSelect(
-				"IFNULL((sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits)"
+				`IFNULL((${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits)`
 				+ " / "
-				+ "(sinceStartWikiStatistics.editsToDate + sinceStartWikiStatistics.dailyEdits), 0)", selectedColumnName);
+				+ `(${wikiEndTableName}.editsToDate + ${wikiEndTableName}.dailyEdits), 0)`, selectedColumnName);
 			break;
+		}
 
 		case "editsInNamespaceInPeriod": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
 			query = query.addSelect(namespaces.map(columnPart => {
-				return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyEdits, 0) `
-					+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyEdits, 0))`;
+				const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+				return `(IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
+					+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0))`;
 			}).join(" + "), selectedColumnName);
 
 			break;
@@ -371,27 +902,40 @@ function addSingleColumSelect(
 
 			query = query.addSelect(
 				"IFNULL((" + namespaces.map(columnPart => {
-					return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyEdits, 0) `
-						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyEdits, 0))`;
+					const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `(IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
+						+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0))`;
 				}).join(" + ") + ")"
 				+ " / "
-				+ "(IFNULL(sinceStartWikiStatistics.editsToDate + sinceStartWikiStatistics.dailyEdits, 0) "
-				+ "- IFNULL(atPeriodStartWikiStatistics.editsToDate + atPeriodStartWikiStatistics.dailyEdits, 0)"
-				+ ")"
+				+ "IFNULL((" + namespaces.map(columnPart => {
+					const wikiStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki", `Ns${formatNamespaceParameter(columnPart)}`);
+					const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `(IFNULL(${wikiEndTableName}.editsToDate + ${wikiEndTableName}.dailyEdits, 0) `
+						+ `- IFNULL(${wikiStartTableName}.editsToDate + ${wikiStartTableName}.dailyEdits, 0))`;
+				}).join(" + ") + ")"
 				+ ", 0)", selectedColumnName);
 			break;
 		}
 		case "editsInNamespaceInPeriodPercentageToOwnTotalEdits": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
+			const actorTotalStartTableName = makePeriodJoinTableName(endDate, "beforePeriodStart", "actor");
+			const actorTotalEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
 			query = query.addSelect(
 				"IFNULL((" + namespaces.map(columnPart => {
-					return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyEdits, 0) `
-						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyEdits, 0))`;
+					const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `(IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
+						+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0))`;
 				}).join(" + ") + ")"
 				+ " / "
-				+ "(IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.editsToDate + atPeriodStartActorStatistics.dailyEdits, 0))"
+				+ `(IFNULL(${actorTotalEndTableName}.editsToDate + ${actorTotalEndTableName}.dailyEdits, 0) `
+				+ `- IFNULL(${actorTotalStartTableName}.editsToDate + ${actorTotalStartTableName}.dailyEdits, 0))`
 				+ ", 0)", selectedColumnName);
 			break;
 		}
@@ -399,7 +943,9 @@ function addSingleColumSelect(
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
 			query = query.addSelect(namespaces.map(columnPart => {
-				return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyEdits, 0)`;
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+				return `IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0)`;
 			}).join(" + "), selectedColumnName);
 
 			break;
@@ -409,11 +955,15 @@ function addSingleColumSelect(
 
 			query = query.addSelect(
 				"IFNULL((" + namespaces.map(columnPart => {
-					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyEdits, 0)`;
+					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0)`;
 				}).join(" + ") + ")"
 				+ " / "
 				+ "(" + namespaces.map(columnPart => {
-					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.dailyEdits, 0)`;
+					const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `IFNULL(${wikiEndTableName}.editsToDate + ${wikiEndTableName}.dailyEdits, 0)`;
 				}).join(" + ") + ")"
 				+ ", 0)", selectedColumnName);
 
@@ -421,13 +971,16 @@ function addSingleColumSelect(
 		}
 		case "editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
+			const actorTotalEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
 
 			query = query.addSelect(
 				"IFNULL((" + namespaces.map(columnPart => {
-					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.editsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyEdits, 0)`;
+					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0)`;
 				}).join(" + ") + ")"
 				+ " / "
-				+ "IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0)"
+				+ `IFNULL(${actorTotalEndTableName}.editsToDate + ${actorTotalEndTableName}.dailyEdits, 0)`
 				+ ", 0)", selectedColumnName);
 
 			break;
@@ -436,8 +989,11 @@ function addSingleColumSelect(
 			const changeTags = Array.isArray(column.changeTag) ? column.changeTag : [column.changeTag];
 
 			query = query.addSelect(changeTags.map(ct => {
-				return `(IFNULL(ct${serializeChangeTagFilterDefinition(ct)}SinceRegistrationActorStatistics.editsToDate + ct${serializeChangeTagFilterDefinition(ct)}SinceRegistrationActorStatistics.dailyEdits, 0) `
-					+ `- IFNULL(ct${serializeChangeTagFilterDefinition(ct)}AtPeriodStartActorStatistics.editsToDate + ct${serializeChangeTagFilterDefinition(ct)}AtPeriodStartActorStatistics.dailyEdits, 0))`;
+				const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ct${serializeChangeTagFilterDefinition(ct)}`);
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ct${serializeChangeTagFilterDefinition(ct)}`);
+
+				return `(IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
+					+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0))`;
 			}).join(" + "), selectedColumnName);
 
 			break;
@@ -446,52 +1002,80 @@ function addSingleColumSelect(
 			const changeTags = Array.isArray(column.changeTag) ? column.changeTag : [column.changeTag];
 
 			query = query.addSelect(changeTags.map(ct => {
-				return `IFNULL(ct${serializeChangeTagFilterDefinition(ct)}SinceRegistrationActorStatistics.editsToDate + ct${serializeChangeTagFilterDefinition(ct)}SinceRegistrationActorStatistics.dailyEdits, 0)`;
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ct${serializeChangeTagFilterDefinition(ct)}`);
+
+				return `IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0)`;
 			}).join(" + "), selectedColumnName);
 
 			break;
 		}
 
-		case "revertedEditsInPeriod":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.revertedEditsToDate + atPeriodStartActorStatistics.dailyRevertedEdits, 0)", selectedColumnName);
-			break;
-		case "revertedEditsInPeriodPercentageToWikiTotal":
-			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.revertedEditsToDate + atPeriodStartActorStatistics.dailyRevertedEdits, 0))"
-				+ " / "
-				+ "(IFNULL(sinceStartWikiStatistics.revertedEditsToDate + sinceStartWikiStatistics.dailyRevertedEdits, 0) "
-				+ "- IFNULL(atPeriodStartWikiStatistics.revertedEditsToDate + atPeriodStartWikiStatistics.dailyRevertedEdits, 0))", selectedColumnName);
-			break;
-		case "revertedEditsInPeriodPercentageToOwnTotalEdits":
-			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.revertedEditsToDate + atPeriodStartActorStatistics.dailyRevertedEdits, 0))"
-				+ " / "
-				+ "(IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.editsToDate + atPeriodStartActorStatistics.dailyEdits, 0))", selectedColumnName);
-			break;
-		case "revertedEditsSinceRegistration":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits, 0)", selectedColumnName);
-			break;
-		case "revertedEditsSinceRegistrationPercentageToWikiTotal":
-			query = query.addSelect(
-				"IFNULL((sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits)"
-				+ " / "
-				+ "(sinceStartWikiStatistics.revertedEditsToDate + sinceStartWikiStatistics.dailyRevertedEdits), 0)", selectedColumnName);
-			break;
-		case "revertedEditsSinceRegistrationPercentageToOwnTotalEdits":
-			query = query.addSelect(
-				"IFNULL((sinceRegistrationActorStatistics.revertedEditsToDate + sinceRegistrationActorStatistics.dailyRevertedEdits)"
-				+ " / "
-				+ "(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits), 0)", selectedColumnName);
-			break;
+		case "revertedEditsInPeriod": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
 
+			query = query.addSelect(`IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0) `
+				+ `- IFNULL(${actorStartTableName}.reveretedEditsToDate + ${actorStartTableName}.dailyRevertedEdits, 0)`, selectedColumnName);
+			break;
+		}
+		case "revertedEditsInPeriodPercentageToWikiTotal": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const wikiStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki");
+			const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki");
+
+			query = query.addSelect(`(IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0) `
+				+ `- IFNULL(${actorStartTableName}.revertedEditsToDate + ${actorStartTableName}.dailyRevertedEdits, 0))`
+				+ " / "
+				+ `(IFNULL(${wikiEndTableName}.revertedEditsToDate + ${wikiEndTableName}.dailyRevertedEdits, 0) `
+				+ `- IFNULL(${wikiStartTableName}.revertedEditsToDate + ${wikiStartTableName}.dailyRevertedEdits, 0))`, selectedColumnName);
+			break;
+		}
+		case "revertedEditsInPeriodPercentageToOwnTotalEdits": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`(IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0) `
+				+ `- IFNULL(${actorStartTableName}.revertedEditsToDate + ${actorStartTableName}.dailyRevertedEdits, 0))`
+				+ " / "
+				+ `(IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
+				+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0))`, selectedColumnName);
+			break;
+		}
+		case "revertedEditsSinceRegistration": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0)`, selectedColumnName);
+			break;
+		}
+		case "revertedEditsSinceRegistrationPercentageToWikiTotal": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki");
+
+			query = query.addSelect(
+				`IFNULL((${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits)`
+				+ " / "
+				+ `(${wikiEndTableName}.revertedEditsToDate + ${wikiEndTableName}.dailyRevertedEdits), 0)`, selectedColumnName);
+			break;
+		}
+		case "revertedEditsSinceRegistrationPercentageToOwnTotalEdits": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(
+				`IFNULL((${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits)`
+				+ " / "
+				+ `(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits), 0)`, selectedColumnName);
+			break;
+		}
 		case "revertedEditsInNamespaceInPeriod": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
 			query = query.addSelect(namespaces.map(columnPart => {
-				return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyRevertedEdits, 0) `
-					+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyRevertedEdits, 0))`;
+				const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+				return `(IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0) `
+					+ `- IFNULL(${actorStartTableName}.revertedEditsToDate + ${actorStartTableName}.dailyRevertedEdits, 0))`;
 			}).join(" + "), selectedColumnName);
 
 			break;
@@ -501,13 +1085,19 @@ function addSingleColumSelect(
 
 			query = query.addSelect(
 				"IFNULL((" + namespaces.map(columnPart => {
-					return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyRevertedEdits, 0) `
-						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyRevertedEdits, 0))`;
+					const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `(IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0) `
+						+ `- IFNULL(${actorStartTableName}.revertedEditsToDate + ${actorStartTableName}.dailyRevertedEdits, 0))`;
 				}).join(" + ") + ")"
 				+ " / "
-				+ "(" + namespaces.map(columnPart => {
-					return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.dailyRevertedEdits, 0) `
-						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartWikiStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartWikiStatistics.dailyRevertedEdits, 0))`;
+				+ "IFNULL((" + namespaces.map(columnPart => {
+					const wikiStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki", `Ns${formatNamespaceParameter(columnPart)}`);
+					const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `(IFNULL(${wikiEndTableName}.revertedEditsToDate + ${wikiEndTableName}.dailyRevertedEdits, 0) `
+						+ `- IFNULL(${wikiStartTableName}.revertedEditsToDate + ${wikiStartTableName}.dailyRevertedEdits, 0))`;
 				}).join(" + ") + ")"
 				+ ", 0)", selectedColumnName);
 			break;
@@ -515,16 +1105,20 @@ function addSingleColumSelect(
 		case "revertedEditsInNamespaceInPeriodPercentageToOwnTotalEdits": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
+			const actorTotalStartTableName = makePeriodJoinTableName(endDate, "beforePeriodStart", "actor");
+			const actorTotalEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
 			query = query.addSelect(
 				"IFNULL((" + namespaces.map(columnPart => {
-					return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyRevertedEdits, 0) `
-						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyRevertedEdits, 0))`;
+					const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `(IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0) `
+						+ `- IFNULL(${actorStartTableName}.revertedEditsToDate + ${actorStartTableName}.dailyRevertedEdits, 0))`;
 				}).join(" + ") + ")"
 				+ " / "
-				+ "(" + namespaces.map(columnPart => {
-					return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyRevertedEdits, 0) `
-						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyRevertedEdits, 0))`;
-				}).join(" + ") + ")"
+				+ `(IFNULL(${actorTotalEndTableName}.editsToDate + ${actorTotalEndTableName}.dailyEdits, 0) `
+				+ `- IFNULL(${actorTotalStartTableName}.editsToDate + ${actorTotalStartTableName}.dailyEdits, 0))`
 				+ ", 0)", selectedColumnName);
 			break;
 		}
@@ -532,10 +1126,11 @@ function addSingleColumSelect(
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
 			query = query.addSelect(namespaces.map(columnPart => {
-				return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyRevertedEdits, 0)`;
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+				return `IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0)`;
 			}).join(" + "), selectedColumnName);
 
-			break;
 			break;
 		}
 		case "revertedEditsInNamespaceSinceRegistrationPercentageToWikiTotal": {
@@ -543,11 +1138,15 @@ function addSingleColumSelect(
 
 			query = query.addSelect(
 				"IFNULL((" + namespaces.map(columnPart => {
-					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyRevertedEdits, 0)`;
+					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0)`;
 				}).join(" + ") + ")"
 				+ " / "
 				+ "(" + namespaces.map(columnPart => {
-					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.dailyRevertedEdits, 0)`;
+					const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `IFNULL(${wikiEndTableName}.revertedEditsToDate + ${wikiEndTableName}.dailyRevertedEdits, 0)`;
 				}).join(" + ") + ")"
 				+ ", 0)", selectedColumnName);
 
@@ -555,45 +1154,67 @@ function addSingleColumSelect(
 		}
 		case "revertedEditsInNamespaceSinceRegistrationPercentageToOwnTotalEdits": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
+			const actorTotalEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
 
 			query = query.addSelect(
 				"IFNULL((" + namespaces.map(columnPart => {
-					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyRevertedEdits, 0)`;
+					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0)`;
 				}).join(" + ") + ")"
 				+ " / "
-				+ "(" + namespaces.map(columnPart => {
-					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.revertedEditsToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyRevertedEdits, 0)`;
-				}).join(" + ") + ")"
+				+ `IFNULL(${actorTotalEndTableName}.editsToDate + ${actorTotalEndTableName}.dailyEdits, 0)`
 				+ ", 0)", selectedColumnName);
 
 			break;
 		}
-		case "characterChangesInPeriod":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.characterChangesToDate + sinceRegistrationActorStatistics.dailyCharacterChanges, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.characterChangesToDate + atPeriodStartActorStatistics.dailyCharacterChanges, 0)", selectedColumnName);
+
+		case "characterChangesInPeriod": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`IFNULL(${actorEndTableName}.characterChangesToDate + ${actorEndTableName}.dailyCharacterChanges, 0) `
+				+ `- IFNULL(${actorStartTableName}.characterChangesToDate + ${actorStartTableName}.dailyCharacterChanges, 0)`, selectedColumnName);
 			break;
-		case "characterChangesInPeriodPercentageToWikiTotal":
-			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.characterChangesToDate + sinceRegistrationActorStatistics.dailyCharacterChanges, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.characterChangesToDate + atPeriodStartActorStatistics.dailyCharacterChanges, 0))"
+		}
+		case "characterChangesInPeriodPercentageToWikiTotal": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const wikiStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki");
+			const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki");
+
+			query = query.addSelect(`(IFNULL(${actorEndTableName}.characterChangesToDate + ${actorEndTableName}.dailyCharacterChanges, 0) `
+				+ `- IFNULL(${actorStartTableName}.characterChangesToDate + ${actorStartTableName}.dailyCharacterChanges, 0))`
 				+ " / "
-				+ "(IFNULL(sinceStartWikiStatistics.characterChangesToDate + sinceStartWikiStatistics.dailyCharacterChanges, 0) "
-				+ "- IFNULL(atPeriodStartWikiStatistics.characterChangesToDate + atPeriodStartWikiStatistics.dailyCharacterChanges, 0))", selectedColumnName);
+				+ `(IFNULL(${wikiEndTableName}.characterChangesToDate + ${wikiEndTableName}.dailyCharacterChanges, 0) `
+				+ `- IFNULL(${wikiStartTableName}.characterChangesToDate + ${wikiStartTableName}.dailyCharacterChanges, 0))`, selectedColumnName);
 			break;
-		case "characterChangesSinceRegistration":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.characterChangesToDate + sinceRegistrationActorStatistics.dailyCharacterChanges, 0)", selectedColumnName);
+		}
+		case "characterChangesSinceRegistration": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`IFNULL(${actorEndTableName}.characterChangesToDate + ${actorEndTableName}.dailyCharacterChanges, 0)`, selectedColumnName);
 			break;
-		case "characterChangesSinceRegistrationPercentageToWikiTotal":
+		}
+		case "characterChangesSinceRegistrationPercentageToWikiTotal": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki");
+
 			query = query.addSelect(
-				"IFNULL((sinceRegistrationActorStatistics.characterChangesToDate + sinceRegistrationActorStatistics.dailyCharacterChanges)"
+				`IFNULL((${actorEndTableName}.characterChangesToDate + ${actorEndTableName}.dailyCharacterChanges)`
 				+ " / "
-				+ "(sinceStartWikiStatistics.characterChangesToDate + sinceStartWikiStatistics.dailyCharacterChanges), 0)", selectedColumnName);
+				+ `(${wikiEndTableName}.characterChangesToDate + ${wikiEndTableName}.dailyCharacterChanges), 0)`, selectedColumnName);
 			break;
+		}
 		case "characterChangesInNamespaceInPeriod": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
 			query = query.addSelect(namespaces.map(columnPart => {
-				return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.characterChangesToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyCharacterChanges, 0) `
-					+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.characterChangesToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyCharacterChanges, 0))`;
+				const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+				return `(IFNULL(${actorEndTableName}.characterChangesToDate + ${actorEndTableName}.dailyCharacterChanges, 0) `
+					+ `- IFNULL(${actorStartTableName}.characterChangesToDate + ${actorStartTableName}.dailyCharacterChanges, 0))`;
 			}).join(" + "), selectedColumnName);
 
 			break;
@@ -603,13 +1224,19 @@ function addSingleColumSelect(
 
 			query = query.addSelect(
 				"IFNULL((" + namespaces.map(columnPart => {
-					return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.characterChangesToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyCharacterChanges, 0) `
-						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.characterChangesToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartActorStatistics.dailyCharacterChanges, 0))`;
+					const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `(IFNULL(${actorEndTableName}.characterChangesToDate + ${actorEndTableName}.dailyCharacterChanges, 0) `
+						+ `- IFNULL(${actorStartTableName}.characterChangesToDate + ${actorStartTableName}.dailyCharacterChanges, 0))`;
 				}).join(" + ") + ")"
 				+ " / "
-				+ "(" + namespaces.map(columnPart => {
-					return `(IFNULL(ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.characterChangesToDate + ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.dailyCharacterChanges, 0) `
-						+ `- IFNULL(ns${formatNamespaceParameter(columnPart)}AtPeriodStartWikiStatistics.characterChangesToDate + ns${formatNamespaceParameter(columnPart)}AtPeriodStartWikiStatistics.dailyCharacterChanges, 0))`;
+				+ "IFNULL((" + namespaces.map(columnPart => {
+					const wikiStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki", `Ns${formatNamespaceParameter(columnPart)}`);
+					const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `(IFNULL(${wikiEndTableName}.characterChangesToDate + ${wikiEndTableName}.dailyCharacterChanges, 0) `
+						+ `- IFNULL(${wikiStartTableName}.characterChangesToDate + ${wikiStartTableName}.dailyCharacterChanges, 0))`;
 				}).join(" + ") + ")"
 				+ ", 0)", selectedColumnName);
 			break;
@@ -618,7 +1245,9 @@ function addSingleColumSelect(
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
 			query = query.addSelect(namespaces.map(columnPart => {
-				return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.characterChangesToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyCharacterChanges, 0)`;
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+				return `IFNULL(${actorEndTableName}.characterChangesToDate + ${actorEndTableName}.dailyCharacterChanges, 0)`;
 			}).join(" + "), selectedColumnName);
 
 			break;
@@ -628,11 +1257,15 @@ function addSingleColumSelect(
 
 			query = query.addSelect(
 				"IFNULL((" + namespaces.map(columnPart => {
-					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.characterChangesToDate + ns${formatNamespaceParameter(columnPart)}SinceRegistrationActorStatistics.dailyCharacterChanges, 0)`;
+					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `IFNULL(${actorEndTableName}.characterChangesToDate + ${actorEndTableName}.dailyCharacterChanges, 0)`;
 				}).join(" + ") + ")"
 				+ " / "
 				+ "(" + namespaces.map(columnPart => {
-					return `IFNULL(ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.characterChangesToDate + ns${formatNamespaceParameter(columnPart)}SinceStartWikiStatistics.dailyCharacterChanges, 0)`;
+					const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki", `Ns${formatNamespaceParameter(columnPart)}`);
+
+					return `IFNULL(${wikiEndTableName}.characterChangesToDate + ${wikiEndTableName}.dailyCharacterChanges, 0)`;
 				}).join(" + ") + ")"
 				+ ", 0)", selectedColumnName);
 
@@ -642,8 +1275,11 @@ function addSingleColumSelect(
 			const changeTags = Array.isArray(column.changeTag) ? column.changeTag : [column.changeTag];
 
 			query = query.addSelect(changeTags.map(ct => {
-				return `(IFNULL(ct${serializeChangeTagFilterDefinition(ct)}SinceRegistrationActorStatistics.characterChangesToDate + ct${serializeChangeTagFilterDefinition(ct)}SinceRegistrationActorStatistics.dailyCharacterChanges, 0) `
-					+ `- IFNULL(ct${serializeChangeTagFilterDefinition(ct)}AtPeriodStartActorStatistics.characterChangesToDate + ct${serializeChangeTagFilterDefinition(ct)}AtPeriodStartActorStatistics.dailyCharacterChanges, 0))`;
+				const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ct${serializeChangeTagFilterDefinition(ct)}`);
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ct${serializeChangeTagFilterDefinition(ct)}`);
+
+				return `(IFNULL(${actorEndTableName}.characterChangesToDate + ${actorEndTableName}.dailyCharacterChanges, 0) `
+					+ `- IFNULL(${actorStartTableName}.characterChangesToDate + ${actorStartTableName}.dailyCharacterChanges, 0))`;
 			}).join(" + "), selectedColumnName);
 
 			break;
@@ -652,80 +1288,137 @@ function addSingleColumSelect(
 			const changeTags = Array.isArray(column.changeTag) ? column.changeTag : [column.changeTag];
 
 			query = query.addSelect(changeTags.map(ct => {
-				return `IFNULL(ct${serializeChangeTagFilterDefinition(ct)}SinceRegistrationActorStatistics.characterChangesToDate + ct${serializeChangeTagFilterDefinition(ct)}SinceRegistrationActorStatistics.dailyCharacterChanges, 0)`;
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ct${serializeChangeTagFilterDefinition(ct)}`);
+
+				return `IFNULL(${actorEndTableName}.characterChangesToDate + ${actorEndTableName}.dailyCharacterChanges, 0)`;
 			}).join(" + "), selectedColumnName);
 
 			break;
 		}
-		case "receivedThanksInPeriod":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.receivedThanksToDate + sinceRegistrationActorStatistics.dailyReceivedThanks, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.receivedThanksToDate + atPeriodStartActorStatistics.dailyReceivedThanks, 0)", selectedColumnName);
-			break;
-		case "receivedThanksInPeriodPercentageToWikiTotal":
-			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.receivedThanksToDate + sinceRegistrationActorStatistics.dailyReceivedThanks, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.receivedThanksToDate + atPeriodStartActorStatistics.dailyReceivedThanks, 0))"
-				+ " / "
-				+ "(IFNULL(sinceStartWikiStatistics.receivedThanksToDate + sinceStartWikiStatistics.dailyReceivedThanks, 0) "
-				+ "- IFNULL(atPeriodStartWikiStatistics.receivedThanksToDate + atPeriodStartWikiStatistics.dailyReceivedThanks, 0))", selectedColumnName);
-			break;
-		case "receivedThanksSinceRegistration":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.receivedThanksToDate + sinceRegistrationActorStatistics.dailyReceivedThanks, 0)", selectedColumnName);
-			break;
-		case "receivedThanksSinceRegistrationPercentageToWikiTotal":
-			query = query.addSelect(
-				"IFNULL((sinceRegistrationActorStatistics.receivedThanksToDate + sinceRegistrationActorStatistics.dailyReceivedThanks)"
-				+ " / "
-				+ "(sinceStartWikiStatistics.receivedThanksToDate + sinceStartWikiStatistics.dailyReceivedThanks), 0)", selectedColumnName);
-			break;
 
-		case "sentThanksInPeriod":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.sentThanksToDate + sinceRegistrationActorStatistics.dailySentThanks, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.sentThanksToDate + atPeriodStartActorStatistics.dailySentThanks, 0)", selectedColumnName);
-			break;
-		case "sentThanksInPeriodPercentageToWikiTotal":
-			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.sentThanksToDate + sinceRegistrationActorStatistics.dailySentThanks, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.sentThanksToDate + atPeriodStartActorStatistics.dailySentThanks, 0))"
-				+ " / "
-				+ "(IFNULL(sinceStartWikiStatistics.sentThanksToDate + sinceStartWikiStatistics.dailySentThanks, 0) "
-				+ "- IFNULL(atPeriodStartWikiStatistics.sentThanksToDate + atPeriodStartWikiStatistics.dailySentThanks, 0))", selectedColumnName);
-			break;
-		case "sentThanksSinceRegistration":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.sentThanksToDate + sinceRegistrationActorStatistics.dailySentThanks, 0)", selectedColumnName);
-			break;
-		case "sentThanksSinceRegistrationPercentageToWikiTotal":
-			query = query.addSelect(
-				"IFNULL((sinceRegistrationActorStatistics.sentThanksToDate + sinceRegistrationActorStatistics.dailySentThanks)"
-				+ " / "
-				+ "(sinceStartWikiStatistics.sentThanksToDate + sinceStartWikiStatistics.dailySentThanks), 0)", selectedColumnName);
-			break;
+		case "receivedThanksInPeriod": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
 
-		case "logEventsInPeriod":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.logEventsToDate + atPeriodStartActorStatistics.dailyLogEvents, 0)", selectedColumnName);
+			query = query.addSelect(`IFNULL(${actorEndTableName}.receivedThanksToDate + ${actorEndTableName}.dailyReceivedThanks, 0) `
+				+ `- IFNULL(${actorStartTableName}.receivedThanksToDate + ${actorStartTableName}.dailyReceivedThanks, 0)`, selectedColumnName);
 			break;
-		case "logEventsInPeriodPercentageToWikiTotal":
-			query = query.addSelect("(IFNULL(sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.logEventsToDate + atPeriodStartActorStatistics.dailyLogEvents, 0))"
+		}
+		case "receivedThanksInPeriodPercentageToWikiTotal": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const wikiStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki");
+			const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki");
+
+			query = query.addSelect(`(IFNULL(${actorEndTableName}.receivedThanksToDate + ${actorEndTableName}.dailyReceivedThanks, 0) `
+				+ `- IFNULL(${actorStartTableName}.receivedThanksToDate + ${actorStartTableName}.dailyReceivedThanks, 0))`
 				+ " / "
-				+ "(IFNULL(sinceStartWikiStatistics.logEventsToDate + sinceStartWikiStatistics.dailyLogEvents, 0) "
-				+ "- IFNULL(atPeriodStartWikiStatistics.logEventsToDate + atPeriodStartWikiStatistics.dailyLogEvents, 0))", selectedColumnName);
+				+ `(IFNULL(${wikiEndTableName}.receivedThanksToDate + ${wikiEndTableName}.dailyReceivedThanks, 0) `
+				+ `- IFNULL(${wikiStartTableName}.receivedThanksToDate + ${wikiStartTableName}.dailyReceivedThanks, 0))`, selectedColumnName);
 			break;
-		case "logEventsSinceRegistration":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents, 0)", selectedColumnName);
+		}
+		case "receivedThanksSinceRegistration": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`IFNULL(${actorEndTableName}.receivedThanksToDate + ${actorEndTableName}.dailyReceivedThanks, 0)`, selectedColumnName);
 			break;
-		case "logEventsSinceRegistrationPercentageToWikiTotal":
+		}
+		case "receivedThanksSinceRegistrationPercentageToWikiTotal": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki");
+
 			query = query.addSelect(
-				"IFNULL((sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents)"
+				`IFNULL((${actorEndTableName}.receivedThanksToDate + ${actorEndTableName}.dailyReceivedThanks)`
 				+ " / "
-				+ "(sinceStartWikiStatistics.logEventsToDate + sinceStartWikiStatistics.dailyLogEvents), 0)", selectedColumnName);
+				+ `(${wikiEndTableName}.receivedThanksToDate + ${wikiEndTableName}.dailyReceivedThanks), 0)`, selectedColumnName);
 			break;
+		}
+
+		case "sentThanksInPeriod": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`IFNULL(${actorEndTableName}.sentThanksToDate + ${actorEndTableName}.dailySentThanks, 0) `
+				+ `- IFNULL(${actorStartTableName}.sentThanksToDate + ${actorStartTableName}.dailySentThanks, 0)`, selectedColumnName);
+			break;
+		}
+		case "sentThanksInPeriodPercentageToWikiTotal": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const wikiStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki");
+			const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki");
+
+			query = query.addSelect(`(IFNULL(${actorEndTableName}.sentThanksToDate + ${actorEndTableName}.dailySentThanks, 0) `
+				+ `- IFNULL(${actorStartTableName}.sentThanksToDate + ${actorStartTableName}.dailySentThanks, 0))`
+				+ " / "
+				+ `(IFNULL(${wikiEndTableName}.sentThanksToDate + ${wikiEndTableName}.dailySentThanks, 0) `
+				+ `- IFNULL(${wikiStartTableName}.sentThanksToDate + ${wikiStartTableName}.dailySentThanks, 0))`, selectedColumnName);
+			break;
+		}
+		case "sentThanksSinceRegistration": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`IFNULL(${actorEndTableName}.sentThanksToDate + ${actorEndTableName}.dailySentThanks, 0)`, selectedColumnName);
+			break;
+		}
+		case "sentThanksSinceRegistrationPercentageToWikiTotal": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki");
+
+			query = query.addSelect(
+				`IFNULL((${actorEndTableName}.sentThanksToDate + ${actorEndTableName}.dailySentThanks)`
+				+ " / "
+				+ `(${wikiEndTableName}.sentThanksToDate + ${wikiEndTableName}.dailySentThanks), 0)`, selectedColumnName);
+			break;
+		}
+
+		case "logEventsInPeriod": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`IFNULL(${actorEndTableName}.logEventsToDate + ${actorEndTableName}.dailyLogEvents, 0) `
+				+ `- IFNULL(${actorStartTableName}.logEventsToDate + ${actorStartTableName}.dailyLogEvents, 0)`, selectedColumnName);
+			break;
+		}
+		case "logEventsInPeriodPercentageToWikiTotal": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const wikiStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki");
+			const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki");
+
+			query = query.addSelect(`(IFNULL(${actorEndTableName}.logEventsToDate + ${actorEndTableName}.dailyLogEvents, 0) `
+				+ `- IFNULL(${actorStartTableName}.logEventsToDate + ${actorStartTableName}.dailyLogEvents, 0))`
+				+ " / "
+				+ `(IFNULL(${wikiEndTableName}.logEventsToDate + ${wikiEndTableName}.dailyLogEvents, 0) `
+				+ `- IFNULL(${wikiStartTableName}.logEventsToDate + ${wikiStartTableName}.dailyLogEvents, 0))`, selectedColumnName);
+			break;
+		}
+		case "logEventsSinceRegistration": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`IFNULL(${actorEndTableName}.logEventsToDate + ${actorEndTableName}.dailyLogEvents, 0)`, selectedColumnName);
+			break;
+		}
+		case "logEventsSinceRegistrationPercentageToWikiTotal": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const wikiEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "wiki");
+
+			query = query.addSelect(
+				`IFNULL((${actorEndTableName}.logEventsToDate + ${actorEndTableName}.dailyLogEvents)`
+				+ " / "
+				+ `(${wikiEndTableName}.logEventsToDate + ${wikiEndTableName}.dailyLogEvents), 0)`, selectedColumnName);
+			break;
+		}
 
 		case "logEventsInPeriodByType": {
 			const logFilters = Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter];
 
 			query = query.addSelect(logFilters.map(log => {
-				return `(IFNULL(log${serializeLogFilterDefinition(log)}SinceRegistrationActorStatistics.logEventsToDate + log${serializeLogFilterDefinition(log)}SinceRegistrationActorStatistics.dailyLogEvents, 0) `
-					+ `- IFNULL(log${serializeLogFilterDefinition(log)}AtPeriodStartActorStatistics.logEventsToDate + log${serializeLogFilterDefinition(log)}AtPeriodStartActorStatistics.dailyLogEvents, 0))`;
+				const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Log${serializeLogFilterDefinition(log)}`);
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Log${serializeLogFilterDefinition(log)}`);
+
+				return `(IFNULL(${actorEndTableName}.logEventsToDate + ${actorEndTableName}.dailyLogEvents, 0) `
+					+ `- IFNULL(${actorStartTableName}.logEventsToDate + ${actorStartTableName}.dailyLogEvents, 0))`;
 			}).join(" + "), selectedColumnName);
 
 			break;
@@ -735,7 +1428,9 @@ function addSingleColumSelect(
 			const logFilters = Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter];
 
 			query = query.addSelect(logFilters.map(log => {
-				return `IFNULL(log${serializeLogFilterDefinition(log)}SinceRegistrationActorStatistics.logEventsToDate + log${serializeLogFilterDefinition(log)}SinceRegistrationActorStatistics.dailyLogEvents, 0)`;
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Log${serializeLogFilterDefinition(log)}`);
+
+				return `IFNULL(${actorEndTableName}.logEventsToDate + ${actorEndTableName}.dailyLogEvents, 0)`;
 			}).join(" + "), selectedColumnName);
 
 			break;
@@ -744,13 +1439,17 @@ function addSingleColumSelect(
 		case "firstLogEventDateByType": {
 			const logFilters = Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter];
 			if (logFilters.length === 1) {
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Log${serializeLogFilterDefinition(logFilters[0])}`);
+
 				query = query.addSelect(
-					`DATE(IFNULL(log${serializeLogFilterDefinition(logFilters[0])}LastActorStatisticsAtPeriodEnd.firstDate, "2100-01-01"))`,
+					`DATE(IFNULL(${actorEndTableName}Date.firstDate, "2100-01-01"))`,
 					selectedColumnName
 				);
 			} else {
 				query = query.addSelect("DATE(LEAST(" + logFilters.map(log => {
-					return `IFNULL(log${serializeLogFilterDefinition(log)}LastActorStatisticsAtPeriodEnd.firstDate, "2100-01-01")`;
+					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Log${serializeLogFilterDefinition(log)}`);
+
+					return `IFNULL(${actorEndTableName}Date.firstDate, "2100-01-01")`;
 				}).join(", ") + "))", selectedColumnName);
 			}
 			break;
@@ -759,13 +1458,17 @@ function addSingleColumSelect(
 		case "lastLogEventDateByType": {
 			const logFilters = Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter];
 			if (logFilters.length === 1) {
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Log${serializeLogFilterDefinition(logFilters[0])}`);
+
 				query = query.addSelect(
-					`DATE(IFNULL(log${serializeLogFilterDefinition(logFilters[0])}LastActorStatisticsAtPeriodEnd.lastDate, "1900-01-01"))`,
+					`DATE(IFNULL(${actorEndTableName}Date.lastDate, "1900-01-01"))`,
 					selectedColumnName
 				);
 			} else {
-				query = query.addSelect("DATE(GREATEST(" + logFilters.map(log => {
-					return `IFNULL(log${serializeLogFilterDefinition(log)}LastActorStatisticsAtPeriodEnd.lastDate, "1900-01-01")`;
+				query = query.addSelect("DATE(LEAST(" + logFilters.map(log => {
+					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Log${serializeLogFilterDefinition(log)}`);
+
+					return `IFNULL(${actorEndTableName}Date.lastDate, "1900-01-01")`;
 				}).join(", ") + "))", selectedColumnName);
 			}
 			break;
@@ -779,37 +1482,50 @@ function addSingleColumSelect(
 		case "daysBetweenFirstAndLastEdit":
 			query = query.addSelect("DATEDIFF(editDates.lastEditDate, editDates.firstEditDate)", selectedColumnName);
 			break;
-		case "averageEditsPerDayInPeriod":
-			query = query.addSelect(
-				"(IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.editsToDate + atPeriodStartActorStatistics.dailyEdits, 0))"
-				+ " / "
-				+ "(IFNULL(sinceRegistrationActorStatistics.activeDaysToDate + sinceRegistrationActorStatistics.dailyActiveDay, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.activeDaysToDate + atPeriodStartActorStatistics.dailyActiveDay, 0))", selectedColumnName);
-			break;
-		case "averageEditsPerDaySinceRegistration":
-			query = query.addSelect("IFNULL((sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits)"
-				+ " / (sinceRegistrationActorStatistics.activeDaysToDate + sinceRegistrationActorStatistics.dailyActiveDay), 0)", selectedColumnName);
-			break;
+		case "averageEditsPerDayInPeriod": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
 
+			query = query.addSelect(
+				`(IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
+				+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0))`
+				+ " / "
+				+ `(IFNULL(${actorEndTableName}.activeDaysToDate + ${actorEndTableName}.dailyActiveDay, 0) `
+				+ `- IFNULL(${actorStartTableName}.activeDaysToDate + ${actorStartTableName}.dailyActiveDay, 0))`, selectedColumnName);
+			break;
+		}
+		case "averageEditsPerDaySinceRegistration": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`IFNULL((${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits)`
+				+ ` / (${actorEndTableName}.activeDaysToDate + ${actorEndTableName}.dailyActiveDay), 0)`, selectedColumnName);
+			break;
+		}
 		case "firstLogEventDate":
 			query = query.addSelect("logEventDates.firstLogEventDate", selectedColumnName);
 			break;
 		case "lastLogEventDate":
 			query = query.addSelect("logEventDates.lastLogEventDate", selectedColumnName);
 			break;
-		case "averageLogEventsPerDayInPeriod":
+		case "averageLogEventsPerDayInPeriod": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
 			query = query.addSelect(
-				"(IFNULL(sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.logEventsToDate + atPeriodStartActorStatistics.dailyLogEvents, 0))"
+				`(IFNULL(${actorEndTableName}.logEventsToDate + ${actorEndTableName}.dailyLogEvents, 0) `
+				+ `- IFNULL(${actorStartTableName}.logEventsToDate + ${actorStartTableName}.dailyLogEvents, 0))`
 				+ " / "
-				+ "(IFNULL(sinceRegistrationActorStatistics.activeDaysToDate + sinceRegistrationActorStatistics.dailyActiveDay, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.activeDaysToDate + atPeriodStartActorStatistics.dailyActiveDay, 0))", selectedColumnName);
+				+ `(IFNULL(${actorEndTableName}.activeDaysToDate + ${actorEndTableName}.dailyActiveDay, 0) `
+				+ `- IFNULL(${actorStartTableName}.activeDaysToDate + ${actorStartTableName}.dailyActiveDay, 0))`, selectedColumnName);
 			break;
-		case "averageLogEventsPerDaySinceRegistration":
-			query = query.addSelect("IFNULL((sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents)"
-				+ " / (sinceRegistrationActorStatistics.activeDaysToDate + sinceRegistrationActorStatistics.dailyActiveDay), 0)", selectedColumnName);
+		}
+		case "averageLogEventsPerDaySinceRegistration": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`IFNULL((${actorEndTableName}.logEventsToDate + ${actorEndTableName}.dailyLogEvents)`
+				+ ` / (${actorEndTableName}.activeDaysToDate + ${actorEndTableName}.dailyActiveDay), 0)`, selectedColumnName);
 			break;
+		}
 		case "daysBetweenFirstAndLastLogEvent":
 			query = query.addSelect("DATEDIFF(logEventDates.lastLogEventDate, logEventDates.firstLogEventDate)", selectedColumnName);
 			break;
@@ -820,56 +1536,71 @@ function addSingleColumSelect(
 			query = query.addSelect("DATEDIFF(:endDate, DATE(actor.registrationTimestamp))", selectedColumnName);
 			break;
 
-		case "activeDaysInPeriod":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.activeDaysToDate + sinceRegistrationActorStatistics.dailyActiveDay, 0) "
-				+ "- IFNULL(atPeriodStartActorStatistics.activeDaysToDate + atPeriodStartActorStatistics.dailyActiveDay, 0)", selectedColumnName);
+		case "activeDaysInPeriod": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`IFNULL(${actorEndTableName}.activeDaysToDate + ${actorEndTableName}.dailyActiveDay, 0) `
+				+ `- IFNULL(${actorStartTableName}.activeDaysToDate + ${actorStartTableName}.dailyActiveDay, 0)`, selectedColumnName);
 			break;
-		case "activeDaysSinceRegistration":
-			query = query.addSelect("IFNULL(sinceRegistrationActorStatistics.activeDaysToDate + sinceRegistrationActorStatistics.dailyActiveDay, 0)", selectedColumnName);
+		}
+		case "activeDaysSinceRegistration": {
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
+			query = query.addSelect(`IFNULL(${actorEndTableName}.activeDaysToDate + ${actorEndTableName}.dailyActiveDay, 0)`, selectedColumnName);
 			break;
+		}
 
 		case "levelAtPeriodStart":
-			query = addStartLevelColumnSelects(query, selectedColumnName);
+			query = addStartLevelColumnSelects(query, selectedColumnName, startDate);
 			break;
 		case "levelAtPeriodEnd":
-			query = addEndLevelColumnSelects(query, selectedColumnName);
+			query = addEndLevelColumnSelects(query, selectedColumnName, endDate);
 			break;
 		case "levelAtPeriodEndWithChange":
-			query = addStartLevelColumnSelects(query, selectedColumnName);
-			query = addEndLevelColumnSelects(query, selectedColumnName);
+			query = addStartLevelColumnSelects(query, selectedColumnName, startDate);
+			query = addEndLevelColumnSelects(query, selectedColumnName, endDate);
 			break;
 	}
 
 	return query;
 }
 
-function addStartLevelColumnSelects(query: SelectQueryBuilder<ActorTypeModel>, selectedColumnName: string) {
+function addStartLevelColumnSelects(
+	query: SelectQueryBuilder<ActorTypeModel>,
+	selectedColumnName: string,
+	startDate: moment.Moment | undefined
+) {
+	const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+
 	query = query.addSelect(
-		"IFNULL(atPeriodStartActorStatistics.editsToDate + atPeriodStartActorStatistics.dailyEdits, 0)",
+		`IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0)`,
 		`${selectedColumnName}_startEdits`
 	);
 	query = query.addSelect(
-		"IFNULL(atPeriodStartActorStatistics.logEventsToDate + atPeriodStartActorStatistics.dailyLogEvents, 0)",
+		`IFNULL(${actorStartTableName}.logEventsToDate + ${actorStartTableName}.dailyLogEvents, 0)`,
 		`${selectedColumnName}_startLogEvents`
 	);
 	query = query.addSelect(
-		"IFNULL(atPeriodStartActorStatistics.activeDaysToDate + atPeriodStartActorStatistics.dailyActiveDay, 0)",
+		`IFNULL(${actorStartTableName}.activeDaysToDate + ${actorStartTableName}.dailyActiveDay, 0)`,
 		`${selectedColumnName}_startActiveDays`
 	);
 	return query;
 }
 
-function addEndLevelColumnSelects(query: SelectQueryBuilder<ActorTypeModel>, selectedColumnName: string) {
+function addEndLevelColumnSelects(query: SelectQueryBuilder<ActorTypeModel>, selectedColumnName: string, endDate: moment.Moment) {
+	const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+
 	query = query.addSelect(
-		"IFNULL(sinceRegistrationActorStatistics.editsToDate + sinceRegistrationActorStatistics.dailyEdits, 0)",
+		`IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0)`,
 		`${selectedColumnName}_endEdits`
 	);
 	query = query.addSelect(
-		"IFNULL(sinceRegistrationActorStatistics.logEventsToDate + sinceRegistrationActorStatistics.dailyLogEvents, 0)",
+		`IFNULL(${actorEndTableName}.logEventsToDate + ${actorEndTableName}.dailyLogEvents, 0)`,
 		`${selectedColumnName}_endLogEvents`
 	);
 	query = query.addSelect(
-		"IFNULL(sinceRegistrationActorStatistics.activeDaysToDate + sinceRegistrationActorStatistics.dailyActiveDay, 0)",
+		`IFNULL(${actorEndTableName}.activeDaysToDate + ${actorEndTableName}.dailyActiveDay, 0)`,
 		`${selectedColumnName}_endActiveDays`
 	);
 	return query;
@@ -880,258 +1611,331 @@ function addColumnJoins(
 	query: SelectQueryBuilder<ActorTypeModel>,
 	wikiEntities: WikiStatisticsTypesResult,
 	columns: ListColumn[] | undefined,
-	startDate: Date | undefined,
-	endDate: Date,
+	startDate: moment.Moment | undefined,
+	endDate: moment.Moment,
 ) {
 	if (!columns || columns.length == 0)
 		return query;
 
 	for (const column of columns) {
-		switch (column.type) {
-			case "editsInPeriod":
-			case "revertedEditsInPeriod":
-			case "revertedEditsInPeriodPercentageToOwnTotalEdits":
-			case "characterChangesInPeriod":
-			case "receivedThanksInPeriod":
-			case "sentThanksInPeriod":
-			case "logEventsInPeriod":
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				break;
+		collectColumnJoinInformation(column, ctx, startDate, endDate);
+	}
 
-			case "editsInPeriodPercentageToWikiTotal":
-			case "revertedEditsInPeriodPercentageToWikiTotal":
-			case "characterChangesInPeriodPercentageToWikiTotal":
-			case "receivedThanksInPeriodPercentageToWikiTotal":
-			case "sentThanksInPeriodPercentageToWikiTotal":
-			case "logEventsInPeriodPercentageToWikiTotal":
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.push(column.type);
-				break;
+	query = addDailyStatisticsColumnJoins(ctx, query, wikiEntities);
 
-			case "editsSinceRegistration":
-			case "revertedEditsSinceRegistration":
-			case "revertedEditsSinceRegistrationPercentageToOwnTotalEdits":
-			case "characterChangesSinceRegistration":
-			case "receivedThanksSinceRegistration":
-			case "sentThanksSinceRegistration":
-			case "logEventsSinceRegistration":
-				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				break;
+	query = addEditDateColumnJoins(columns, query, wikiEntities, endDate);
 
-			case "editsSinceRegistrationPercentageToWikiTotal":
-			case "revertedEditsSinceRegistrationPercentageToWikiTotal":
-			case "characterChangesSinceRegistrationPercentageToWikiTotal":
-			case "receivedThanksSinceRegistrationPercentageToWikiTotal":
-			case "sentThanksSinceRegistrationPercentageToWikiTotal":
-			case "logEventsSinceRegistrationPercentageToWikiTotal":
-				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				ctx.columns.requiredColumnsForSinceRegisteredWikiStatistics.push(column.type);
-				break;
+	query = addLogEventDateColumnJoins(columns, query, wikiEntities, endDate);
 
-			case "editsInNamespaceInPeriod":
-			case "editsInNamespaceInPeriodPercentageToOwnTotalEdits":
-			case "revertedEditsInNamespaceInPeriod":
-			case "revertedEditsInNamespaceInPeriodPercentageToOwnTotalEdits":
-			case "characterChangesInNamespaceInPeriod": {
-				for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
-					const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
-					namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				}
+	for (const namespaceCollection of ctx.columns.requiredNamespaceStatisticsColumns) {
+		query = addNamespaceColumnJoins(namespaceCollection, query, wikiEntities, endDate);
+	}
 
-				if (column.type === "editsInNamespaceInPeriodPercentageToOwnTotalEdits") {
-					ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				}
-				break;
-			}
-			case "editsInNamespaceInPeriodPercentageToWikiTotal":
-			case "revertedEditsInNamespaceInPeriodPercentageToWikiTotal":
-			case "characterChangesInNamespaceInPeriodPercentageToWikiTotal": {
-				for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
-					const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
-					namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-					namespaceCollector.requiredColumnsForSelectedPeriodWikiStatistics.push(column.type);
-				}
-				break;
-			}
-			case "editsInNamespaceSinceRegistration":
-			case "editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits":
-			case "revertedEditsInNamespaceSinceRegistration":
-			case "revertedEditsInNamespaceSinceRegistrationPercentageToOwnTotalEdits":
-			case "characterChangesInNamespaceSinceRegistration": {
-				for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
-					const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
-					namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				}
+	for (const changeTagCollection of ctx.columns.requiredChangeTagStatisticsColumns) {
+		query = addChangeTagColumnJoins(changeTagCollection, query, wikiEntities, endDate);
+	}
 
-				if (column.type === "editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits") {
-					ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				}
+	for (const logTypeCollection of ctx.columns.requiredLogTypeStatisticsColumns) {
+		query = addLogTypeColumnJoins(logTypeCollection, query, wikiEntities, endDate);
+	}
 
-				break;
-			}
-			case "editsInNamespaceSinceRegistrationPercentageToWikiTotal":
-			case "revertedEditsInNamespaceSinceRegistrationPercentageToWikiTotal":
-			case "characterChangesInNamespaceSinceRegistrationPercentageToWikiTotal": {
-				for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
-					const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
-					namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-					namespaceCollector.requiredColumnsForSinceRegisteredWikiStatistics.push(column.type);
-				}
+	return query;
+}
 
-				break;
+function collectColumnJoinInformation(column: ListColumn, ctx: StatisticsQueryBuildingContext, startDate: moment.Moment | undefined, endDate: moment.Moment) {
+	switch (column.type) {
+		case "editsInPeriod":
+		case "revertedEditsInPeriod":
+		case "revertedEditsInPeriodPercentageToOwnTotalEdits":
+		case "characterChangesInPeriod":
+		case "receivedThanksInPeriod":
+		case "sentThanksInPeriod":
+		case "logEventsInPeriod":
+			ctx.columns.needsSelectedPeriodActorStatistics = true;
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodStarts, startDate);
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
+			break;
+
+		case "editsInPeriodPercentageToWikiTotal":
+		case "revertedEditsInPeriodPercentageToWikiTotal":
+		case "characterChangesInPeriodPercentageToWikiTotal":
+		case "receivedThanksInPeriodPercentageToWikiTotal":
+		case "sentThanksInPeriodPercentageToWikiTotal":
+		case "logEventsInPeriodPercentageToWikiTotal":
+			ctx.columns.needsSelectedPeriodActorStatistics = true;
+			ctx.columns.needsSelectedPeriodWikiStatistics = true;
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodStarts, startDate);
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededWikiPeriodStarts, startDate);
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededWikiPeriodEnds, endDate);
+			break;
+
+		case "editsSinceRegistration":
+		case "revertedEditsSinceRegistration":
+		case "revertedEditsSinceRegistrationPercentageToOwnTotalEdits":
+		case "characterChangesSinceRegistration":
+		case "receivedThanksSinceRegistration":
+		case "sentThanksSinceRegistration":
+		case "logEventsSinceRegistration":
+			ctx.columns.needsSinceRegisteredActorStatistics = true;
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
+			break;
+
+		case "editsSinceRegistrationPercentageToWikiTotal":
+		case "revertedEditsSinceRegistrationPercentageToWikiTotal":
+		case "characterChangesSinceRegistrationPercentageToWikiTotal":
+		case "receivedThanksSinceRegistrationPercentageToWikiTotal":
+		case "sentThanksSinceRegistrationPercentageToWikiTotal":
+		case "logEventsSinceRegistrationPercentageToWikiTotal":
+			ctx.columns.needsSinceRegisteredActorStatistics = true;
+			ctx.columns.needsSinceRegisteredWikiStatistics = true;
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededWikiPeriodEnds, endDate);
+			break;
+
+		case "editsInNamespaceInPeriod":
+		case "editsInNamespaceInPeriodPercentageToOwnTotalEdits":
+		case "revertedEditsInNamespaceInPeriod":
+		case "revertedEditsInNamespaceInPeriodPercentageToOwnTotalEdits":
+		case "characterChangesInNamespaceInPeriod": {
+			for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
+				const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
+				namespaceCollector.needsSelectedPeriodActorStatistics = true;
+				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodStarts, startDate);
+				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
 			}
 
-			case "editsInPeriodByChangeTag":
-			case "characterChangesInPeriodByChangeTag": {
-				for (const ct of Array.isArray(column.changeTag) ? column.changeTag : [column.changeTag]) {
-					const namespaceCollector = getOrCreateChangeTagCollector(ctx, ct);
-					namespaceCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				}
-				break;
+			if (column.type === "editsInNamespaceInPeriodPercentageToOwnTotalEdits") {
+				ctx.columns.needsSinceRegisteredActorStatistics = true;
+				addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
+			}
+			break;
+		}
+		case "editsInNamespaceInPeriodPercentageToWikiTotal":
+		case "revertedEditsInNamespaceInPeriodPercentageToWikiTotal":
+		case "characterChangesInNamespaceInPeriodPercentageToWikiTotal": {
+			for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
+				const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
+				namespaceCollector.needsSelectedPeriodActorStatistics = true;
+				namespaceCollector.needsSelectedPeriodWikiStatistics = true;
+				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodStarts, startDate);
+				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
+				addNeededPeriodToCollection(namespaceCollector.neededDates.neededWikiPeriodStarts, startDate);
+				addNeededPeriodToCollection(namespaceCollector.neededDates.neededWikiPeriodEnds, endDate);
+			}
+			break;
+		}
+		case "editsInNamespaceSinceRegistration":
+		case "editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits":
+		case "revertedEditsInNamespaceSinceRegistration":
+		case "revertedEditsInNamespaceSinceRegistrationPercentageToOwnTotalEdits":
+		case "characterChangesInNamespaceSinceRegistration": {
+			for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
+				const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
+				namespaceCollector.needsSinceRegisteredActorStatistics = true;
+				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
 			}
 
-			case "editsSinceRegistrationByChangeTag":
-			case "characterChangesSinceRegistrationByChangeTag": {
-				for (const ct of Array.isArray(column.changeTag) ? column.changeTag : [column.changeTag]) {
-					const namespaceCollector = getOrCreateChangeTagCollector(ctx, ct);
-					namespaceCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				}
-				break;
+			if (column.type === "editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits") {
+				ctx.columns.needsSinceRegisteredActorStatistics = true;
+				addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
 			}
 
-			case "averageEditsPerDayInPeriod":
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push("editsInPeriod");
-				break;
-			case "averageEditsPerDaySinceRegistration":
-				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push("editsSinceRegistration");
-				break;
-
-			case "logEventsInPeriodByType": {
-				for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
-					const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
-					logTypeCollector.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				}
-				break;
-			}
-			case "logEventsSinceRegistrationByType": {
-				for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
-					const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
-					logTypeCollector.requiredColumnsForSinceRegisteredActorStatistics.push(column.type);
-				}
-				break;
-			}
-			case "firstLogEventDateByType": {
-				for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
-					const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
-					logTypeCollector.needsFirstLogEntryDate = true;
-				}
-				break;
-			}
-			case "lastLogEventDateByType": {
-				for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
-					const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
-					logTypeCollector.needsLastEntryDate = true;
-				}
-				break;
+			break;
+		}
+		case "editsInNamespaceSinceRegistrationPercentageToWikiTotal":
+		case "revertedEditsInNamespaceSinceRegistrationPercentageToWikiTotal":
+		case "characterChangesInNamespaceSinceRegistrationPercentageToWikiTotal": {
+			for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
+				const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
+				namespaceCollector.needsSinceRegisteredActorStatistics = true;
+				namespaceCollector.needsSinceRegisteredWikiStatistics = true;
+				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
+				addNeededPeriodToCollection(namespaceCollector.neededDates.neededWikiPeriodEnds, endDate);
 			}
 
-			case "activeDaysInPeriod":
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(column.type);
-				break;
+			break;
+		}
 
-			case "levelAtPeriodStart":
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(
-					"editsInPeriod",
-					"logEventsInPeriod",
-				);
-				break;
+		case "editsInPeriodByChangeTag":
+		case "characterChangesInPeriodByChangeTag": {
+			for (const ct of Array.isArray(column.changeTag) ? column.changeTag : [column.changeTag]) {
+				const ctCollector = getOrCreateChangeTagCollector(ctx, ct);
+				ctCollector.needsSelectedPeriodActorStatistics = true;
+				addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodStarts, startDate);
+				addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodEnds, endDate);
+			}
+			break;
+		}
 
-			case "levelAtPeriodEnd":
-				ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.push(
-					"editsInPeriod",
-					"logEventsInPeriod"
-				);
-				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(
-					"editsSinceRegistration",
-					"logEventsSinceRegistration"
-				);
-				break;
+		case "editsSinceRegistrationByChangeTag":
+		case "characterChangesSinceRegistrationByChangeTag": {
+			for (const ct of Array.isArray(column.changeTag) ? column.changeTag : [column.changeTag]) {
+				const ctCollector = getOrCreateChangeTagCollector(ctx, ct);
+				ctCollector.needsSinceRegisteredActorStatistics = true;
+				addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodEnds, endDate);
+			}
+			break;
+		}
 
-			case "levelAtPeriodEndWithChange":
-				ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.push(
-					"editsSinceRegistration",
-					"logEventsSinceRegistration"
-				);
-				break;
+		case "averageEditsPerDayInPeriod":
+			ctx.columns.needsSelectedPeriodActorStatistics = true;
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodStarts, startDate);
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
+			break;
+		case "averageEditsPerDaySinceRegistration":
+			ctx.columns.needsSinceRegisteredActorStatistics = true;
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
+			break;
+
+		case "logEventsInPeriodByType": {
+			for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
+				const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
+				logTypeCollector.needsSelectedPeriodActorStatistics = true;
+				addNeededPeriodToCollection(logTypeCollector.neededDates.neededActorPeriodStarts, startDate);
+				addNeededPeriodToCollection(logTypeCollector.neededDates.neededActorPeriodEnds, endDate);
+			}
+			break;
+		}
+		case "logEventsSinceRegistrationByType": {
+			for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
+				const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
+				logTypeCollector.needsSinceRegisteredActorStatistics = true;
+				addNeededPeriodToCollection(logTypeCollector.neededDates.neededActorPeriodEnds, endDate);
+			}
+			break;
+		}
+		case "firstLogEventDateByType": {
+			for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
+				const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
+				logTypeCollector.needsFirstLogEntryDate = true;
+				addNeededPeriodToCollection(logTypeCollector.neededDates.neededActorPeriodEnds, endDate);
+			}
+			break;
+		}
+		case "lastLogEventDateByType": {
+			for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
+				const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
+				logTypeCollector.needsLastEntryDate = true;
+				addNeededPeriodToCollection(logTypeCollector.neededDates.neededActorPeriodEnds, endDate);
+			}
+			break;
+		}
+
+		case "activeDaysInPeriod":
+			ctx.columns.needsSelectedPeriodActorStatistics = true;
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodStarts, startDate);
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
+			break;
+
+		case "levelAtPeriodStart":
+			ctx.columns.needsSelectedPeriodActorStatistics = true;
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodStarts, startDate);
+			break;
+
+		case "levelAtPeriodEnd":
+			ctx.columns.needsSinceRegisteredActorStatistics = true;
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
+			break;
+
+		case "levelAtPeriodEndWithChange":
+			ctx.columns.needsSelectedPeriodActorStatistics = true;
+			ctx.columns.needsSinceRegisteredActorStatistics = true;
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodStarts, startDate);
+			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
+			break;
+	}
+}
+
+function addDailyStatisticsColumnJoins(ctx: StatisticsQueryBuildingContext, query: SelectQueryBuilder<ActorTypeModel>, wikiEntities: WikiStatisticsTypesResult) {
+	if (ctx.columns.needsSelectedPeriodActorStatistics) {
+		for (const startDate of ctx.columns.neededDates.neededActorPeriodStarts) {
+			const tableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const startDateParameterName = startDate.format("YYYYMMDD");
+
+			query = query.leftJoin(qb => {
+				return qb.subQuery()
+					.select("lads.actorId", "actorId")
+					.addSelect("MAX(lads.date)", "lastDate")
+					.from(wikiEntities.actorDailyStatistics, "lads")
+					.where(`lads.date < :${startDateParameterName}`, { [startDateParameterName]: startDate.toDate() })
+					.groupBy("lads.actorId");
+			}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+
+			query = query.innerJoin(
+				wikiEntities.actorDailyStatistics,
+				tableName,
+				`${tableName}.actorId = actor.actorId AND ${tableName}.date = ${tableName}Date.lastDate`
+			);
 		}
 	}
 
-	if (ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
-		query = query.leftJoin(qb => {
-			return qb.subQuery()
-				.select("lads.actorId", "actorId")
-				.addSelect("MAX(lads.date)", "lastDate")
-				.from(wikiEntities.actorDailyStatistics, "lads")
-				.where("lads.date < :startDate", { startDate: startDate })
-				.groupBy("lads.actorId");
-		}, "lastStatisticsBeforePeriodStart", "lastStatisticsBeforePeriodStart.actorId = actor.actorId");
+	if (ctx.columns.needsSelectedPeriodWikiStatistics) {
+		for (const startDate of ctx.columns.neededDates.neededWikiPeriodStarts) {
+			const tableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki");
+			const startDateParameterName = startDate.format("YYYYMMDD");
 
-		query = query.innerJoin(
-			wikiEntities.actorDailyStatistics,
-			"atPeriodStartActorStatistics",
-			"atPeriodStartActorStatistics.actorId = actor.actorId AND atPeriodStartActorStatistics.date = lastStatisticsBeforePeriodStart.lastDate"
-		);
+			query = query.leftJoin(qb => {
+				return qb.subQuery()
+					.select("MAX(lwds.date)", "lastDate")
+					.from(wikiEntities.dailyStatistics, "lwds")
+					.where(`lwds.date < :${startDateParameterName}`, { [startDateParameterName]: startDate.toDate() });
+			}, `${tableName}Date`, "true");
+
+			query = query.leftJoin(
+				wikiEntities.dailyStatistics,
+				tableName,
+				`${tableName}.date = ${tableName}Date.lastDate`
+			);
+		}
 	}
 
-	if (ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.length > 0) {
-		query = query.leftJoin(qb => {
-			return qb.subQuery()
-				.select("MAX(lwds.date)", "lastDate")
-				.from(wikiEntities.dailyStatistics, "lwds")
-				.where("lwds.date < :startDate", { startDate: startDate });
-		}, "atPeriodStartWikiStatisticsDate", "true");
+	if (ctx.columns.needsSinceRegisteredActorStatistics || ctx.columns.needsSelectedPeriodActorStatistics) {
+		for (const endDate of ctx.columns.neededDates.neededActorPeriodEnds) {
+			const tableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const endDateParameterName = endDate.format("YYYYMMDD");
 
-		query = query.leftJoin(
-			wikiEntities.dailyStatistics,
-			"atPeriodStartWikiStatistics",
-			"atPeriodStartWikiStatistics.date = atPeriodStartWikiStatisticsDate.lastDate"
-		);
+			query = query.leftJoin(qb => {
+				return qb.subQuery()
+					.select("lads.actorId", "actorId")
+					.addSelect("MAX(lads.date)", "lastDate")
+					.from(wikiEntities.actorDailyStatistics, "lads")
+					.where(`lads.date <= :${endDateParameterName}`, { [endDateParameterName]: endDate.toDate() })
+					.groupBy("lads.actorId");
+			}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+
+			query = query.innerJoin(
+				wikiEntities.actorDailyStatistics,
+				tableName,
+				`${tableName}.actorId = actor.actorId AND ${tableName}.date = ${tableName}Date.lastDate`
+			);
+		}
 	}
 
-	if (ctx.columns.requiredColumnsForSinceRegisteredActorStatistics.length > 0
-		|| ctx.columns.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
-		query = query.leftJoin(qb => {
-			return qb.subQuery()
-				.select("lads.actorId", "actorId")
-				.addSelect("MAX(lads.date)", "lastDate")
-				.from(wikiEntities.actorDailyStatistics, "lads")
-				.where("lads.date <= :endDate", { endDate: endDate })
-				.groupBy("lads.actorId");
-		}, "lastActorStatisticsAtPeriodEnd", "lastActorStatisticsAtPeriodEnd.actorId = actor.actorId");
+	if (ctx.columns.needsSelectedPeriodWikiStatistics
+		|| ctx.columns.needsSinceRegisteredWikiStatistics) {
+		for (const endDate of ctx.columns.neededDates.neededWikiPeriodEnds) {
+			const tableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const endDateParameterName = endDate.format("YYYYMMDD");
 
-		query = query.innerJoin(
-			wikiEntities.actorDailyStatistics,
-			"sinceRegistrationActorStatistics",
-			"sinceRegistrationActorStatistics.actorId = actor.actorId AND sinceRegistrationActorStatistics.date = lastActorStatisticsAtPeriodEnd.lastDate"
-		);
+			query = query.leftJoin(qb => {
+				return qb.subQuery()
+					.select("MAX(lwds.date)", "lastDate")
+					.from(wikiEntities.dailyStatistics, "lwds")
+					.where(`lwds.date <= :${endDateParameterName}`, { [endDateParameterName]: endDate.toDate() });
+			}, `${tableName}Date`, "true");
+
+			query = query.leftJoin(
+				wikiEntities.dailyStatistics,
+				tableName,
+				`${tableName}.date = ${tableName}Date.lastDate`
+			);
+		}
 	}
+	return query;
+}
 
-	if (ctx.columns.requiredColumnsForSelectedPeriodWikiStatistics.length > 0
-		|| ctx.columns.requiredColumnsForSinceRegisteredWikiStatistics.length > 0) {
-		query = query.leftJoin(qb => {
-			return qb.subQuery()
-				.select("MAX(lwds.date)", "lastDate")
-				.from(wikiEntities.dailyStatistics, "lwds")
-				.where("lwds.date <= :endDate", { endDate: endDate });
-		}, "lastWikiStatisticsAtPeriodEnd", "true");
-
-		query = query.leftJoin(
-			wikiEntities.dailyStatistics,
-			"sinceStartWikiStatistics",
-			"sinceStartWikiStatistics.date = lastWikiStatisticsAtPeriodEnd.lastDate"
-		);
-	}
-
+function addEditDateColumnJoins(columns: ListColumn[], query: SelectQueryBuilder<ActorTypeModel>, wikiEntities: WikiStatisticsTypesResult, endDate: moment.Moment) {
 	const needsDaysBetweenFirstAndLastEdit = columns.findIndex(x => x.type === "daysBetweenFirstAndLastEdit") !== -1;
 	const needsFirstEditDate = needsDaysBetweenFirstAndLastEdit || columns.findIndex(x => x.type === "firstEditDate") !== -1;
 	const needsLastEditDate = needsDaysBetweenFirstAndLastEdit || columns.findIndex(x => x.type === "lastEditDate") !== -1;
@@ -1152,13 +1956,16 @@ function addColumnJoins(
 			return subQuery
 				.from(wikiEntities.actorDailyStatistics, "ads")
 				.where(
-					"ads.date <= :endDate", { endDate: endDate }
+					"ads.date <= :endDate", { endDate: endDate.toDate() }
 				)
 				.andWhere("ads.dailyEdits > 0")
 				.groupBy("ads.actorId");
 		}, "editDates", "editDates.actorId = actor.actorId");
 	}
+	return query;
+}
 
+function addLogEventDateColumnJoins(columns: ListColumn[], query: SelectQueryBuilder<ActorTypeModel>, wikiEntities: WikiStatisticsTypesResult, endDate: moment.Moment) {
 	const needsDaysBetweenFirstAndLastLogEvent = columns.findIndex(x => x.type === "daysBetweenFirstAndLastLogEvent") !== -1;
 	const needsFirstLogEventDate = needsDaysBetweenFirstAndLastLogEvent || columns.findIndex(x => x.type === "firstLogEventDate") !== -1;
 	const needsLastLogEventDate = needsDaysBetweenFirstAndLastLogEvent || columns.findIndex(x => x.type === "lastLogEventDate") !== -1;
@@ -1168,138 +1975,163 @@ function addColumnJoins(
 			let subQuery = qb.subQuery()
 				.select("ads.actorId", "actorId");
 
-			if (needsFirstEditDate) {
+			if (needsFirstLogEventDate) {
 				subQuery = subQuery.addSelect("MIN(date)", "firstLogEventDate");
 			}
 
-			if (needsLastEditDate) {
+			if (needsLastLogEventDate) {
 				subQuery = subQuery.addSelect("MAX(date)", "lastLogEventDate");
 			}
 
 			return subQuery
 				.from(wikiEntities.actorDailyStatistics, "ads")
 				.where(
-					"ads.date <= :endDate", { endDate: endDate }
+					"ads.date <= :endDate", { endDate: endDate.toDate() }
 				)
 				.andWhere("ads.dailyLogEvents > 0")
 				.groupBy("ads.actorId");
 		}, "logEventDates", "logEventDates.actorId = actor.actorId");
 	}
+	return query;
+}
 
-	for (const namespaceCollection of ctx.columns.requiredNamespaceStatisticsColumns) {
-		const namespaceKey = formatNamespaceParameter(namespaceCollection.namespace);
+function addNamespaceColumnJoins(namespaceCollection: NamespaceRequiredColumns, query: SelectQueryBuilder<ActorTypeModel>, wikiEntities: WikiStatisticsTypesResult, endDate: moment.Moment) {
+	const namespaceKey = formatNamespaceParameter(namespaceCollection.namespace);
 
-		if (namespaceCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
+	if (namespaceCollection.needsSelectedPeriodActorStatistics) {
+		for (const startDate of namespaceCollection.neededDates.neededActorPeriodStarts) {
+			const tableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ns${namespaceKey}`);
+			const startDateParameterName = startDate.format("YYYYMMDD");
+
 			query = query.leftJoin(qb => {
 				let subQuery = qb.subQuery()
 					.select("lads.actorId", "actorId")
 					.addSelect("MAX(lads.date)", "lastDate")
 					.from(wikiEntities.actorDailyStatisticsByNamespace, "lads")
-					.where("lads.date < :startDate", { startDate: startDate });
+					.where(`lads.date < :${startDateParameterName}`, { [startDateParameterName]: startDate.toDate() });
 
 				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "lads");
 
 				return subQuery.groupBy("lads.actorId");
-			}, `ns${namespaceKey}LastStatisticsBeforePeriodStart`, `ns${namespaceKey}LastStatisticsBeforePeriodStart.actorId = actor.actorId`);
+			}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
 
 			query = query.leftJoin(
 				wikiEntities.actorDailyStatisticsByNamespace,
-				`ns${namespaceKey}AtPeriodStartActorStatistics`,
-				`ns${namespaceKey}AtPeriodStartActorStatistics.actorId = actor.actorId`
-				+ ` AND ns${namespaceKey}AtPeriodStartActorStatistics.namespace = :namespace${namespaceCollection.namespace}`
-				+ ` AND ns${namespaceKey}AtPeriodStartActorStatistics.date = ns${namespaceKey}LastStatisticsBeforePeriodStart.lastDate`,
+				tableName,
+				`${tableName}.actorId = actor.actorId`
+				+ ` AND ${tableName}.namespace = :namespace${namespaceCollection.namespace}`
+				+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
 				{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
 			);
 		}
+	}
 
-		if (namespaceCollection.requiredColumnsForSelectedPeriodWikiStatistics.length > 0) {
+	if (namespaceCollection.needsSelectedPeriodWikiStatistics) {
+		for (const startDate of namespaceCollection.neededDates.neededWikiPeriodStarts) {
+			const tableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki", `Ns${namespaceKey}`);
+			const startDateParameterName = startDate.format("YYYYMMDD");
+
 			query = query.leftJoin(qb => {
 				const subQuery = qb.subQuery()
 					.select("MAX(lwds.date)", "lastDate")
 					.from(wikiEntities.dailyStatisticsByNamespace, "lwds")
-					.where("lwds.date < :startDate", { startDate: startDate });
+					.where(`lwds.date < :${startDateParameterName}`, { [startDateParameterName]: startDate.toDate() });
 
 				return createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "lwds");
-			}, `ns${namespaceKey}AtPeriodStartWikiStatisticsDate`, "true");
+			}, `${tableName}Date`, "true");
 
 			query = query.leftJoin(
 				wikiEntities.dailyStatisticsByNamespace,
-				`ns${namespaceKey}AtPeriodStartWikiStatistics`,
-				`ns${namespaceKey}AtPeriodStartWikiStatistics.date = ns${namespaceKey}AtPeriodStartWikiStatisticsDate.lastDate`
-				+ ` AND ns${namespaceKey}AtPeriodStartWikiStatistics.namespace = :namespace${namespaceCollection.namespace}`,
+				tableName,
+				`${tableName}.date = ${namespaceKey}Date.lastDate`
+				+ ` AND ${tableName}.namespace = :namespace${namespaceCollection.namespace}`,
 				{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
 			);
 		}
+	}
 
-		if (namespaceCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0
-			|| namespaceCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
+	if (namespaceCollection.needsSinceRegisteredActorStatistics || namespaceCollection.needsSelectedPeriodActorStatistics) {
+		for (const startDate of namespaceCollection.neededDates.neededActorPeriodEnds) {
+			const tableName = makePeriodJoinTableName(startDate, "atPeriodEnd", "actor", `Ns${namespaceKey}`);
+			const endDateParameterName = endDate.format("YYYYMMDD");
+
 			query = query.leftJoin(qb => {
 				let subQuery = qb.subQuery()
 					.select("lads.actorId", "actorId")
 					.addSelect("MAX(lads.date)", "lastDate")
 					.from(wikiEntities.actorDailyStatisticsByNamespace, "lads")
-					.where("lads.date <= :endDate", { endDate: endDate })
+					.where(`lads.date <= :${endDateParameterName}`, { [endDateParameterName]: endDate.toDate() })
 					.groupBy("lads.actorId");
 
 				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "lads");
 
 				return subQuery.groupBy("lads.actorId");
-			}, `ns${namespaceKey}LastActorStatisticsAtPeriodEnd`, `ns${namespaceKey}LastActorStatisticsAtPeriodEnd.actorId = actor.actorId`);
+			}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
 
 			query = query.leftJoin(
 				wikiEntities.actorDailyStatisticsByNamespace,
-				`ns${namespaceKey}SinceRegistrationActorStatistics`,
-				`ns${namespaceKey}SinceRegistrationActorStatistics.actorId = actor.actorId `
-				+ ` AND ns${namespaceKey}SinceRegistrationActorStatistics.namespace = :namespace${namespaceCollection.namespace}`
-				+ ` AND ns${namespaceKey}SinceRegistrationActorStatistics.date = ns${namespaceKey}LastActorStatisticsAtPeriodEnd.lastDate`,
+				tableName,
+				`${tableName}.actorId = actor.actorId `
+				+ ` AND ${tableName}.namespace = :namespace${namespaceCollection.namespace}`
+				+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
 				{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
 			);
 		}
+	}
 
-		if (namespaceCollection.requiredColumnsForSelectedPeriodWikiStatistics.length > 0
-			|| namespaceCollection.requiredColumnsForSinceRegisteredWikiStatistics.length > 0) {
+	if (namespaceCollection.needsSelectedPeriodWikiStatistics || namespaceCollection.needsSinceRegisteredWikiStatistics) {
+		for (const startDate of namespaceCollection.neededDates.neededWikiPeriodEnds) {
+			const tableName = makePeriodJoinTableName(startDate, "atPeriodEnd", "wiki", `Ns${namespaceKey}`);
+			const endDateParameterName = endDate.format("YYYYMMDD");
+
 			query = query.leftJoin(qb => {
 				const subQuery = qb.subQuery()
 					.select("MAX(lwds.date)", "lastDate")
 					.from(wikiEntities.dailyStatisticsByNamespace, "lwds")
-					.where("lwds.date <= :endDate", { endDate: endDate });
+					.where(`lwds.date <= :${endDateParameterName}`, { [endDateParameterName]: endDate.toDate() });
 
 				return createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "lwds");
-			}, `ns${namespaceKey}LastWikiStatisticsAtPeriodEnd`, "true");
+			}, `${tableName}Date`, "true");
 
 			query = query.leftJoin(
 				wikiEntities.dailyStatisticsByNamespace,
-				`ns${namespaceKey}SinceStartWikiStatistics`,
-				`ns${namespaceKey}SinceStartWikiStatistics.date = ns${namespaceKey}LastWikiStatisticsAtPeriodEnd.lastDate`
-				+ ` AND ns${namespaceKey}SinceStartWikiStatistics.namespace = :namespace${namespaceCollection.namespace}`,
+				tableName,
+				`${tableName}.date = ${tableName}Date.lastDate`
+				+ ` AND ${tableName}.namespace = :namespace${namespaceCollection.namespace}`,
 				{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
 			);
 		}
 	}
+	return query;
+}
 
-	for (const changeTagCollection of ctx.columns.requiredChangeTagStatisticsColumns) {
-		const normalizedCtKey = changeTagCollection.serializedChangeTagFilter;
+function addChangeTagColumnJoins(changeTagCollection: ChangeTagStatisticsRequiredColumns, query: SelectQueryBuilder<ActorTypeModel>, wikiEntities: WikiStatisticsTypesResult, endDate: moment.Moment) {
+	const normalizedCtKey = changeTagCollection.serializedChangeTagFilter;
 
-		if (changeTagCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
+	if (changeTagCollection.needsSelectedPeriodActorStatistics) {
+		for (const startDate of changeTagCollection.neededDates.neededActorPeriodStarts) {
+			const tableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ct${normalizedCtKey}`);
+			const startDateParameterName = startDate.format("YYYYMMDD");
+
 			if (typeof changeTagCollection.changeTagFilter.namespace !== "number") {
 				query = query.leftJoin(qb => {
 					let subQuery = qb.subQuery()
 						.select("lads.actorId", "actorId")
 						.addSelect("MAX(lads.date)", "lastDate")
 						.from(wikiEntities.actorEditStatisticsByChangeTag, "lads")
-						.where("lads.date < :startDate", { startDate: startDate });
+						.where(`lads.date < :${startDateParameterName}`, { [startDateParameterName]: startDate?.toDate() });
 
 					subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "lads");
 
 					return subQuery.groupBy("lads.actorId");
-				}, `ct${normalizedCtKey}LastStatisticsBeforePeriodStart`, `ct${normalizedCtKey}LastStatisticsBeforePeriodStart.actorId = actor.actorId`);
+				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
 
 				query = query.leftJoin(
 					wikiEntities.actorEditStatisticsByChangeTag,
-					`ct${normalizedCtKey}AtPeriodStartActorStatistics`,
-					`ct${normalizedCtKey}AtPeriodStartActorStatistics.actorId = actor.actorId`
-					+ ` AND ct${normalizedCtKey}AtPeriodStartActorStatistics.changeTagId = :changeTag${changeTagCollection.changeTagFilter.changeTagId}`
-					+ ` AND ct${normalizedCtKey}AtPeriodStartActorStatistics.date = ct${normalizedCtKey}LastStatisticsBeforePeriodStart.lastDate`,
+					tableName,
+					`${tableName}.actorId = actor.actorId`
+					+ ` AND ${tableName}.changeTagId = :changeTag${changeTagCollection.changeTagFilter.changeTagId}`
+					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
 					{
 						[`changeTag${changeTagCollection.changeTagFilter.changeTagId}`]: changeTagCollection.changeTagFilter.changeTagId
 					}
@@ -1310,76 +2142,20 @@ function addColumnJoins(
 						.select("lads.actorId", "actorId")
 						.addSelect("MAX(lads.date)", "lastDate")
 						.from(wikiEntities.actorEditStatisticsByNamespaceAndChangeTag, "lads")
-						.where("lads.date < :startDate", { startDate: startDate });
+						.where(`lads.date < :${startDateParameterName}`, { [startDateParameterName]: startDate?.toDate() });
 
 					subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "lads");
 
 					return subQuery.groupBy("lads.actorId");
-				}, `ct${normalizedCtKey}LastStatisticsBeforePeriodStart`, `ct${normalizedCtKey}LastStatisticsBeforePeriodStart.actorId = actor.actorId`);
+				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
 
 				query = query.leftJoin(
 					wikiEntities.actorEditStatisticsByNamespaceAndChangeTag,
-					`ct${normalizedCtKey}AtPeriodStartActorStatistics`,
-					`ct${normalizedCtKey}AtPeriodStartActorStatistics.actorId = actor.actorId`
-					+ ` AND ct${normalizedCtKey}AtPeriodStartActorStatistics.namespace = :namespace${changeTagCollection.changeTagFilter.namespace}`
-					+ ` AND ct${normalizedCtKey}AtPeriodStartActorStatistics.changeTagId = :changeTag${changeTagCollection.changeTagFilter.changeTagId}`
-					+ ` AND ct${normalizedCtKey}AtPeriodStartActorStatistics.date = ct${normalizedCtKey}LastStatisticsBeforePeriodStart.lastDate`,
-					{
-						[`namespace${changeTagCollection.changeTagFilter.namespace}`]: changeTagCollection.changeTagFilter.namespace,
-						[`changeTag${changeTagCollection.changeTagFilter.changeTagId}`]: changeTagCollection.changeTagFilter.changeTagId
-					}
-				);
-			}
-		}
-
-		if (changeTagCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0
-			|| changeTagCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0
-		) {
-			if (typeof changeTagCollection.changeTagFilter.namespace !== "number") {
-				query = query.leftJoin(qb => {
-					let subQuery = qb.subQuery()
-						.select("lads.actorId", "actorId")
-						.addSelect("MAX(lads.date)", "lastDate")
-						.from(wikiEntities.actorEditStatisticsByChangeTag, "lads")
-						.where("lads.date <= :endDate", { endDate: endDate })
-						.groupBy("lads.actorId");
-
-					subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "lads");
-
-					return subQuery.groupBy("lads.actorId");
-				}, `ct${normalizedCtKey}LastActorStatisticsAtPeriodEnd`, `ct${normalizedCtKey}LastActorStatisticsAtPeriodEnd.actorId = actor.actorId`);
-
-				query = query.leftJoin(
-					wikiEntities.actorEditStatisticsByChangeTag,
-					`ct${normalizedCtKey}SinceRegistrationActorStatistics`,
-					`ct${normalizedCtKey}SinceRegistrationActorStatistics.actorId = actor.actorId `
-					+ ` AND ct${normalizedCtKey}SinceRegistrationActorStatistics.changeTagId = :changeTag${changeTagCollection.changeTagFilter.changeTagId}`
-					+ ` AND ct${normalizedCtKey}SinceRegistrationActorStatistics.date = ct${normalizedCtKey}LastActorStatisticsAtPeriodEnd.lastDate`,
-					{
-						[`changeTag${changeTagCollection.changeTagFilter.changeTagId}`]: changeTagCollection.changeTagFilter.changeTagId
-					}
-				);
-			} else {
-				query = query.leftJoin(qb => {
-					let subQuery = qb.subQuery()
-						.select("lads.actorId", "actorId")
-						.addSelect("MAX(lads.date)", "lastDate")
-						.from(wikiEntities.actorEditStatisticsByNamespaceAndChangeTag, "lads")
-						.where("lads.date <= :endDate", { endDate: endDate })
-						.groupBy("lads.actorId");
-
-					subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "lads");
-
-					return subQuery.groupBy("lads.actorId");
-				}, `ct${normalizedCtKey}LastActorStatisticsAtPeriodEnd`, `ct${normalizedCtKey}LastActorStatisticsAtPeriodEnd.actorId = actor.actorId`);
-
-				query = query.leftJoin(
-					wikiEntities.actorEditStatisticsByNamespaceAndChangeTag,
-					`ct${normalizedCtKey}SinceRegistrationActorStatistics`,
-					`ct${normalizedCtKey}SinceRegistrationActorStatistics.actorId = actor.actorId `
-					+ ` AND ct${normalizedCtKey}SinceRegistrationActorStatistics.namespace = :namespace${changeTagCollection.changeTagFilter.namespace}`
-					+ ` AND ct${normalizedCtKey}SinceRegistrationActorStatistics.changeTagId = :changeTag${changeTagCollection.changeTagFilter.changeTagId}`
-					+ ` AND ct${normalizedCtKey}SinceRegistrationActorStatistics.date = ct${normalizedCtKey}LastActorStatisticsAtPeriodEnd.lastDate`,
+					`${tableName}`,
+					`${tableName}.actorId = actor.actorId`
+					+ ` AND ${tableName}.namespace = :namespace${changeTagCollection.changeTagFilter.namespace}`
+					+ ` AND ${tableName}.changeTagId = :changeTag${changeTagCollection.changeTagFilter.changeTagId}`
+					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
 					{
 						[`namespace${changeTagCollection.changeTagFilter.namespace}`]: changeTagCollection.changeTagFilter.namespace,
 						[`changeTag${changeTagCollection.changeTagFilter.changeTagId}`]: changeTagCollection.changeTagFilter.changeTagId
@@ -1389,30 +2165,95 @@ function addColumnJoins(
 		}
 	}
 
-	for (const logTypeCollection of ctx.columns.requiredLogTypeStatisticsColumns) {
-		const normalizedLogKey = logTypeCollection.serializedLogFilter;
+	if (changeTagCollection.needsSinceRegisteredActorStatistics || changeTagCollection.needsSelectedPeriodActorStatistics) {
+		for (const startDate of changeTagCollection.neededDates.neededActorPeriodStarts) {
+			const tableName = makePeriodJoinTableName(startDate, "atPeriodEnd", "actor", `Ct${normalizedCtKey}`);
+			const endDateParameterName = endDate.format("YYYYMMDD");
 
-		if (logTypeCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0) {
+			if (typeof changeTagCollection.changeTagFilter.namespace !== "number") {
+				query = query.leftJoin(qb => {
+					let subQuery = qb.subQuery()
+						.select("lads.actorId", "actorId")
+						.addSelect("MAX(lads.date)", "lastDate")
+						.from(wikiEntities.actorEditStatisticsByChangeTag, "lads")
+						.where(`lads.date <= :${endDateParameterName}`, { [endDateParameterName]: endDate.toDate() })
+						.groupBy("lads.actorId");
+
+					subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "lads");
+
+					return subQuery.groupBy("lads.actorId");
+				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+
+				query = query.leftJoin(
+					wikiEntities.actorEditStatisticsByChangeTag,
+					tableName,
+					`${tableName}.actorId = actor.actorId `
+					+ ` AND ${tableName}.changeTagId = :changeTag${changeTagCollection.changeTagFilter.changeTagId}`
+					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					{
+						[`changeTag${changeTagCollection.changeTagFilter.changeTagId}`]: changeTagCollection.changeTagFilter.changeTagId
+					}
+				);
+			} else {
+				query = query.leftJoin(qb => {
+					let subQuery = qb.subQuery()
+						.select("lads.actorId", "actorId")
+						.addSelect("MAX(lads.date)", "lastDate")
+						.from(wikiEntities.actorEditStatisticsByNamespaceAndChangeTag, "lads")
+						.where(`lads.date <= :${endDateParameterName}`, { [endDateParameterName]: endDate.toDate() })
+						.groupBy("lads.actorId");
+
+					subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "lads");
+
+					return subQuery.groupBy("lads.actorId");
+				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+
+				query = query.leftJoin(
+					wikiEntities.actorEditStatisticsByNamespaceAndChangeTag,
+					`${tableName}`,
+					`${tableName}.actorId = actor.actorId `
+					+ ` AND ${tableName}.namespace = :namespace${changeTagCollection.changeTagFilter.namespace}`
+					+ ` AND ${tableName}.changeTagId = :changeTag${changeTagCollection.changeTagFilter.changeTagId}`
+					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					{
+						[`namespace${changeTagCollection.changeTagFilter.namespace}`]: changeTagCollection.changeTagFilter.namespace,
+						[`changeTag${changeTagCollection.changeTagFilter.changeTagId}`]: changeTagCollection.changeTagFilter.changeTagId
+					}
+				);
+			}
+		}
+	}
+	return query;
+}
+
+function addLogTypeColumnJoins(logTypeCollection: LogTypeStatisticsRequiredColumns, query: SelectQueryBuilder<ActorTypeModel>, wikiEntities: WikiStatisticsTypesResult, endDate: moment.Moment) {
+	const normalizedLogKey = logTypeCollection.serializedLogFilter;
+
+	if (logTypeCollection.needsSelectedPeriodActorStatistics) {
+		for (const startDate of logTypeCollection.neededDates.neededActorPeriodStarts) {
+			const tableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Log${normalizedLogKey}`);
+			const startDateParameterName = startDate.format("YYYYMMDD");
+
 			if (typeof logTypeCollection.logFilter.logAction === "string" && typeof logTypeCollection.logFilter.logType === "string") {
 				query = query.leftJoin(qb => {
 					let subQuery = qb.subQuery()
 						.select("lads.actorId", "actorId")
 						.addSelect("MAX(lads.date)", "lastDate")
 						.from(wikiEntities.actorLogStatisticsByLogTypeAndLogAction, "lads")
-						.where("lads.date < :startDate", { startDate: startDate });
+						.where(`lads.date < :${startDateParameterName}`, { [startDateParameterName]: startDate?.toDate() });
 
 					subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "lads");
 
 					return subQuery.groupBy("lads.actorId");
-				}, `log${normalizedLogKey}LastStatisticsBeforePeriodStart`, `log${normalizedLogKey}LastStatisticsBeforePeriodStart.actorId = actor.actorId`);
+				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
 
 				query = query.leftJoin(
 					wikiEntities.actorLogStatisticsByLogTypeAndLogAction,
-					`log${normalizedLogKey}AtPeriodStartActorStatistics`,
-					`log${normalizedLogKey}AtPeriodStartActorStatistics.actorId = actor.actorId`
-					+ ` AND log${normalizedLogKey}AtPeriodStartActorStatistics.logType = :logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`
-					+ ` AND log${normalizedLogKey}AtPeriodStartActorStatistics.logAction = :logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`
-					+ ` AND log${normalizedLogKey}AtPeriodStartActorStatistics.date = log${normalizedLogKey}LastStatisticsBeforePeriodStart.lastDate`,
+					`${tableName}`,
+					`${tableName}.actorId = actor.actorId`
+					+ ` AND ${tableName}.logType = :logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`
+					+ ` AND ${tableName}.logAction = :logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`
+					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
 					{
 						[`logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`]: logTypeCollection.logFilter.logType,
 						[`logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`]: logTypeCollection.logFilter.logAction,
@@ -1424,19 +2265,19 @@ function addColumnJoins(
 						.select("lads.actorId", "actorId")
 						.addSelect("MAX(lads.date)", "lastDate")
 						.from(wikiEntities.actorLogStatisticsByLogAction, "lads")
-						.where("lads.date < :startDate", { startDate: startDate });
+						.where(`lads.date < :${startDateParameterName}`, { [startDateParameterName]: startDate?.toDate() });
 
 					subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "lads");
 
 					return subQuery.groupBy("lads.actorId");
-				}, `log${normalizedLogKey}LastStatisticsBeforePeriodStart`, `log${normalizedLogKey}LastStatisticsBeforePeriodStart.actorId = actor.actorId`);
+				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
 
 				query = query.leftJoin(
 					wikiEntities.actorLogStatisticsByLogAction,
-					`log${normalizedLogKey}AtPeriodStartActorStatistics`,
-					`log${normalizedLogKey}AtPeriodStartActorStatistics.actorId = actor.actorId`
-					+ ` AND log${normalizedLogKey}AtPeriodStartActorStatistics.logAction = :logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`
-					+ ` AND log${normalizedLogKey}AtPeriodStartActorStatistics.date = log${normalizedLogKey}LastStatisticsBeforePeriodStart.lastDate`,
+					`${tableName}`,
+					`${tableName}.actorId = actor.actorId`
+					+ ` AND ${tableName}.logAction = :logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`
+					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
 					{
 						[`logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`]: logTypeCollection.logFilter.logAction
 					}
@@ -1447,99 +2288,19 @@ function addColumnJoins(
 						.select("lads.actorId", "actorId")
 						.addSelect("MAX(lads.date)", "lastDate")
 						.from(wikiEntities.actorLogStatisticsByLogType, "lads")
-						.where("lads.date < :startDate", { startDate: startDate });
+						.where(`lads.date < :${startDateParameterName}`, { [startDateParameterName]: startDate?.toDate() });
 
 					subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "lads");
 
 					return subQuery.groupBy("lads.actorId");
-				}, `log${normalizedLogKey}LastStatisticsBeforePeriodStart`, `log${normalizedLogKey}LastStatisticsBeforePeriodStart.actorId = actor.actorId`);
+				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
 
 				query = query.leftJoin(
 					wikiEntities.actorLogStatisticsByLogType,
-					`log${normalizedLogKey}AtPeriodStartActorStatistics`,
-					`log${normalizedLogKey}AtPeriodStartActorStatistics.actorId = actor.actorId`
-					+ ` AND log${normalizedLogKey}AtPeriodStartActorStatistics.logType = :logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`
-					+ ` AND log${normalizedLogKey}AtPeriodStartActorStatistics.date = log${normalizedLogKey}LastStatisticsBeforePeriodStart.lastDate`,
-					{
-						[`logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`]: logTypeCollection.logFilter.logType
-					}
-				);
-			}
-		}
-
-		if (logTypeCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0
-			|| logTypeCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0
-			|| logTypeCollection.needsFirstLogEntryDate
-			|| logTypeCollection.needsLastEntryDate
-		) {
-			const entity =
-				typeof logTypeCollection.logFilter.logAction === "string" && typeof logTypeCollection.logFilter.logType === "string" ? wikiEntities.actorLogStatisticsByLogTypeAndLogAction
-					: typeof logTypeCollection.logFilter.logAction === "string" ? wikiEntities.actorLogStatisticsByLogAction
-						: typeof logTypeCollection.logFilter.logType === "string" ? wikiEntities.actorLogStatisticsByLogType
-							: null;
-
-			if (entity) {
-				query = query.leftJoin(qb => {
-					let subQuery = qb.subQuery()
-						.select("lads.actorId", "actorId");
-
-					if (logTypeCollection.needsFirstLogEntryDate) {
-						subQuery = subQuery.addSelect("MIN(lads.date)", "firstDate");
-					}
-
-					if (logTypeCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0
-						|| logTypeCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0
-						|| logTypeCollection.needsLastEntryDate
-					) {
-						subQuery = subQuery.addSelect("MAX(lads.date)", "lastDate");
-					}
-
-					subQuery = subQuery.from(entity, "lads")
-						.where("lads.date <= :endDate", { endDate: endDate })
-						.groupBy("lads.actorId");
-
-					subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "lads");
-
-					return subQuery.groupBy("lads.actorId");
-				}, `log${normalizedLogKey}LastActorStatisticsAtPeriodEnd`, `log${normalizedLogKey}LastActorStatisticsAtPeriodEnd.actorId = actor.actorId`);
-			}
-		}
-
-		if (logTypeCollection.requiredColumnsForSinceRegisteredActorStatistics.length > 0
-			|| logTypeCollection.requiredColumnsForSelectedPeriodActorStatistics.length > 0
-		) {
-			if (typeof logTypeCollection.logFilter.logAction === "string" && typeof logTypeCollection.logFilter.logType === "string") {
-				query = query.leftJoin(
-					wikiEntities.actorLogStatisticsByLogTypeAndLogAction,
-					`log${normalizedLogKey}SinceRegistrationActorStatistics`,
-					`log${normalizedLogKey}SinceRegistrationActorStatistics.actorId = actor.actorId `
-					+ ` AND log${normalizedLogKey}SinceRegistrationActorStatistics.logType = :logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`
-					+ ` AND log${normalizedLogKey}SinceRegistrationActorStatistics.logAction = :logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`
-					+ ` AND log${normalizedLogKey}SinceRegistrationActorStatistics.date = log${normalizedLogKey}LastActorStatisticsAtPeriodEnd.lastDate`,
-					{
-						[`logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`]: logTypeCollection.logFilter.logType,
-						[`logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`]: logTypeCollection.logFilter.logAction,
-					}
-				);
-			} else if (typeof logTypeCollection.logFilter.logAction === "string") {
-				query = query.leftJoin(
-					wikiEntities.actorLogStatisticsByLogAction,
-					`log${normalizedLogKey}SinceRegistrationActorStatistics`,
-					`log${normalizedLogKey}SinceRegistrationActorStatistics.actorId = actor.actorId `
-					+ ` AND log${normalizedLogKey}SinceRegistrationActorStatistics.logAction = :logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`
-					+ ` AND log${normalizedLogKey}SinceRegistrationActorStatistics.date = log${normalizedLogKey}LastActorStatisticsAtPeriodEnd.lastDate`,
-					{
-						[`logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`]: logTypeCollection.logFilter.logAction
-					}
-				);
-			} else if (typeof logTypeCollection.logFilter.logType === "string") {
-
-				query = query.leftJoin(
-					wikiEntities.actorLogStatisticsByLogType,
-					`log${normalizedLogKey}SinceRegistrationActorStatistics`,
-					`log${normalizedLogKey}SinceRegistrationActorStatistics.actorId = actor.actorId `
-					+ ` AND log${normalizedLogKey}SinceRegistrationActorStatistics.logType = :logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`
-					+ ` AND log${normalizedLogKey}SinceRegistrationActorStatistics.date = log${normalizedLogKey}LastActorStatisticsAtPeriodEnd.lastDate`,
+					`${tableName}`,
+					`${tableName}.actorId = actor.actorId`
+					+ ` AND ${tableName}.logType = :logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`
+					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
 					{
 						[`logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`]: logTypeCollection.logFilter.logType
 					}
@@ -1548,6 +2309,88 @@ function addColumnJoins(
 		}
 	}
 
+	if (logTypeCollection.needsSinceRegisteredActorStatistics
+		|| logTypeCollection.needsSelectedPeriodActorStatistics
+		|| logTypeCollection.needsFirstLogEntryDate
+		|| logTypeCollection.needsLastEntryDate) {
+		const entity = typeof logTypeCollection.logFilter.logAction === "string" && typeof logTypeCollection.logFilter.logType === "string" ? wikiEntities.actorLogStatisticsByLogTypeAndLogAction
+			: typeof logTypeCollection.logFilter.logAction === "string" ? wikiEntities.actorLogStatisticsByLogAction
+				: typeof logTypeCollection.logFilter.logType === "string" ? wikiEntities.actorLogStatisticsByLogType
+					: null;
+
+		if (entity) {
+			for (const startDate of logTypeCollection.neededDates.neededActorPeriodEnds) {
+				const tableName = makePeriodJoinTableName(startDate, "atPeriodEnd", "actor", `Log${normalizedLogKey}`);
+				const endDateParameterName = endDate.format("YYYYMMDD");
+
+				query = query.leftJoin(qb => {
+					let subQuery = qb.subQuery()
+						.select("lads.actorId", "actorId");
+
+					if (logTypeCollection.needsFirstLogEntryDate) {
+						subQuery = subQuery.addSelect("MIN(lads.date)", "firstDate");
+					}
+
+					if (logTypeCollection.needsSinceRegisteredActorStatistics
+						|| logTypeCollection.needsSelectedPeriodActorStatistics
+						|| logTypeCollection.needsLastEntryDate) {
+						subQuery = subQuery.addSelect("MAX(lads.date)", "lastDate");
+					}
+
+					subQuery = subQuery.from(entity, "lads")
+						.where(`lads.date <= :${endDateParameterName}`, { [endDateParameterName]: endDate.toDate() })
+						.groupBy("lads.actorId");
+
+					subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "lads");
+
+					return subQuery.groupBy("lads.actorId");
+				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+			}
+		}
+	}
+
+	if (logTypeCollection.needsSinceRegisteredActorStatistics || logTypeCollection.needsSelectedPeriodActorStatistics) {
+		for (const startDate of logTypeCollection.neededDates.neededActorPeriodEnds) {
+			const tableName = makePeriodJoinTableName(startDate, "atPeriodEnd", "actor", `Log${normalizedLogKey}`);
+
+			if (typeof logTypeCollection.logFilter.logAction === "string" && typeof logTypeCollection.logFilter.logType === "string") {
+				query = query.leftJoin(
+					wikiEntities.actorLogStatisticsByLogTypeAndLogAction,
+					tableName,
+					`${tableName}.actorId = actor.actorId `
+					+ ` AND ${tableName}.logType = :logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`
+					+ ` AND ${tableName}.logAction = :logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`
+					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					{
+						[`logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`]: logTypeCollection.logFilter.logType,
+						[`logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`]: logTypeCollection.logFilter.logAction,
+					}
+				);
+			} else if (typeof logTypeCollection.logFilter.logAction === "string") {
+				query = query.leftJoin(
+					wikiEntities.actorLogStatisticsByLogAction,
+					tableName,
+					`${tableName}.actorId = actor.actorId `
+					+ ` AND ${tableName}.logAction = :logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`
+					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					{
+						[`logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`]: logTypeCollection.logFilter.logAction
+					}
+				);
+			} else if (typeof logTypeCollection.logFilter.logType === "string") {
+				query = query.leftJoin(
+					wikiEntities.actorLogStatisticsByLogType,
+					`${tableName}`,
+					`${tableName}.actorId = actor.actorId `
+					+ ` AND ${tableName}.logType = :logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`
+					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					{
+						[`logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`]: logTypeCollection.logFilter.logType
+					}
+				);
+			}
+		}
+	}
 	return query;
 }
 
@@ -1654,10 +2497,18 @@ function getOrCreateNamespaceCollector(ctx: StatisticsQueryBuildingContext, name
 	if (!existingCollector) {
 		existingCollector = {
 			namespace: namespace,
-			requiredColumnsForSelectedPeriodActorStatistics: [],
-			requiredColumnsForSelectedPeriodWikiStatistics: [],
-			requiredColumnsForSinceRegisteredActorStatistics: [],
-			requiredColumnsForSinceRegisteredWikiStatistics: []
+
+			neededDates: {
+				neededActorPeriodStarts: [],
+				neededActorPeriodEnds: [],
+				neededWikiPeriodStarts: [],
+				neededWikiPeriodEnds: []
+			},
+			needsSelectedPeriodActorStatistics: false,
+			needsSelectedPeriodWikiStatistics: false,
+
+			needsSinceRegisteredActorStatistics: false,
+			needsSinceRegisteredWikiStatistics: false
 		};
 		ctx.columns.requiredNamespaceStatisticsColumns.push(existingCollector);
 	}
@@ -1681,10 +2532,18 @@ function getOrCreateChangeTagCollector(ctx: StatisticsQueryBuildingContext, chan
 		existingCollector = {
 			serializedChangeTagFilter: serializedChangeTagFilter,
 			changeTagFilter: changeTagFilter,
-			requiredColumnsForSelectedPeriodActorStatistics: [],
-			requiredColumnsForSelectedPeriodWikiStatistics: [],
-			requiredColumnsForSinceRegisteredActorStatistics: [],
-			requiredColumnsForSinceRegisteredWikiStatistics: []
+
+			neededDates: {
+				neededActorPeriodStarts: [],
+				neededActorPeriodEnds: [],
+				neededWikiPeriodStarts: [],
+				neededWikiPeriodEnds: []
+			},
+			needsSelectedPeriodActorStatistics: false,
+			needsSelectedPeriodWikiStatistics: false,
+
+			needsSinceRegisteredActorStatistics: false,
+			needsSinceRegisteredWikiStatistics: false
 		};
 		ctx.columns.requiredChangeTagStatisticsColumns.push(existingCollector);
 	}
@@ -1712,10 +2571,18 @@ function getOrCreateLogTypeCollector(ctx: StatisticsQueryBuildingContext, logFil
 		existingCollector = {
 			serializedLogFilter: serializedLogFilter,
 			logFilter: logFilter,
-			requiredColumnsForSelectedPeriodActorStatistics: [],
-			requiredColumnsForSelectedPeriodWikiStatistics: [],
-			requiredColumnsForSinceRegisteredActorStatistics: [],
-			requiredColumnsForSinceRegisteredWikiStatistics: [],
+
+			neededDates: {
+				neededActorPeriodStarts: [],
+				neededActorPeriodEnds: [],
+				neededWikiPeriodStarts: [],
+				neededWikiPeriodEnds: []
+			},
+			needsSelectedPeriodActorStatistics: false,
+			needsSelectedPeriodWikiStatistics: false,
+
+			needsSinceRegisteredActorStatistics: false,
+			needsSinceRegisteredWikiStatistics: false,
 			needsFirstLogEntryDate: false,
 			needsLastEntryDate: false
 		};
@@ -1737,4 +2604,37 @@ function serializeLogFilterDefinition(logFilter: LogFilterDefinition) {
 
 function sanitizeNameForSql(userGroup: string) {
 	return userGroup.replace(/-/g, "_");
+}
+
+function addNeededPeriodToCollection(reqs: moment.Moment[], date: moment.Moment | undefined) {
+	if (!date) {
+		return;
+	}
+
+	if (reqs.findIndex(x => x.isSame(date)) !== -1) {
+		return;
+	}
+
+	reqs.push(date);
+}
+
+function makePeriodJoinTableName(
+	date: moment.Moment | undefined,
+	type: JoinedTableType,
+	subject: JoinedTableSubject,
+	prefix: string = ""
+): string {
+	const formattedDate = date?.format("YYYYMMDD") ?? "??";
+	const prefixWithUnderscore = prefix && prefix.length > 0 ? `_${prefix}` : "";
+
+	switch (type) {
+		case "beforePeriodStart":
+			return subject === "actor"
+				? `actorBefore${prefixWithUnderscore}_${formattedDate}`
+				: `wikiBefore${prefixWithUnderscore}_${formattedDate}`;
+		case "atPeriodEnd":
+			return subject === "actor"
+				? `actorEnd${prefixWithUnderscore}_${formattedDate}`
+				: `wikiEnd${prefixWithUnderscore}_${formattedDate}`;
+	}
 }

@@ -261,7 +261,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 						stringFormat(
 							this.t("userPyramids.groupRequirements.totalEditsAtLeast.withEpoch"),
 							(group.requirements.totalEditsAtLeast.epoch * -1).toString(),
-							group.requirements.totalEditsAtLeast.edits.toString()
+							group.requirements.totalEditsAtLeast.count.toString()
 						)
 					}</li>}
 
@@ -279,7 +279,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 						stringFormat(
 							this.t("userPyramids.groupRequirements.totalEditsAtMost.withEpoch"),
 							(group.requirements.totalEditsAtMost.epoch * -1).toString(),
-							group.requirements.totalEditsAtMost.edits.toString()
+							group.requirements.totalEditsAtMost.count.toString()
 						)
 					}</li>}
 
@@ -289,7 +289,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 						stringFormat(
 							this.t("userPyramids.groupRequirements.inPeriodEditsAtLeast.simple"),
 							group.requirements.inPeriodEditsAtLeast.period.toString(),
-							group.requirements.inPeriodEditsAtLeast.edits.toString()
+							group.requirements.inPeriodEditsAtLeast.count.toString()
 						)
 					}</li>}
 
@@ -300,7 +300,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 							this.t("userPyramids.groupRequirements.inPeriodEditsAtLeast.withEpoch"),
 							(group.requirements.inPeriodEditsAtLeast.epoch * -1).toString(),
 							group.requirements.inPeriodEditsAtLeast.period.toString(),
-							group.requirements.inPeriodEditsAtLeast.edits.toString()
+							group.requirements.inPeriodEditsAtLeast.count.toString()
 						)
 					}</li>}
 
@@ -310,7 +310,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 						stringFormat(
 							this.t("userPyramids.groupRequirements.inPeriodEditsAtMost.simple"),
 							group.requirements.inPeriodEditsAtMost.period.toString(),
-							group.requirements.inPeriodEditsAtMost.edits.toString()
+							group.requirements.inPeriodEditsAtMost.count.toString()
 						)
 					}</li>}
 
@@ -321,7 +321,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 							this.t("userPyramids.groupRequirements.inPeriodEditsAtMost.withEpoch"),
 							(group.requirements.inPeriodEditsAtMost.epoch * -1).toString(),
 							group.requirements.inPeriodEditsAtMost.period.toString(),
-							group.requirements.inPeriodEditsAtMost.edits.toString()
+							group.requirements.inPeriodEditsAtMost.count.toString()
 						)
 					}</li>}
 			</ul>

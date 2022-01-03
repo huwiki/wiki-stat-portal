@@ -1,5 +1,5 @@
-import { parse, startOfDay } from "date-fns";
 import { isArray } from "lodash";
+import moment from "moment";
 import { NextApiRequest, NextApiResponse } from "next";
 import { isLocalizedUserPyramidGroup, UserPyramidConfiguration } from "../../../common/modules/userPyramids/userPyramidConfiguration";
 import { AppRunningContext } from "../../../server/appRunningContext";
@@ -109,7 +109,7 @@ const processParameters = (
 	isValid: boolean;
 	wiki?: KnownWiki;
 	pyramid?: UserPyramidConfiguration;
-	epochDate?: Date;
+	epochDate?: moment.Moment;
 } => {
 	const userPyramidModule = moduleManager.getModuleById<UserPyramidsModule>("userPyramids");
 	if (!userPyramidModule) {
@@ -139,9 +139,9 @@ const processParameters = (
 		return { isValid: false };
 	}
 
-	let date: Date;
+	let date: moment.Moment;
 	try {
-		date = parse(rawDate, "yyyy-MM-dd", startOfDay(new Date()));
+		date = moment.utc(rawDate, "YYYY-MM-DD").startOf("day");
 	}
 	catch (err) {
 		res.status(400).json({ errorMessage: "Invalid or missing date parameter" });

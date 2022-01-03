@@ -204,8 +204,8 @@ const processParameters = (
 	isValid: boolean;
 	wiki?: KnownWiki;
 	list?: ListConfiguration;
-	startDate?: Date;
-	endDate?: Date;
+	startDate?: moment.Moment;
+	endDate?: moment.Moment;
 } => {
 	const listsModule = moduleManager.getModuleById<ListsModule>(MODULE_IDENTIFIERS.lists);
 	if (!listsModule) {
@@ -230,7 +230,7 @@ const processParameters = (
 		return { isValid: false };
 	}
 
-	let startDate: Date | undefined = undefined;
+	let startDate: moment.Moment | undefined = undefined;
 	if (rawStartDate) {
 
 		if (isArray(rawStartDate)) {
@@ -239,7 +239,7 @@ const processParameters = (
 		}
 
 		try {
-			startDate = moment.utc(rawStartDate, "YYYY-MM-DD").startOf("day").toDate();
+			startDate = moment.utc(rawStartDate, "YYYY-MM-DD").startOf("day");
 		}
 		catch (err) {
 			res.status(400).json({ errorMessage: "Invalid startDate parameter" });
@@ -252,9 +252,9 @@ const processParameters = (
 		return { isValid: false };
 	}
 
-	let endDate: Date;
+	let endDate: moment.Moment;
 	try {
-		endDate = moment.utc(rawEndDate, "YYYY-MM-DD").startOf("day").toDate();
+		endDate = moment.utc(rawEndDate, "YYYY-MM-DD").startOf("day");
 	}
 	catch (err) {
 		res.status(400).json({ errorMessage: "Invalid or missing endDate parameter" });

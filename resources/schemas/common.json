@@ -6,7 +6,7 @@
 			"type": "object",
 			"properties": {
 				"registrationStatus": {
-					"description": "If specified, only users whose registration status is registered or anon will be counted to the group.",
+					"description": "If specified, only users whose registration status is registered or anon will be counted/shown.",
 					"type": "string",
 					"enum": [
 						"registered",
@@ -14,51 +14,67 @@
 					]
 				},
 				"registrationAgeAtLeast": {
-					"description": "If specified, only users whose registration age is at least the specified days at the requested data will be counted to the group.",
+					"description": "If specified, only users whose registration age is at least the specified days at the requested data will be counted/shown.",
 					"type": "number",
 					"minimum": 1
 				},
 				"registrationAgeAtMost": {
-					"description": "If specified, only users whose registration age is at most the specified days at the requested data will be counted to the group.",
+					"description": "If specified, only users whose registration age is at most the specified days at the requested data will be counted/shown.",
 					"type": "number",
 					"minimum": 1
 				},
 				"userGroups": {
-					"description": "If specified, only users who belongs to the specified groups will be counted to the group.",
+					"description": "If specified, only users who belong to any the specified groups will be counted/shown.",
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/userGroup"
+					},
+					"minItems": 1,
+					"uniqueItems": true
+				},
+				"notInUserGroups": {
+					"description": "If specified, only users who do not belong to all of the specified groups will be counted/shown.",
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/userGroup"
+					},
+					"minItems": 1,
+					"uniqueItems": true
+				},
+				"hasTalkTemplates": {
+					"description": "If specified, only users whose talk page has the specified templates embedded will be counted/shown.",
 					"type": "array",
 					"items": {
 						"type": "string",
-						"enum": [
-							"bot",
-							"flaglessBot",
-							"bureaucrat",
-							"checkuser",
-							"editor",
-							"flow-bot",
-							"interface-admin",
-							"interface-editor",
-							"sysop",
-							"templateeditor",
-							"trusted"
-						]
+						"minLength": 1
+					},
+					"minItems": 1,
+					"uniqueItems": true
+				},
+				"hasNoTalkTemplates": {
+					"description": "If specified, only users whose talk page does not have the specified templates embedded will be counted/shown.",
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
 					},
 					"minItems": 1,
 					"uniqueItems": true
 				},
 				"totalEditsAtLeast": {
-					"description": "If specified, only users with total edits at least this amount at the requested date will be counted to the group.",
+					"description": "If specified, only users with at least this amount of total edits at the requested date will be counted/shown.",
 					"oneOf": [
 						{
 							"type": "number",
 							"minimum": 1
 						},
 						{
-							"$ref": "#/definitions/userEditsInTimeRequirement"
+							"$ref": "#/definitions/userStatisticsInTimeRequirement"
 						}
 					]
 				},
 				"totalEditsAtMost": {
-					"description": "If specified, only users with total edits at most this amount at the requested date will be counted to the group.",
+					"description": "If specified, only users with at most this amount if total edits at the requested date will be counted/shown.",
 					"type": "number",
 					"oneOf": [
 						{
@@ -66,25 +82,193 @@
 							"minimum": 1
 						},
 						{
-							"$ref": "#/definitions/userEditsInTimeRequirement"
+							"$ref": "#/definitions/userStatisticsInTimeRequirement"
 						}
 					]
 				},
+				"totalEditsMilestoneReachedInPeriod": {
+					"description": "If specified, users who reach this number of total edits in the selected period will be counted/shown.",
+					"type": "array",
+					"items": {
+						"type": "number",
+						"minimum": 1
+					},
+					"minItems": 1
+				},
 				"inPeriodEditsAtLeast": {
-					"description": "If specified, only users with edits at least this amount in the specified days before the requested date will be counted to the group.",
-					"$ref": "#/definitions/editsInPeriodRequirement"
+					"description": "If specified, only users with edits at least this amount in the specified days before the requested date will be counted/shown.",
+					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
 				},
 				"inPeriodEditsAtMost": {
-					"description": "If specified, only users with edits at most this amount in the specified days before the requested date will be counted to the group.",
-					"$ref": "#/definitions/editsInPeriodRequirement"
+					"description": "If specified, only users with edits at most this amount in the specified days before the requested date will be counted/shown.",
+					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+				},
+				"totalEditsWithChangeTagAtLeast": {
+					"description": "If specified, only users with at least this amount of total edits with a given change tag/given change tags at the requested date will be counted/shown.",
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInTimeWithChangeTagRequirement"
+						}
+					]
+				},
+				"totalEditsWithChangeTagAtMost": {
+					"description": "If specified, only users with at most this amount if total edits with a given change tag/given change tags at the requested date will be counted/shown.",
+					"type": "number",
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInTimeWithChangeTagRequirement"
+						}
+					]
+				},
+				"inPeriodEditsWithChangeTagAtLeast": {
+					"description": "If specified, only users with edits with a given change tag/given change tags at least this amount in the specified days before the requested date will be counted/shown.",
+					"$ref": "#/definitions/userStatisticsInPeriodWithChangeTagRequirement"
+				},
+				"inPeriodEditsWithChangeTagAtMost": {
+					"description": "If specified, only users with edits with a given change tag/given change tags at most this amount in the specified days before the requested date will be counted/shown.",
+					"$ref": "#/definitions/userStatisticsInPeriodWithChangeTagRequirement"
+				},
+				"totalRevertedEditsAtLeast": {
+					"description": "If specified, only users with at least this amount of total reverted edits at the requested date will be counted/shown.",
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInTimeRequirement"
+						}
+					]
+				},
+				"totalRevertedEditsAtMost": {
+					"description": "If specified, only users with at most this amount of total reverted edits at the requested date will be counted/shown.",
+					"type": "number",
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInTimeRequirement"
+						}
+					]
+				},
+				"totalRevertedEditsMilestoneReachedInPeriod": {
+					"description": "If specified, users who reach this number of total reverted edits in the selected period will be counted/shown.",
+					"type": "array",
+					"items": {
+						"type": "number",
+						"minimum": 1
+					},
+					"minItems": 1
+				},
+				"inPeriodRevertedEditsAtLeast": {
+					"description": "If specified, only users with reverted edits at least this amount in the specified days before the requested date will be counted/shown.",
+					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+				},
+				"inPeriodRevertedEditsAtMost": {
+					"description": "If specified, only users with reverted edits at most this amount in the specified days before the requested date will be counted/shown.",
+					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+				},
+				"totalReceivedThanksAtLeast": {
+					"description": "If specified, only users with at least this amount of received thanks at the requested date will be counted/shown.",
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInTimeRequirement"
+						}
+					]
+				},
+				"totalReceivedThanksAtMost": {
+					"description": "If specified, only users with at most this amount of received thanks at the requested date will be counted/shown.",
+					"type": "number",
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInTimeRequirement"
+						}
+					]
+				},
+				"totalReceivedThanksMilestoneReachedInPeriod": {
+					"description": "If specified, users who reach this number of total received thanks in the selected period will be counted/shown.",
+					"type": "array",
+					"items": {
+						"type": "number",
+						"minimum": 1
+					},
+					"minItems": 1
+				},
+				"inPeriodReceivedThanksAtLeast": {
+					"description": "If specified, only users with received thanks at least this amount in the specified days before the requested date will be counted/shown.",
+					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+				},
+				"inPeriodReceivedThanksAtMost": {
+					"description": "If specified, only users with received thanks at most this amount in the specified days before the requested date will be counted/shown.",
+					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+				},
+				"totalActiveDaysAtLeast": {
+					"description": "If specified, only users with at least this amount of active days at the requested date will be counted/shown.",
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInTimeRequirement"
+						}
+					]
+				},
+				"totalActiveDaysAtMost": {
+					"description": "If specified, only users with at most this amount of active days at the requested date will be counted/shown.",
+					"type": "number",
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInTimeRequirement"
+						}
+					]
+				},
+				"totalActiveDaysMilestoneReachedInPeriod": {
+					"description": "If specified, users who reach this number of total active days in the selected period will be counted/shown.",
+					"type": "array",
+					"items": {
+						"type": "number",
+						"minimum": 1
+					},
+					"minItems": 1
+				},
+				"inPeriodActiveDaysAtLeast": {
+					"description": "If specified, only users with active days at least this amount in the specified days before the requested date will be counted/shown.",
+					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+				},
+				"inPeriodActiveDaysAtMost": {
+					"description": "If specified, only users with active days at most this amount in the specified days before the requested date will be counted/shown.",
+					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
 				}
 			},
 			"additionalProperties": false
 		},
-		"userEditsInTimeRequirement": {
+		"userStatisticsInTimeRequirement": {
 			"type": "object",
 			"properties": {
-				"edits": {
+				"count": {
 					"type": "number",
 					"minimum": 0
 				},
@@ -95,15 +279,15 @@
 				}
 			},
 			"required": [
-				"edits",
+				"count",
 				"epoch"
 			],
 			"additionalProperties": false
 		},
-		"editsInPeriodRequirement": {
+		"userStatisticsInPeriodRequirement": {
 			"type": "object",
 			"properties": {
-				"edits": {
+				"count": {
 					"type": "number",
 					"minimum": 0
 				},
@@ -119,10 +303,114 @@
 				}
 			},
 			"required": [
-				"edits",
+				"count",
 				"period"
 			],
 			"additionalProperties": false
+		},
+		"userStatisticsInTimeWithChangeTagRequirement": {
+			"type": "object",
+			"properties": {
+				"changeTag": {
+					"anyOf": [
+						{
+							"$ref": "common.json#/definitions/changeTagFilterParameter"
+						},
+						{
+							"type": "array",
+							"items": {
+								"$ref": "common.json#/definitions/changeTagFilterParameter"
+							},
+							"minItems": 1
+						}
+					]
+				},
+				"count": {
+					"type": "number",
+					"minimum": 0
+				},
+				"epoch": {
+					"type": "number",
+					"minimum": -365,
+					"maximum": -1
+				}
+			},
+			"required": [
+				"changeTag",
+				"count"
+			],
+			"additionalProperties": false
+		},
+		"userStatisticsInPeriodWithChangeTagRequirement": {
+			"type": "object",
+			"properties": {
+				"changeTag": {
+					"anyOf": [
+						{
+							"$ref": "common.json#/definitions/changeTagFilterParameter"
+						},
+						{
+							"type": "array",
+							"items": {
+								"$ref": "common.json#/definitions/changeTagFilterParameter"
+							},
+							"minItems": 1
+						}
+					]
+				},
+				"count": {
+					"type": "number",
+					"minimum": 0
+				},
+				"period": {
+					"type": "number",
+					"minimum": 1,
+					"maximum": 365
+				},
+				"epoch": {
+					"type": "number",
+					"minimum": -365,
+					"maximum": -1
+				}
+			},
+			"required": [
+				"changeTag",
+				"count",
+				"period"
+			],
+			"additionalProperties": false
+		},
+		"userGroup": {
+			"type": "string",
+			"enum": [
+				"bot",
+				"flaglessBot",
+				"bureaucrat",
+				"checkuser",
+				"editor",
+				"flow-bot",
+				"interface-admin",
+				"interface-editor",
+				"sysop",
+				"templateeditor",
+				"trusted"
+			]
+		},
+		"changeTagFilterParameter": {
+			"type": "object",
+			"properties": {
+				"changeTagId": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"namespace": {
+					"type": "integer",
+					"minimum": 0
+				}
+			},
+			"required": [
+				"changeTagId"
+			]
 		}
 	}
 }
