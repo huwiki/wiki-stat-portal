@@ -36,26 +36,3 @@ export const intToBooleanTransformer = {
 		? (source ? 1 : 0)
 		: null
 };
-
-export const dateToMomentTransformer = {
-	from: (source: Date | null): moment.Moment | null => {
-		console.log(source, "cica");
-		// const rawValue = source?.toString() ?? null;
-		// if (rawValue == null)
-		// 	return null;
-
-		// try {
-		// 	const date = moment.utc(rawValue, TIMESTAMP_FORMAT);
-		// 	return date.toDate();
-		// } catch (err) {
-		// 	return null;
-		// }
-		return null;
-	},
-	to: (source: moment.Moment | null): Date | null => {
-		console.log(source, "momentSource");
-		const ret = source?.toDate() ?? null;
-		console.log(ret);
-		return ret;
-	}
-};
