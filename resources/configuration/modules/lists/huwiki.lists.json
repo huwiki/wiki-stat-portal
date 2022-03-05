@@ -1863,7 +1863,7 @@
 			"itemCount": 0,
 			"userRequirements": {
 				"inPeriodEditsAtMost": {
-					"edits": 0,
+					"count": 0,
 					"period": 180
 				},
 				"userGroups": [
@@ -1902,7 +1902,7 @@
 			"itemCount": 0,
 			"userRequirements": {
 				"inPeriodEditsAtMost": {
-					"edits": 0,
+					"count": 0,
 					"period": 180
 				},
 				"userGroups": [
@@ -1941,7 +1941,7 @@
 			"itemCount": 0,
 			"userRequirements": {
 				"inPeriodEditsAtMost": {
-					"edits": 0,
+					"count": 0,
 					"period": 365
 				},
 				"userGroups": [
@@ -1983,7 +1983,7 @@
 				"totalEditsAtLeast": 100,
 				"registrationStatus": "registered",
 				"inPeriodEditsAtMost": {
-					"edits": 0,
+					"count": 0,
 					"period": 30
 				}
 			},
