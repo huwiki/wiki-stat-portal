@@ -13,8 +13,8 @@ export interface UserRequirements {
 	userGroups?: UserGroup[];
 	notInUserGroups?: UserGroup[];
 
-	hasTalkTemplates: string[];
-	hasNoTalkTemplates: string[];
+	hasUserPageTemplates: string[];
+	hasNoUserPageTemplates: string[];
 
 	totalEditsAtLeast?: number | UserStatisticsInTimeRequirement;
 	totalEditsAtMost?: number | UserStatisticsInTimeRequirement;

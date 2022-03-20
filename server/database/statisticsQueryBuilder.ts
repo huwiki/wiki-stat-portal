@@ -305,12 +305,12 @@ function addUserRequirementFilters(
 	}
 
 	let templateIndex = 0;
-	if (typeof userRequirements.hasTalkTemplates !== "undefined") {
-		for (const templateName of userRequirements.hasTalkTemplates) {
+	if (typeof userRequirements.hasUserPageTemplates !== "undefined") {
+		for (const templateName of userRequirements.hasUserPageTemplates) {
 			query = query.andWhere(qb => {
 				const subQuery = qb.subQuery()
 					.select("1")
-					.from(wikiEntities.actorTalkTemplate, "att")
+					.from(wikiEntities.actorUserPageTemplate, "att")
 					.innerJoin(
 						wikiEntities.template,
 						"tmpl",
@@ -331,12 +331,12 @@ function addUserRequirementFilters(
 		}
 	}
 
-	if (typeof userRequirements.hasNoTalkTemplates !== "undefined") {
-		for (const templateName of userRequirements.hasTalkTemplates) {
+	if (typeof userRequirements.hasNoUserPageTemplates !== "undefined") {
+		for (const templateName of userRequirements.hasNoUserPageTemplates) {
 			query = query.andWhere(qb => {
 				const subQuery = qb.subQuery()
 					.select("1")
-					.from(wikiEntities.actorTalkTemplate, "att")
+					.from(wikiEntities.actorUserPageTemplate, "att")
 					.innerJoin(
 						wikiEntities.template,
 						"tmpl",

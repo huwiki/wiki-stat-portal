@@ -12,7 +12,7 @@ DROP TABLE IF EXISTS `huwiki_actor_daily_stats_by_ns`;
 DROP TABLE IF EXISTS `huwiki_daily_stats_by_ns`;
 DROP TABLE IF EXISTS `huwiki_actor_daily_stats`;
 DROP TABLE IF EXISTS `huwiki_daily_stats`;
-DROP TABLE IF EXISTS `huwiki_actor_talk_templates`;
+DROP TABLE IF EXISTS `huwiki_actor_userpage_templates`;
 DROP TABLE IF EXISTS `huwiki_actor_groups`;
 DROP TABLE IF EXISTS `huwiki_actor`;
 DROP TABLE IF EXISTS `huwiki_change_tag_def`;

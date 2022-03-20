@@ -41,8 +41,8 @@
 					"minItems": 1,
 					"uniqueItems": true
 				},
-				"hasTalkTemplates": {
-					"description": "If specified, only users whose talk page has the specified templates embedded will be counted/shown.",
+				"hasUserPageTemplates": {
+					"description": "If specified, only users whose user/talk page has the specified templates embedded will be counted/shown.",
 					"type": "array",
 					"items": {
 						"type": "string",
@@ -51,8 +51,8 @@
 					"minItems": 1,
 					"uniqueItems": true
 				},
-				"hasNoTalkTemplates": {
-					"description": "If specified, only users whose talk page does not have the specified templates embedded will be counted/shown.",
+				"hasNoUserPageTemplates": {
+					"description": "If specified, only users whose user/talk page does not have the specified templates embedded will be counted/shown.",
 					"type": "array",
 					"items": {
 						"type": "string",

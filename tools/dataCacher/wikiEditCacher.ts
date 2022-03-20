@@ -98,7 +98,7 @@ interface ActorStatisticsUpdateCollection extends WikiStatisticsUpdateCollection
 	lastLogEntryTimestamp: moment.Moment | null;
 }
 
-interface TalkTemplateLinkResult {
+interface UserPageTemplateLinkResult {
 	referrerPageName: string;
 	templatePageId: number;
 	templatePageName: string;
@@ -139,7 +139,7 @@ export class WikiEditCacher {
 	private wikiActors: Actor[] = [];
 	private wikiActorsById: Map<number, Actor> = new Map<number, Actor>();
 	private wikiActorsByName: Map<string, Actor> = new Map<string, Actor>();
-	private wikiTalkPageTemplateLinks: Map<number, Set<number>> = new Map();
+	private wikiMainUserPageTemplateLinks: Map<number, Set<number>> = new Map();
 	private wikiChangeTagDefinitions: Map<number, string> = new Map();
 	private wikiTemplates: Map<number, string> = new Map();
 	private wikiRevertChangeTagIds: Set<number> = new Set();
@@ -148,7 +148,7 @@ export class WikiEditCacher {
 	private cachedActorsById: Map<number, ActorTypeModel> = new Map<number, ActorTypeModel>();
 	private cachedTemplates: Map<number, string> = new Map();
 	private cachedChangeTagDefinitions: Map<number, string> = new Map();
-	private cachedTalkPageTemplateLinks: Map<number, Set<number>> = new Map();
+	private cachedUserPageTemplateLinks: Map<number, Set<number>> = new Map();
 
 	constructor(options: WikiEditCacherOptions) {
 		this.appConfig = options.appCtx.appConfig;
@@ -194,7 +194,7 @@ export class WikiEditCacher {
 		await this.getLastProcessInfo();
 		await this.getCachedTemplates();
 		await this.getCachedChangeTagDefinitions();
-		await this.getCachedTalkPageTemplateLinks();
+		await this.getCachedUserPagesTemplateLinks();
 	}
 
 	private async getLastProcessInfo(): Promise<void> {
@@ -243,20 +243,20 @@ export class WikiEditCacher {
 		}
 	}
 
-	private async getCachedTalkPageTemplateLinks(): Promise<void> {
-		this.logger.info(`[getCachedTalkPageTemplateLinks/${this.wiki.id}] Getting talk template links from replica db`);
+	private async getCachedUserPagesTemplateLinks(): Promise<void> {
+		this.logger.info(`[getCachedUserPagesTemplateLinks/${this.wiki.id}] Getting talk template links from replica db`);
 
-		const rawCachedTalkPageTemplateLinks = await this.toolsConnection.getRepository(this.wikiStatisticsEntities.actorTalkTemplate)
+		const rawCachedUserPageTemplateLinks = await this.toolsConnection.getRepository(this.wikiStatisticsEntities.actorUserPageTemplate)
 			.createQueryBuilder("talkLink")
 			.getMany();
 
-		this.logger.info(`[getCachedTalkPageTemplateLinks/${this.wiki.id}] ${rawCachedTalkPageTemplateLinks.length} talk template links fetched from cache db`);
+		this.logger.info(`[getCachedUserPagesTemplateLinks/${this.wiki.id}] ${rawCachedUserPageTemplateLinks.length} talk template links fetched from cache db`);
 
-		for (const rcttl of rawCachedTalkPageTemplateLinks) {
-			if (this.cachedTalkPageTemplateLinks.has(rcttl.actorId)) {
-				this.cachedTalkPageTemplateLinks.get(rcttl.actorId)?.add(rcttl.templatePageId);
+		for (const rcttl of rawCachedUserPageTemplateLinks) {
+			if (this.cachedUserPageTemplateLinks.has(rcttl.actorId)) {
+				this.cachedUserPageTemplateLinks.get(rcttl.actorId)?.add(rcttl.templatePageId);
 			} else {
-				this.cachedTalkPageTemplateLinks.set(rcttl.actorId, new Set<number>([rcttl.templatePageId]));
+				this.cachedUserPageTemplateLinks.set(rcttl.actorId, new Set<number>([rcttl.templatePageId]));
 			}
 		}
 	}
@@ -265,7 +265,7 @@ export class WikiEditCacher {
 		const replicatedDbEntityManager = getManager(this.replicatedDatabaseConnection.name);
 		await this.getWikiChangeTagDefinitions();
 		await this.getAllWikiActors();
-		await this.getWikiTalkPageTemplateLinks(replicatedDbEntityManager);
+		await this.getWikiMainUserPagesTemplateLinks(replicatedDbEntityManager);
 	}
 
 	private async getWikiChangeTagDefinitions(): Promise<void> {
@@ -288,25 +288,26 @@ export class WikiEditCacher {
 		}
 	}
 
-	private async getWikiTalkPageTemplateLinks(em: EntityManager): Promise<void> {
-		this.logger.info(`[getWikiTalkTemplateLinks/${this.wiki.id}] Getting talk template links from replica db`);
-		const talkTemplateLinks = await em.query(`
-			SELECT
+	private async getWikiMainUserPagesTemplateLinks(em: EntityManager): Promise<void> {
+		this.logger.info(`[getWikiMainUserPagesTemplateLinks/${this.wiki.id}] Getting user/user talk template links from replica db`);
+		const userPageTemplateLinks = await em.query(`
+			SELECT DISTINCT
 				CONVERT(referrer.page_title USING utf8) as referrerPageName,
 				templatePage.page_id as templatePageId,
 				CONVERT(templatePage.page_title USING UTF8) as templatePageName
 			FROM templatelinks tl
 			LEFT JOIN page AS referrer ON tl.tl_from = referrer.page_id AND tl.tl_from_namespace = referrer.page_namespace
 			LEFT JOIN page AS templatePage ON templatePage.page_title = tl.tl_title AND templatePage.page_namespace = tl.tl_namespace
-			WHERE tl_from_namespace = 3
+			WHERE (tl_from_namespace = 2 OR tl_from_namespace = 3)
 				AND tl_namespace = 10
 				AND referrer.page_title NOT LIKE "%/%"
+				AND templatePage.page_title LIKE "%-meta"
 				AND templatePage.page_id IS NOT NULL;
-		`) as TalkTemplateLinkResult[];
+		`) as UserPageTemplateLinkResult[];
 
-		this.logger.info(`[getWikiTalkTemplateLinks/${this.wiki.id}] ${talkTemplateLinks.length} talk template links fetched from replica db`);
+		this.logger.info(`[getWikiMainUserPagesTemplateLinks/${this.wiki.id}] ${userPageTemplateLinks.length} template links fetched from replica db`);
 
-		for (const ttl of talkTemplateLinks) {
+		for (const ttl of userPageTemplateLinks) {
 			this.wikiTemplates.set(ttl.templatePageId, ttl.templatePageName);
 
 			const referencedActor = this.wikiActorsByName.get(ttl.referrerPageName.replace(/_/g, " ")) ?? null;
@@ -314,10 +315,10 @@ export class WikiEditCacher {
 				continue;
 			}
 
-			if (this.wikiTalkPageTemplateLinks.has(referencedActor.id)) {
-				this.wikiTalkPageTemplateLinks.get(referencedActor.id)?.add(ttl.templatePageId);
+			if (this.wikiMainUserPageTemplateLinks.has(referencedActor.id)) {
+				this.wikiMainUserPageTemplateLinks.get(referencedActor.id)?.add(ttl.templatePageId);
 			} else {
-				this.wikiTalkPageTemplateLinks.set(referencedActor.id, new Set<number>([ttl.templatePageId]));
+				this.wikiMainUserPageTemplateLinks.set(referencedActor.id, new Set<number>([ttl.templatePageId]));
 			}
 		}
 	}
@@ -1054,18 +1055,18 @@ export class WikiEditCacher {
 				.execute();
 		}
 
-		const wikiActorTalkTemplateSet = this.wikiTalkPageTemplateLinks.get(actorStat.actorId);
-		const wikiActorTalkTemplates = wikiActorTalkTemplateSet
-			? [...wikiActorTalkTemplateSet.values()]
+		const wikiActorUserPageTemplateSet = this.wikiMainUserPageTemplateLinks.get(actorStat.actorId);
+		const wikiActorUserPageTemplates = wikiActorUserPageTemplateSet
+			? [...wikiActorUserPageTemplateSet.values()]
 			: [];
 
-		for (const talkTemplateId of wikiActorTalkTemplates) {
+		for (const userPageTemplateId of wikiActorUserPageTemplates) {
 			await em.createQueryBuilder()
 				.insert()
-				.into(this.wikiStatisticsEntities.actorTalkTemplate)
+				.into(this.wikiStatisticsEntities.actorUserPageTemplate)
 				.values({
 					actorId: mwDbActor.id,
-					templatePageId: talkTemplateId
+					templatePageId: userPageTemplateId
 				})
 				.execute();
 		}
@@ -1152,21 +1153,21 @@ export class WikiEditCacher {
 				.execute();
 		}
 
-		const wikiTalkTemplateLinkSet = this.wikiTalkPageTemplateLinks.get(actorStat.actorId);
-		const wikiTalkTemplateLinks = wikiTalkTemplateLinkSet
-			? [...wikiTalkTemplateLinkSet.values()]
+		const wikiUserPageTemplateLinkSet = this.wikiMainUserPageTemplateLinks.get(actorStat.actorId);
+		const wikiUserPageTemplateLinks = wikiUserPageTemplateLinkSet
+			? [...wikiUserPageTemplateLinkSet.values()]
 			: [];
-		const cachedTalkTemplateLinkSet = this.cachedTalkPageTemplateLinks.get(actorStat.actorId);
-		const cachedTalkTemplateLinks = cachedTalkTemplateLinkSet
-			? [...cachedTalkTemplateLinkSet.values()]
+		const cachedUserPageTemplateLinkSet = this.cachedUserPageTemplateLinks.get(actorStat.actorId);
+		const cachedUserPageTemplateLinks = cachedUserPageTemplateLinkSet
+			? [...cachedUserPageTemplateLinkSet.values()]
 			: [];
 
-		for (const tlToAdd of wikiTalkTemplateLinks.filter(templateLinkId => cachedTalkTemplateLinks.indexOf(templateLinkId) === -1)) {
+		for (const tlToAdd of wikiUserPageTemplateLinks.filter(templateLinkId => cachedUserPageTemplateLinks.indexOf(templateLinkId) === -1)) {
 			this.logger.info(`[updateActorInDatabase/${this.wiki.id}] Adding template link '${tlToAdd}' for '${actorName}'...`);
 
 			await em.createQueryBuilder()
 				.insert()
-				.into(this.wikiStatisticsEntities.actorTalkTemplate)
+				.into(this.wikiStatisticsEntities.actorUserPageTemplate)
 				.values({
 					actorId: mwDbActor.id,
 					templatePageId: tlToAdd
@@ -1174,11 +1175,11 @@ export class WikiEditCacher {
 				.execute();
 		}
 
-		for (const tlToDelete of cachedTalkTemplateLinks.filter(templateLinkid => wikiTalkTemplateLinks.indexOf(templateLinkid) === -1)) {
+		for (const tlToDelete of cachedUserPageTemplateLinks.filter(templateLinkid => wikiUserPageTemplateLinks.indexOf(templateLinkid) === -1)) {
 			this.logger.info(`[updateActorInDatabase/${this.wiki.id}] Deleting template link ${tlToDelete} for '${actorName}'...`);
 			await em.createQueryBuilder()
 				.delete()
-				.from(this.wikiStatisticsEntities.actorTalkTemplate)
+				.from(this.wikiStatisticsEntities.actorUserPageTemplate)
 				.where("actorId = :actorId", { actorId: mwDbActor.id })
 				.andWhere("templatePageId = :templatePageId", { templatePageId: tlToDelete })
 				.execute();

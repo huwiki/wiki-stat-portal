@@ -37,7 +37,7 @@ export class ActorGroupTypeModel {
 	public groupName: string;
 }
 
-export class ActorTalkTemplateTypeModel {
+export class ActorUserPageTemplateTypeModel {
 	public actorId: number;
 	public templatePageId: number;
 }
@@ -213,7 +213,7 @@ export interface WikiStatisticsTypesResult {
 	/**
 	 * Entity representing a template referenced on the talk page of an user in the wiki
 	 */
-	actorTalkTemplate: typeof ActorTalkTemplateTypeModel,
+	actorUserPageTemplate: typeof ActorUserPageTemplateTypeModel,
 	/**
 	 * Entity representing a daily edit statistics for a wiki.
 	 */
@@ -289,7 +289,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 	const actorTableName = `${wikiId}_actor`;
 	const actorGroupTableName = `${wikiId}_actor_groups`;
-	const actorTalkTemplatesTableName = `${wikiId}_actor_talk_templates`;
+	const actorUserPageTemplatesTableName = `${wikiId}_actor_userpage_templates`;
 
 	const dailyStatisticsTableName = `${wikiId}_daily_stats`;
 	const actorDailyStatisticsTableName = `${wikiId}_actor_daily_stats`;
@@ -376,8 +376,8 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		public groupName: string;
 	}
 
-	@Entity({ name: actorTalkTemplatesTableName })
-	class ActorTalkTemplate {
+	@Entity({ name: actorUserPageTemplatesTableName })
+	class ActorUserPageTemplate {
 		@PrimaryColumn({ name: "actor_id", type: "bigint", unsigned: true })
 		public actorId: number;
 
@@ -759,7 +759,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		changeTagDefinition: ChangeTagDefinition,
 		actor: Actor,
 		actorGroup: ActorGroup,
-		actorTalkTemplate: ActorTalkTemplate,
+		actorUserPageTemplate: ActorUserPageTemplate,
 		dailyStatistics: DailyStatistics,
 		actorDailyStatistics: ActorDailyStatistics,
 		dailyStatisticsByNamespace: DailyStatisticsByNamespace,

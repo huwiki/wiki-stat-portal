@@ -39,12 +39,11 @@ CREATE TABLE `huwiki_actor_groups` (
 	PRIMARY KEY (`actor_id`, `group_name`),
 	CONSTRAINT `huwiki_actor_groups_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiki_actor` (`actor_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
-
-CREATE TABLE `huwiki_actor_talk_templates` (
+CREATE TABLE `huwiki_actor_userpage_templates` (
 	`actor_id` bigint(20) NOT NULL,
 	`template_page_id` bigint(20) NOT NULL,
 	PRIMARY KEY (`actor_id`, `template_page_id`),
-	CONSTRAINT `huwiki_actor_talk_templates_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiki_actor` (`actor_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+	CONSTRAINT `huwiki_actor_userpage_templates_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiki_actor` (`actor_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 

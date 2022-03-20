@@ -23,7 +23,7 @@ export const createConnectionToUserDatabase = async (appConfig: ApplicationConfi
 			entities.changeTagDefinition,
 			entities.actor,
 			entities.actorGroup,
-			entities.actorTalkTemplate,
+			entities.actorUserPageTemplate,
 			entities.dailyStatistics,
 			entities.actorDailyStatistics,
 			entities.dailyStatisticsByNamespace,

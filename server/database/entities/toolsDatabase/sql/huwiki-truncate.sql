@@ -13,7 +13,7 @@ TRUNCATE TABLE `huwiki_actor_daily_stats_by_ns`;
 TRUNCATE TABLE `huwiki_daily_stats_by_ns`;
 TRUNCATE TABLE `huwiki_actor_daily_stats`;
 TRUNCATE TABLE `huwiki_daily_stats`;
-TRUNCATE TABLE `huwiki_actor_talk_templates`;
+TRUNCATE TABLE `huwiki_actor_userpage_templates`;
 TRUNCATE TABLE `huwiki_actor_groups`;
 TRUNCATE TABLE `huwiki_actor`;
 TRUNCATE TABLE `huwiki_change_tag_def`;
