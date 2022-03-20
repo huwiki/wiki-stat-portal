@@ -292,7 +292,11 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 			} else if (typeof data === "string") {
 				cellContent = data;
 			} else if (Array.isArray(data) && data.length === 3) {
-				cellContent = moment.utc(data).format("YYYY-MM-DD");
+				if (data[0] === 1900) {
+					cellContent = "–";
+				} else {
+					cellContent = moment.utc(data).format("YYYY-MM-DD");
+				}
 			} else if (data != null) {
 				cellContent = `${typeof data}: ${data}`;
 			}
