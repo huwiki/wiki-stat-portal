@@ -19,11 +19,15 @@ export const createConnectionToUserDatabase = async (appConfig: ApplicationConfi
 	for (const wikiId of wikis) {
 		const entities = createActorEntitiesForWiki(wikiId);
 		items.push(
+			entities.cacheEntry,
+
 			entities.template,
 			entities.changeTagDefinition,
+
 			entities.actor,
 			entities.actorGroup,
 			entities.actorUserPageTemplate,
+
 			entities.dailyStatistics,
 			entities.actorDailyStatistics,
 			entities.dailyStatisticsByNamespace,
@@ -32,6 +36,7 @@ export const createConnectionToUserDatabase = async (appConfig: ApplicationConfi
 			entities.actorEditStatisticsByChangeTag,
 			entities.editStatisticsByNamespaceAndChangeTag,
 			entities.actorEditStatisticsByNamespaceAndChangeTag,
+
 			entities.logStatisticsByLogType,
 			entities.actorLogStatisticsByLogType,
 			entities.logStatisticsByLogAction,

@@ -2,6 +2,16 @@
 -- huwiki ----------------------------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------------------------------
 
+-- Cache entries table
+CREATE TABLE `huwiki_cache_entry` (
+	`cache_entry_key` varchar(255) CHARACTER SET utf8 NOT NULL,
+	`cache_entry_cache_timestamp` DATE NOT NULL,
+	`cache_entry_start_date` DATETIME NOT NULL,
+	`cache_entry_end_date` DATETIME NOT NULL,
+	`cache_entry_content` MEDIUMTEXT NOT NULL,
+	PRIMARY KEY (`cache_entry_key`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 
 -- Templates table
 CREATE TABLE `huwiki_template` (

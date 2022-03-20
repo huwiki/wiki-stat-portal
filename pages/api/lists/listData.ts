@@ -62,121 +62,149 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 	try {
 		const wikiEntities = createActorEntitiesForWiki(wiki.id);
 
-		appCtx.logger.info(`[api/lists/listData] running query for '${list.id}'`);
+		const startDateKeySource = startDate == null ? moment.utc([1900, 0, 0]) : startDate;
+		const startDateSubKey = startDate == null ? "1900-00-00" : startDateKeySource.format("YYYY-MM-DD");
+		const endDateSubKey = endDate.format("YYYY-MM-DD");
+		const cacheKey = `list-${list.id}-${startDateSubKey}-${endDateSubKey}`;
 
-		const resultActors = await createStatisticsQuery({
-			appCtx: appCtx,
-			toolsDbConnection: conn,
-			wikiEntities,
-			userRequirements: list.userRequirements,
-			columns: list.columns,
-			orderBy: list.orderBy,
-			itemCount: list.itemCount,
-			startDate: startDate,
-			endDate: endDate,
-		});
+		const cachedEntry = await conn.getRepository(wikiEntities.cacheEntry)
+			.createQueryBuilder("ce")
+			.where("ce.key = :key", { key: cacheKey })
+			.getOne();
 
-		const actorGroupMap: Map<number, string[]> = new Map();
-		const actorGroups = await conn.getRepository(wikiEntities.actorGroup)
-			.createQueryBuilder()
-			.getMany();
+		let listDataResult: ListDataResult;
 
-		for (const actorGroup of actorGroups) {
-			const actorArr = actorGroupMap.get(actorGroup.actorId);
-			if (actorArr) {
-				actorArr.push(actorGroup.groupName);
-			} else {
-				actorGroupMap.set(actorGroup.actorId, [actorGroup.groupName]);
-			}
-		}
+		if (cachedEntry == null) {
 
-		const listData: ListDataResult = {
-			list: list,
-			results: [],
-		};
+			appCtx.logger.info(`[api/lists/listData] running query for '${list.id}'`);
 
-		let counter = 1;
-		for (const actorLike of resultActors) {
-			// console.log(actorLike);
-			const userGroups = actorGroupMap.get(actorLike.actorId) ?? null;
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const columns: any[] = [];
-			const isBot = userGroups != null
-				? !!userGroups.find(x => x === "bot" || x === FLAGLESS_BOT_VIRTUAL_GROUP_NAME)
-				: false;
-
-			let columnIndex = 0;
-			for (const columnDefinition of list.columns) {
-				const dataFromQuery = actorLike[`column${columnIndex}`];
-
-				if (columnDefinition.type === "counter") {
-					if (list.displaySettings?.skipBotsFromCounting === true && isBot) {
-						columns.push("");
-					} else {
-						columns.push(counter);
-					}
-				} else if (columnDefinition.type === "userName") {
-					columns.push(actorLike.actorName ?? "?");
-				} else if (columnDefinition.type === "userGroups") {
-					columns.push(userGroups ?? null);
-				} else if (columnDefinition.type === "levelAtPeriodStart") {
-					const startLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "start");
-					if (startLevel) {
-						columns.push([startLevel.id, startLevel.label]);
-					} else {
-						columns.push(null);
-					}
-				} else if (columnDefinition.type === "levelAtPeriodEnd") {
-					const endLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "end");
-					if (endLevel) {
-						columns.push([endLevel.id, endLevel.label]);
-					} else {
-						columns.push(null);
-					}
-				} else if (columnDefinition.type === "levelAtPeriodEndWithChange") {
-					const startLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "start");
-					const endLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "end");
-					if (endLevel) {
-						columns.push([endLevel.id, endLevel.label, startLevel === null || startLevel.id !== endLevel.id]);
-					} else {
-						columns.push(null);
-					}
-				} else if (isDate(dataFromQuery)) {
-					columns.push([dataFromQuery.getFullYear(), dataFromQuery.getMonth(), dataFromQuery.getDate()]);
-				} else if (typeof dataFromQuery === "string") {
-					if (dataFromQuery.indexOf(".") !== -1) {
-						const floatNumber = Number.parseFloat(dataFromQuery);
-						columns.push(Number.isNaN(floatNumber) ? "?" : floatNumber);
-					} else {
-						const intNumber = Number.parseInt(dataFromQuery);
-						columns.push(Number.isNaN(intNumber) ? "?" : intNumber);
-					}
-				} else {
-					columns.push(dataFromQuery ?? null);
-				}
-
-
-				columnIndex++;
-			}
-
-			listData.results.push({
-				id: actorLike.actorId,
-				actorName: actorLike.actorName ?? "?",
-				actorGroups: userGroups,
-				data: columns,
+			const resultActors = await createStatisticsQuery({
+				appCtx: appCtx,
+				toolsDbConnection: conn,
+				wikiEntities,
+				userRequirements: list.userRequirements,
+				columns: list.columns,
+				orderBy: list.orderBy,
+				itemCount: list.itemCount,
+				startDate: startDate,
+				endDate: endDate,
 			});
 
-			if (isBot === false || list.displaySettings?.skipBotsFromCounting !== true) {
-				counter++;
+			const actorGroupMap: Map<number, string[]> = new Map();
+			const actorGroups = await conn.getRepository(wikiEntities.actorGroup)
+				.createQueryBuilder()
+				.getMany();
+
+			for (const actorGroup of actorGroups) {
+				const actorArr = actorGroupMap.get(actorGroup.actorId);
+				if (actorArr) {
+					actorArr.push(actorGroup.groupName);
+				} else {
+					actorGroupMap.set(actorGroup.actorId, [actorGroup.groupName]);
+				}
 			}
+
+			listDataResult = {
+				list: list,
+				results: [],
+			};
+
+			let counter = 1;
+			for (const actorLike of resultActors) {
+				// console.log(actorLike);
+				const userGroups = actorGroupMap.get(actorLike.actorId) ?? null;
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const columns: any[] = [];
+				const isBot = userGroups != null
+					? !!userGroups.find(x => x === "bot" || x === FLAGLESS_BOT_VIRTUAL_GROUP_NAME)
+					: false;
+
+				let columnIndex = 0;
+				for (const columnDefinition of list.columns) {
+					const dataFromQuery = actorLike[`column${columnIndex}`];
+
+					if (columnDefinition.type === "counter") {
+						if (list.displaySettings?.skipBotsFromCounting === true && isBot) {
+							columns.push("");
+						} else {
+							columns.push(counter);
+						}
+					} else if (columnDefinition.type === "userName") {
+						columns.push(actorLike.actorName ?? "?");
+					} else if (columnDefinition.type === "userGroups") {
+						columns.push(userGroups ?? null);
+					} else if (columnDefinition.type === "levelAtPeriodStart") {
+						const startLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "start");
+						if (startLevel) {
+							columns.push([startLevel.id, startLevel.label]);
+						} else {
+							columns.push(null);
+						}
+					} else if (columnDefinition.type === "levelAtPeriodEnd") {
+						const endLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "end");
+						if (endLevel) {
+							columns.push([endLevel.id, endLevel.label]);
+						} else {
+							columns.push(null);
+						}
+					} else if (columnDefinition.type === "levelAtPeriodEndWithChange") {
+						const startLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "start");
+						const endLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "end");
+						if (endLevel) {
+							columns.push([endLevel.id, endLevel.label, startLevel === null || startLevel.id !== endLevel.id]);
+						} else {
+							columns.push(null);
+						}
+					} else if (isDate(dataFromQuery)) {
+						columns.push([dataFromQuery.getFullYear(), dataFromQuery.getMonth(), dataFromQuery.getDate()]);
+					} else if (typeof dataFromQuery === "string") {
+						if (dataFromQuery.indexOf(".") !== -1) {
+							const floatNumber = Number.parseFloat(dataFromQuery);
+							columns.push(Number.isNaN(floatNumber) ? "?" : floatNumber);
+						} else {
+							const intNumber = Number.parseInt(dataFromQuery);
+							columns.push(Number.isNaN(intNumber) ? "?" : intNumber);
+						}
+					} else {
+						columns.push(dataFromQuery ?? null);
+					}
+
+
+					columnIndex++;
+				}
+
+				listDataResult.results.push({
+					id: actorLike.actorId,
+					actorName: actorLike.actorName ?? "?",
+					actorGroups: userGroups,
+					data: columns,
+				});
+
+				if (isBot === false || list.displaySettings?.skipBotsFromCounting !== true) {
+					counter++;
+				}
+			}
+
+			await conn.getRepository(wikiEntities.cacheEntry)
+				.insert({
+					key: cacheKey,
+					cacheTimestamp: moment.utc().toDate(),
+					startDate: startDateKeySource.toDate(),
+					endDate: endDate.toDate(),
+					content: JSON.stringify(listDataResult.results)
+				});
+		} else {
+			listDataResult = {
+				list: list,
+				results: JSON.parse(cachedEntry.content),
+			};
 		}
 
 		// TODO: format results
 		appCtx.logger.info("[api/lists/listData] returning data");
 
-		res.status(200).json(listData);
-	}
-	catch (err) {
+		res.status(200).json(listDataResult);
+	} catch (err) {
 		appCtx.logger.error(err);
 		appCtx.logger.error({
 			errorMessage: "Error while serving list data",

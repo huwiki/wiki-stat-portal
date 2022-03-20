@@ -8,6 +8,14 @@ import { intToBooleanTransformer } from "../../transformers";
  * to use proper typing for these classes.
  */
 
+export class CacheEntryTypeModel {
+	public key: string;
+	public cacheTimestamp: Date;
+	public startDate: Date;
+	public endDate: Date;
+	public content: string;
+}
+
 export class TemplateTypeModel {
 	public templateId: number;
 	public templateName: string;
@@ -195,6 +203,10 @@ export class ActorLogStatisticsByLogTypeAndLogActionTypeModel {
 
 export interface WikiStatisticsTypesResult {
 	/**
+	 * Entity representing a cache entry for the wiki
+	 */
+	cacheEntry: typeof CacheEntryTypeModel,
+	/**
 	 * Entity representing a template in the wiki
 	 */
 	template: typeof TemplateTypeModel,
@@ -284,6 +296,8 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 	if (ENTITY_CACHE_BY_WIKI[wikiId])
 		return ENTITY_CACHE_BY_WIKI[wikiId];
 
+	const cacheEntryTableName = `${wikiId}_cache_entry`;
+
 	const templateTableName = `${wikiId}_template`;
 	const changeTagDefTableName = `${wikiId}_change_tag_def`;
 
@@ -311,6 +325,24 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 	const logStatisticsByLogTypeAndLogActionTableName = `${wikiId}_log_stats_by_type_action`;
 	const actorLogStatisticsByLogTypeAndLogActionTableName = `${wikiId}_actor_log_stats_by_type_action`;
+
+	@Entity({ name: cacheEntryTableName })
+	class CacheEntry {
+		@PrimaryColumn({ name: "cache_entry_key", type: "bigint", unsigned: true })
+		public key: string;
+
+		@Column({ name: "cache_entry_cache_timestamp", type: "datetime" })
+		public cacheTimestamp: Date;
+
+		@Column({ name: "cache_entry_start_date", type: "date" })
+		public startDate: Date;
+
+		@Column({ name: "cache_entry_end_date", type: "date" })
+		public endDate: Date;
+
+		@Column({ name: "cache_entry_content", type: "varchar", length: 255, charset: "utf8" })
+		public content: string;
+	}
 
 	@Entity({ name: templateTableName })
 	class Template {
@@ -755,6 +787,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 	}
 
 	const ret: WikiStatisticsTypesResult = {
+		cacheEntry: CacheEntry,
 		template: Template,
 		changeTagDefinition: ChangeTagDefinition,
 		actor: Actor,
