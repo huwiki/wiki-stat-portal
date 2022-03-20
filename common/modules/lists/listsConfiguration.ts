@@ -22,6 +22,7 @@ export type ListConfiguration =
 
 export interface NonLocalizedListConfiguration {
 	id: string;
+	version?: number;
 	groupId: string;
 	name: string;
 	itemCount: number;
@@ -43,6 +44,7 @@ export function isNonLocalizedListConfiguration(obj: unknown): obj is NonLocaliz
 
 export interface LocalizedListConfiguration {
 	id: string;
+	version?: number;
 	groupId: string;
 	i18nKey: string;
 	itemCount: number;

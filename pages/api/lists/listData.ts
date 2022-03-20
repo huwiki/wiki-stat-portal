@@ -63,9 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		const wikiEntities = createActorEntitiesForWiki(wiki.id);
 
 		const startDateKeySource = startDate == null ? moment.utc([1900, 0, 0]) : startDate;
-		const startDateSubKey = startDate == null ? "1900-00-00" : startDateKeySource.format("YYYY-MM-DD");
-		const endDateSubKey = endDate.format("YYYY-MM-DD");
-		const cacheKey = `list-${list.id}-${startDateSubKey}-${endDateSubKey}`;
+		const cacheKey = getQueryCacheKey(list, startDateKeySource, endDate);
 
 		const cachedEntry = await conn.getRepository(wikiEntities.cacheEntry)
 			.createQueryBuilder("ce")
@@ -311,6 +309,15 @@ const processParameters = (
 		endDate: endDate
 	};
 };
+
+function getQueryCacheKey(list: ListConfiguration, startDate: moment.Moment, endDate: moment.Moment): string {
+	const startDateSubKey = startDate == null ? "1900-00-00" : startDate.format("YYYY-MM-DD");
+	const endDateSubKey = endDate.format("YYYY-MM-DD");
+	const listVersionSubKey = typeof list.version === "number" && Number.isInteger(list.version)
+		? list.version
+		: 1;
+	return `list-${list.id}/${listVersionSubKey}-${startDateSubKey}-${endDateSubKey}`;
+}
 
 function getUserLevel(serviceAwardLevels: ServiceAwardLevelDefinition[] | null, user: ActorLike, columnIndex: number, where: "start" | "end") {
 	if (!serviceAwardLevels)
