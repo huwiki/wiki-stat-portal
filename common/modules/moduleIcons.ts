@@ -3,5 +3,5 @@ import { ModuleIdType } from "./moduleIdentifiers";
 
 export const MODULE_ICONS: { [K in ModuleIdType]: IconName } = {
 	"lists": "numbered-list",
-	"userPyramids": "horizontal-bar-chart-desc"
+	"userPyramids": "delta"
 };
