@@ -1465,7 +1465,7 @@ function addSingleColumSelect(
 					selectedColumnName
 				);
 			} else {
-				query = query.addSelect("DATE(LEAST(" + logFilters.map(log => {
+				query = query.addSelect("DATE(GREATEST(" + logFilters.map(log => {
 					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Log${serializeLogFilterDefinition(log)}`);
 
 					return `IFNULL(${actorEndTableName}Date.lastDate, "1900-01-01")`;
