@@ -17,7 +17,7 @@ export class CacheEntryTypeModel {
 }
 
 export class TemplateTypeModel {
-	public templateId: number;
+	public templatePageId: number;
 	public templateName: string;
 }
 
@@ -347,7 +347,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 	@Entity({ name: templateTableName })
 	class Template {
 		@PrimaryColumn({ name: "template_page_id", type: "bigint", unsigned: true })
-		public templateId: number;
+		public templatePageId: number;
 
 		@Column({ name: "template_name", type: "varchar", length: 255, charset: "utf8" })
 		public templateName: string;

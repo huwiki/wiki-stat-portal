@@ -3,6 +3,7 @@ import { Connection, SelectQueryBuilder } from "typeorm";
 import { UserGroup, UserRequirements, UserStatisticsInPeriodRequirement, UserStatisticsInTimeRequirement } from "../../common/modules/commonConfiguration";
 import { ChangeTagFilterDefinition, ListColumn, ListOrderBy, LogFilterDefinition } from "../../common/modules/lists/listsConfiguration";
 import { AppRunningContext } from "../appRunningContext";
+import { compareMoments, compareNumbers } from "../helpers/comparers";
 import { ActorTypeModel, WikiStatisticsTypesResult } from "./entities/toolsDatabase/actorByWiki";
 
 type JoinedTableType =
@@ -37,8 +38,7 @@ type NamespaceRequiredColumns = RequiredColumns & {
 type LogTypeStatisticsRequiredColumns = RequiredColumns & {
 	serializedLogFilter: string;
 	logFilter: LogFilterDefinition;
-	needsFirstLogEntryDate: boolean;
-	needsLastEntryDate: boolean;
+	needsLastLogEntryDate: boolean;
 };
 
 type ChangeTagStatisticsRequiredColumns = RequiredColumns & {
@@ -47,6 +47,7 @@ type ChangeTagStatisticsRequiredColumns = RequiredColumns & {
 };
 
 interface StatisticsQueryBuildingContext {
+	conn: Connection;
 	columns: RequiredColumns & {
 		requiredNamespaceStatisticsColumns: NamespaceRequiredColumns[];
 		requiredLogTypeStatisticsColumns: LogTypeStatisticsRequiredColumns[];
@@ -72,6 +73,7 @@ export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEnt
 }): Promise<ActorLike[]> {
 
 	const ctx: StatisticsQueryBuildingContext = {
+		conn: toolsDbConnection,
 		columns: {
 			neededDates: {
 				neededActorPeriodStarts: [],
@@ -97,7 +99,7 @@ export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEnt
 		.addSelect("actor.actorName", "actorName");
 
 	// Manage selects from column definitions
-	query = addColumSelects(ctx, query, columns, startDate, endDate);
+	query = addColumSelects(ctx, query, wikiEntities, columns, startDate, endDate);
 
 	// Manage required joins
 	query = addUserRequirementJoins(ctx, query, wikiEntities, userRequirements, startDate, endDate);
@@ -107,15 +109,24 @@ export async function createStatisticsQuery({ appCtx, toolsDbConnection, wikiEnt
 	query = addUserRequirementFilters(query, wikiEntities, userRequirements, startDate, endDate);
 	query = addColumnSelfFilterRules(query, columns);
 
-	query = addOrderBy(query, columns, orderBy);
-
-	if (typeof itemCount != "undefined")
-		query.limit(itemCount);
-
 	appCtx.logger.info(`[createStatisticsQuery] SQL: ${query.getSql()}`);
 
 	if (columns && columns.length > 0) {
-		return await query.getRawMany();
+
+		let data: ActorLike[] = await query.getRawMany();
+
+		appCtx.logger.info(`[createStatisticsQuery] Got result (${data.length}), sorting if needed...`);
+
+		doOrderBy(data, columns, orderBy);
+
+		appCtx.logger.info("[createStatisticsQuery] Sorting completed.");
+
+		if (typeof itemCount !== "undefined" && itemCount > 0 && data.length > itemCount)
+			data = data.slice(0, itemCount);
+
+		appCtx.logger.info(`[createStatisticsQuery] Returning ${data.length} items.`);
+
+		return data;
 	} else {
 		return await query.getRawMany<{ actorId: number }>();
 	}
@@ -133,11 +144,15 @@ function addUserRequirementJoins(
 		return query;
 	}
 
-	if ((typeof userRequirements.userGroups !== "undefined" && userRequirements.userGroups.length > 0)
-		|| (typeof userRequirements.notInUserGroups !== "undefined" && userRequirements.notInUserGroups.length > 0)) {
+	if ((typeof userRequirements.inAnyUserGroups !== "undefined" && userRequirements.inAnyUserGroups.length > 0)
+		|| (typeof userRequirements.inAllUserGroups !== "undefined" && userRequirements.inAllUserGroups.length > 0)
+		|| (typeof userRequirements.notInAnyUserGroups !== "undefined" && userRequirements.notInAnyUserGroups.length > 0)
+		|| (typeof userRequirements.notInAllUserGroups !== "undefined" && userRequirements.notInAllUserGroups.length > 0)) {
 		const allMentionedUserGroups = new Set<UserGroup>([
-			...(userRequirements.userGroups ?? []),
-			...(userRequirements.notInUserGroups || []),
+			...(userRequirements.inAnyUserGroups ?? []),
+			...(userRequirements.inAllUserGroups ?? []),
+			...(userRequirements.notInAnyUserGroups || []),
+			...(userRequirements.notInAllUserGroups || []),
 		]);
 
 		for (const userGroup of allMentionedUserGroups) {
@@ -164,10 +179,11 @@ function addUserRequirementJoins(
 		if (!ele)
 			continue;
 
-		const epochDate = typeof ele === "number"
-			? endDate
-			: moment.utc(endDate).subtract(ele.epoch * -1, "days");
+		const epochDate = typeof ele === "number" ? endDate
+			: ele.epoch === "startOfSelectedPeriod" ? moment.utc(startDate).subtract(1, "day")
+				: moment.utc(endDate).subtract(ele.epoch * -1, "days");
 
+		ctx.columns.needsSinceRegisteredActorStatistics = true;
 		addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, epochDate);
 	}
 
@@ -184,13 +200,14 @@ function addUserRequirementJoins(
 		if (!ele)
 			continue;
 
-		const periodStatCalculationStartDate = typeof ele.epoch === "number"
-			? moment.utc(endDate).subtract(ele.period + ele.epoch * -1, "days")
-			: moment.utc(endDate).subtract(ele.period, "days");
-		const periodStatCalculationEndDate = typeof ele.epoch === "number"
-			? moment.utc(endDate).subtract(ele.epoch * -1, "days")
-			: endDate;
+		const periodStatCalculationStartDate = typeof ele === "number" ? startDate
+			: ele.epoch === "startOfSelectedPeriod" ? moment.utc(startDate).subtract(1, "day").subtract(ele.period, "days")
+				: typeof ele.epoch === "number" ? moment.utc(endDate).subtract(ele.period + ele.epoch * -1, "days")
+					: moment.utc(endDate).subtract(ele.period, "days");
+		const periodStatCalculationEndDate = typeof ele === "number" || typeof ele.epoch !== "number" ? endDate
+			: moment.utc(endDate).subtract(ele.epoch * -1, "days");
 
+		ctx.columns.needsSelectedPeriodActorStatistics = true;
 		addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodStarts, periodStatCalculationStartDate);
 		addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, periodStatCalculationEndDate);
 	}
@@ -204,8 +221,50 @@ function addUserRequirementJoins(
 		if (!ele)
 			continue;
 
+		ctx.columns.needsSelectedPeriodActorStatistics = true;
 		addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodStarts, startDate);
 		addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
+	}
+
+	for (const ele of [
+		userRequirements.totalEditsInNamespaceAtLeast,
+		userRequirements.totalEditsInNamespaceAtMost
+	]) {
+		if (!ele)
+			continue;
+
+		const epochDate = ele.epoch === "startOfSelectedPeriod" ? moment.utc(startDate).subtract(1, "day")
+			: typeof ele.epoch !== "number" ? endDate
+				: moment.utc(endDate).subtract(ele.epoch * -1, "days");
+
+		for (const ct of Array.isArray(ele.namespace) ? ele.namespace : [ele.namespace]) {
+			const ctCollector = getOrCreateNamespaceCollector(ctx, ct);
+			ctCollector.needsSinceRegisteredActorStatistics = true;
+			addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodEnds, epochDate);
+		}
+	}
+
+	for (const ele of [
+		userRequirements.inPeriodEditsInNamespaceAtLeast,
+		userRequirements.inPeriodEditsInNamespaceAtMost
+	]) {
+		if (!ele)
+			continue;
+
+		const periodStatCalculationStartDate = typeof ele.period !== "number" ? startDate
+			: ele.epoch === "startOfSelectedPeriod" ? moment.utc(startDate).subtract(1, "day").subtract(ele.period, "days")
+				: typeof ele.epoch === "number" ? moment.utc(endDate).subtract(ele.period + ele.epoch * -1, "days")
+					: moment.utc(endDate).subtract(ele.period, "days");
+
+		const periodStatCalculationEndDate = typeof ele.epoch !== "number" ? endDate
+			: moment.utc(endDate).subtract(ele.epoch * -1, "days");
+
+		for (const ct of Array.isArray(ele.namespace) ? ele.namespace : [ele.namespace]) {
+			const ctCollector = getOrCreateNamespaceCollector(ctx, ct);
+			ctCollector.needsSelectedPeriodActorStatistics = true;
+			addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodStarts, periodStatCalculationStartDate);
+			addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodEnds, periodStatCalculationEndDate);
+		}
 	}
 
 	for (const ele of [
@@ -233,12 +292,13 @@ function addUserRequirementJoins(
 		if (!ele)
 			continue;
 
-		const periodStatCalculationStartDate = typeof ele.epoch === "number"
-			? moment.utc(endDate).subtract(ele.period + ele.epoch * -1, "days")
-			: moment.utc(endDate).subtract(ele.period, "days");
-		const periodStatCalculationEndDate = typeof ele.epoch === "number"
-			? moment.utc(endDate).subtract(ele.epoch * -1, "days")
-			: endDate;
+		const periodStatCalculationStartDate = typeof ele.period !== "number" ? startDate
+			: ele.epoch === "startOfSelectedPeriod" ? moment.utc(startDate).subtract(1, "day").subtract(ele.period, "days")
+				: typeof ele.epoch === "number" ? moment.utc(endDate).subtract(ele.period + ele.epoch * -1, "days")
+					: moment.utc(endDate).subtract(ele.period, "days");
+
+		const periodStatCalculationEndDate = typeof ele.epoch !== "number" ? endDate
+			: moment.utc(endDate).subtract(ele.epoch * -1, "days");
 
 		for (const ct of Array.isArray(ele.changeTag) ? ele.changeTag : [ele.changeTag]) {
 			const ctCollector = getOrCreateChangeTagCollector(ctx, ct);
@@ -262,6 +322,33 @@ function addUserRequirementFilters(
 		return query;
 	}
 
+	query = generateRegistrationUserRequirementWhereClauses(query, userRequirements, endDate);
+
+	// User groups
+	query = generateUserGroupUserRequirementWhereClauses(query, userRequirements);
+
+	query = generateUserPageTemplateUserRequirementWhereClauses(query, userRequirements, wikiEntities);
+
+	query = generateEditUserRequirementWhereClauses(query, userRequirements, startDate, endDate);
+
+	query = generateNamespaceEditUserRequirementWhereClauses(query, userRequirements, startDate, endDate);
+
+	query = generateChangeTagEditUserRequirementWhereClauses(query, userRequirements, startDate, endDate);
+
+	query = generateRevertedEditUserRequirementWhereClauses(query, userRequirements, startDate, endDate);
+
+	query = generateReceivedThanksUserRequirementWhereClauses(query, userRequirements, startDate, endDate);
+
+	query = generateActiveDaysUserRequirementWhereClauses(query, userRequirements, startDate, endDate);
+
+	return query;
+}
+
+function generateRegistrationUserRequirementWhereClauses(
+	query: SelectQueryBuilder<ActorTypeModel>,
+	userRequirements: UserRequirements,
+	endDate: moment.Moment
+) {
 	let needsRegDateFilter = false;
 	// Registration status filter
 	if (userRequirements.registrationStatus === "anon") {
@@ -292,10 +379,15 @@ function addUserRequirementFilters(
 	if (needsRegDateFilter) {
 		query = query.andWhere("actor.registrationTimestamp < :nextDate", { nextDate: moment.utc(endDate).add(1, "day").toDate() });
 	}
+	return query;
+}
 
-	// User groups
-	if (typeof userRequirements.userGroups !== "undefined") {
-		const userGroups = userRequirements.userGroups;
+function generateUserGroupUserRequirementWhereClauses(
+	query: SelectQueryBuilder<ActorTypeModel>,
+	userRequirements: UserRequirements
+) {
+	if (typeof userRequirements.inAnyUserGroups !== "undefined") {
+		const userGroups = userRequirements.inAnyUserGroups;
 
 		query = query.andWhere("("
 			+ userGroups.map((group: string): string => {
@@ -304,62 +396,29 @@ function addUserRequirementFilters(
 			+ ")");
 	}
 
-	let templateIndex = 0;
-	if (typeof userRequirements.hasUserPageTemplates !== "undefined") {
-		for (const templateName of userRequirements.hasUserPageTemplates) {
-			query = query.andWhere(qb => {
-				const subQuery = qb.subQuery()
-					.select("1")
-					.from(wikiEntities.actorUserPageTemplate, "att")
-					.innerJoin(
-						wikiEntities.template,
-						"tmpl",
-						"tmpl.templatePageId = att.templatePageId "
+	if (typeof userRequirements.inAllUserGroups !== "undefined") {
+		const userGroups = userRequirements.inAllUserGroups;
 
-					)
-					.where("att.actorId = actor.actorId")
-					.andWhere(
-						`tmpl.templateName = :template${templateIndex}Name`,
-						{ [`template${templateIndex}Name`]: templateName }
-					)
-					.getQuery();
-
-				return `EXISTS(${subQuery})`;
-			});
-
-			templateIndex++;
-		}
-	}
-
-	if (typeof userRequirements.hasNoUserPageTemplates !== "undefined") {
-		for (const templateName of userRequirements.hasNoUserPageTemplates) {
-			query = query.andWhere(qb => {
-				const subQuery = qb.subQuery()
-					.select("1")
-					.from(wikiEntities.actorUserPageTemplate, "att")
-					.innerJoin(
-						wikiEntities.template,
-						"tmpl",
-						"tmpl.templatePageId = att.templatePageId "
-
-					)
-					.where("att.actorId = actor.actorId")
-					.andWhere(
-						`tmpl.templateName = :template${templateIndex}Name`,
-						{ [`template${templateIndex}Name`]: templateName }
-					)
-					.getQuery();
-
-				return `NOT EXISTS(${subQuery})`;
-			});
-
-			templateIndex++;
-		}
+		query = query.andWhere("("
+			+ userGroups.map((group: string): string => {
+				return `${sanitizeNameForSql(group)}GroupCheck.actorId = actor.actorId`;
+			}).join(" AND ")
+			+ ")");
 	}
 
 	// Not in user groups
-	if (typeof userRequirements.notInUserGroups !== "undefined") {
-		const userGroups = userRequirements.notInUserGroups;
+	if (typeof userRequirements.notInAnyUserGroups !== "undefined") {
+		const userGroups = userRequirements.notInAnyUserGroups;
+
+		query = query.andWhere("("
+			+ userGroups.map((group: string): string => {
+				return `${sanitizeNameForSql(group)}GroupCheck.actorId <> actor.actorId`;
+			}).join(" OR ")
+			+ ")");
+	}
+
+	if (typeof userRequirements.notInAllUserGroups !== "undefined") {
+		const userGroups = userRequirements.notInAllUserGroups;
 
 		query = query.andWhere("("
 			+ userGroups.map((group: string): string => {
@@ -367,10 +426,66 @@ function addUserRequirementFilters(
 			}).join(" AND ")
 			+ ")");
 	}
+	return query;
+}
 
+function generateUserPageTemplateUserRequirementWhereClauses(
+	query: SelectQueryBuilder<ActorTypeModel>,
+	userRequirements: UserRequirements,
+	wikiEntities: WikiStatisticsTypesResult
+) {
+	// User page templates
+	if (typeof userRequirements.hasAnyUserPageTemplates !== "undefined") {
+		query = generateHasUserPageTemplatesWhereClause({
+			query,
+			checkedTemplateList: userRequirements.hasAnyUserPageTemplates,
+			wikiEntities,
+			isNonExistenceCheck: false,
+			joinOperator: "or"
+		});
+	}
+
+	if (typeof userRequirements.hasAllUserPageTemplates !== "undefined") {
+		query = generateHasUserPageTemplatesWhereClause({
+			query,
+			checkedTemplateList: userRequirements.hasAllUserPageTemplates,
+			wikiEntities,
+			isNonExistenceCheck: false,
+			joinOperator: "and"
+		});
+	}
+
+	if (typeof userRequirements.notHasAnyUserPageTemplates !== "undefined") {
+		query = generateHasUserPageTemplatesWhereClause({
+			query,
+			checkedTemplateList: userRequirements.notHasAnyUserPageTemplates,
+			wikiEntities,
+			isNonExistenceCheck: true,
+			joinOperator: "or"
+		});
+	}
+
+	if (typeof userRequirements.notHasAllUserPageTemplates !== "undefined") {
+		query = generateHasUserPageTemplatesWhereClause({
+			query,
+			checkedTemplateList: userRequirements.notHasAllUserPageTemplates,
+			wikiEntities,
+			isNonExistenceCheck: true,
+			joinOperator: "and"
+		});
+	}
+	return query;
+}
+
+function generateEditUserRequirementWhereClauses(
+	query: SelectQueryBuilder<ActorTypeModel>,
+	userRequirements: UserRequirements,
+	startDate: moment.Moment | undefined,
+	endDate: moment.Moment
+) {
 	// Total edits at least
 	if (typeof userRequirements.totalEditsAtLeast !== "undefined") {
-		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalEditsAtLeast, endDate);
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalEditsAtLeast, startDate, endDate);
 
 		const totalEditsAtLeast = typeof userRequirements.totalEditsAtLeast === "number"
 			? userRequirements.totalEditsAtLeast
@@ -384,7 +499,7 @@ function addUserRequirementFilters(
 
 	// Total edits at most
 	if (typeof userRequirements.totalEditsAtMost !== "undefined") {
-		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalEditsAtMost, endDate);
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalEditsAtMost, startDate, endDate);
 
 		const totalEditsAtMost = typeof userRequirements.totalEditsAtMost === "number"
 			? userRequirements.totalEditsAtMost
@@ -399,18 +514,17 @@ function addUserRequirementFilters(
 	// Total edits milestone reached in period
 	if (typeof userRequirements.totalEditsMilestoneReachedInPeriod !== "undefined"
 		&& userRequirements.totalEditsMilestoneReachedInPeriod.length > 0
-		&& typeof startDate !== "undefined"
-	) {
+		&& typeof startDate !== "undefined") {
 		const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
 		const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
 
-		const whereParameters: { [index: string]: unknown } = {};
+		const whereParameters: { [index: string]: unknown; } = {};
 		query = query.andWhere(
 			"(" + userRequirements.totalEditsMilestoneReachedInPeriod.map((milestone, index) => {
 				const milestoneParameterKey = `totalEditsMilestone${index}`;
 				whereParameters[milestoneParameterKey] = milestone;
 				return `IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) >= :${milestoneParameterKey}`
-					+ `AND IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0) < :${milestoneParameterKey}`;
+					+ ` AND IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0) < :${milestoneParameterKey}`;
 			}).join(" OR ") + ")",
 			whereParameters
 		);
@@ -420,42 +534,162 @@ function addUserRequirementFilters(
 	// Period edits at least
 	if (typeof userRequirements.inPeriodEditsAtLeast !== "undefined") {
 		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
-			userRequirements.inPeriodEditsAtLeast, endDate
+			userRequirements.inPeriodEditsAtLeast, startDate, endDate
 		);
 
 		query = query.andWhere(
-			`IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
-			+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0)`
+			`IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0)`
+			+ ` - IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0)`
 			+ " >= :inPeriodEditsAtLeast",
-			{ inPeriodEditsAtLeast: userRequirements.inPeriodEditsAtLeast.count }
+			{
+				inPeriodEditsAtLeast: typeof userRequirements.inPeriodEditsAtLeast === "number"
+					? userRequirements.inPeriodEditsAtLeast
+					: userRequirements.inPeriodEditsAtLeast.count
+			}
 		);
 	}
 
 	// Period edits at most
 	if (typeof userRequirements.inPeriodEditsAtMost !== "undefined") {
 		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
-			userRequirements.inPeriodEditsAtMost, endDate
+			userRequirements.inPeriodEditsAtMost, startDate, endDate
 		);
 
 		query = query.andWhere(
-			`IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
-			+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0)`
-			+ " >= :inPeriodEditsAtLeast",
-			{ inPeriodEditsAtLeast: userRequirements.inPeriodEditsAtMost.count }
+			`IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0)`
+			+ ` - IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0)`
+			+ " <= :inPeriodEditsAtMost",
+			{
+				inPeriodEditsAtMost: typeof userRequirements.inPeriodEditsAtMost === "number"
+					? userRequirements.inPeriodEditsAtMost
+					: userRequirements.inPeriodEditsAtMost.count
+			}
+		);
+	}
+	return query;
+}
+
+function generateNamespaceEditUserRequirementWhereClauses(
+	query: SelectQueryBuilder<ActorTypeModel>,
+	userRequirements: UserRequirements,
+	startDate: moment.Moment | undefined,
+	endDate: moment.Moment
+) {
+	// Total edits in namespace at least
+	if (typeof userRequirements.totalEditsInNamespaceAtLeast !== "undefined") {
+		const totalReq = userRequirements.totalEditsInNamespaceAtLeast;
+		const namespaces = Array.isArray(userRequirements.totalEditsInNamespaceAtLeast.namespace)
+			? userRequirements.totalEditsInNamespaceAtLeast.namespace
+			: [userRequirements.totalEditsInNamespaceAtLeast.namespace];
+
+		query = query.andWhere(
+			namespaces.map(ns => {
+				const totalEditsEpochDate = totalReq.epoch === "startOfSelectedPeriod" ? moment.utc(startDate).subtract(1, "day")
+					: typeof totalReq.epoch !== "number" ? endDate
+						: moment.utc(endDate).subtract(totalReq.epoch * -1, "days");
+
+				const actorEndTableName = makePeriodJoinTableName(totalEditsEpochDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(ns)}`);
+
+				return `IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0)`;
+			}).join(" + ") + " >= :totalEditsInNamespaceAtLeast",
+			{ totalEditsInNamespaceAtLeast: userRequirements.totalEditsInNamespaceAtLeast.edits });
+	}
+
+	// Total edits in namespace at most
+	if (typeof userRequirements.totalEditsInNamespaceAtMost !== "undefined") {
+		const totalReq = userRequirements.totalEditsInNamespaceAtMost;
+		const namespaces = Array.isArray(userRequirements.totalEditsInNamespaceAtMost.namespace)
+			? userRequirements.totalEditsInNamespaceAtMost.namespace
+			: [userRequirements.totalEditsInNamespaceAtMost.namespace];
+
+		query = query.andWhere(
+			namespaces.map(ns => {
+				const totalEditsEpochDate = totalReq.epoch === "startOfSelectedPeriod" ? moment.utc(startDate).subtract(1, "day")
+					: typeof totalReq.epoch !== "number" ? endDate
+						: moment.utc(endDate).subtract(totalReq.epoch * -1, "days");
+
+				const actorEndTableName = makePeriodJoinTableName(totalEditsEpochDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(ns)}`);
+
+				return `IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0)`;
+			}).join(" + ") + " <= :totalEditsInNamespaceAtMost",
+			{ totalEditsInNamespaceAtMost: userRequirements.totalEditsInNamespaceAtMost.edits });
+	}
+
+	// Period edits in namespace at least
+	if (typeof userRequirements.inPeriodEditsInNamespaceAtLeast !== "undefined") {
+		const reqInPeriod = userRequirements.inPeriodEditsInNamespaceAtLeast;
+		const namespaces = Array.isArray(userRequirements.inPeriodEditsInNamespaceAtLeast.namespace)
+			? userRequirements.inPeriodEditsInNamespaceAtLeast.namespace
+			: [userRequirements.inPeriodEditsInNamespaceAtLeast.namespace];
+
+		query = query.andWhere(
+			namespaces.map(ns => {
+				const periodStatCalculationStartDate = typeof reqInPeriod.period !== "number" ? startDate
+					: reqInPeriod.epoch === "startOfSelectedPeriod" ? moment.utc(startDate).subtract(1, "day").subtract(reqInPeriod.period, "days")
+						: typeof reqInPeriod.epoch === "number" ? moment.utc(endDate).subtract(reqInPeriod.period + reqInPeriod.epoch * -1, "days")
+							: moment.utc(endDate).subtract(reqInPeriod.period, "days");
+				const periodStatCalculationEndDate = typeof reqInPeriod.epoch === "number"
+					? moment.utc(endDate).subtract(reqInPeriod.epoch * -1, "days")
+					: endDate;
+
+				const actorStartTableName = makePeriodJoinTableName(periodStatCalculationStartDate, "beforePeriodStart", "actor", `Ns${formatNamespaceParameter(ns)}`);
+				const actorEndTableName = makePeriodJoinTableName(periodStatCalculationEndDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(ns)}`);
+
+				return `(IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
+					+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0))`;
+			}).join(" + ") + " <= :inPeriodEditsInNamespaceAtLeast",
+			{ inPeriodEditsInNamespaceAtLeast: userRequirements.inPeriodEditsInNamespaceAtLeast.edits }
 		);
 	}
 
+	// Period edits in namespace at most
+	if (typeof userRequirements.inPeriodEditsInNamespaceAtMost !== "undefined") {
+		const reqInPeriod = userRequirements.inPeriodEditsInNamespaceAtMost;
+		const namespaces = Array.isArray(userRequirements.inPeriodEditsInNamespaceAtMost.namespace)
+			? userRequirements.inPeriodEditsInNamespaceAtMost.namespace
+			: [userRequirements.inPeriodEditsInNamespaceAtMost.namespace];
+
+		query = query.andWhere(
+			namespaces.map(ns => {
+				const periodStatCalculationStartDate = typeof reqInPeriod.period !== "number" ? startDate
+					: reqInPeriod.epoch === "startOfSelectedPeriod" ? moment.utc(startDate).subtract(1, "day").subtract(reqInPeriod.period, "days")
+						: typeof reqInPeriod.epoch === "number" ? moment.utc(endDate).subtract(reqInPeriod.period + reqInPeriod.epoch * -1, "days")
+							: moment.utc(endDate).subtract(reqInPeriod.period, "days");
+
+				const periodStatCalculationEndDate = typeof reqInPeriod.epoch === "number"
+					? moment.utc(endDate).subtract(reqInPeriod.epoch * -1, "days")
+					: endDate;
+
+				const actorStartTableName = makePeriodJoinTableName(periodStatCalculationStartDate, "beforePeriodStart", "actor", `Ns${formatNamespaceParameter(ns)}`);
+				const actorEndTableName = makePeriodJoinTableName(periodStatCalculationEndDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(ns)}`);
+
+				return `(IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) `
+					+ `- IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0))`;
+			}).join(" + ") + " <= :inPeriodEditsInNamespaceAtMost",
+			{ inPeriodEditsInNamespaceAtMost: userRequirements.inPeriodEditsInNamespaceAtMost.edits }
+		);
+	}
+	return query;
+}
+
+function generateChangeTagEditUserRequirementWhereClauses(
+	query: SelectQueryBuilder<ActorTypeModel>,
+	userRequirements: UserRequirements,
+	startDate: moment.Moment | undefined,
+	endDate: moment.Moment
+) {
 	// Total edits with change tag at least
 	if (typeof userRequirements.totalEditsWithChangeTagAtLeast !== "undefined") {
+		const totalReq = userRequirements.totalEditsWithChangeTagAtLeast;
 		const changeTags = Array.isArray(userRequirements.totalEditsWithChangeTagAtLeast.changeTag)
 			? userRequirements.totalEditsWithChangeTagAtLeast.changeTag
 			: [userRequirements.totalEditsWithChangeTagAtLeast.changeTag];
 
 		query = query.andWhere(
 			changeTags.map(ct => {
-				const totalEditsEpochDate = typeof userRequirements.totalEditsWithChangeTagAtLeast?.epoch !== "number"
-					? endDate
-					: moment.utc(endDate).subtract(userRequirements.totalEditsWithChangeTagAtLeast.epoch * -1, "days");
+				const totalEditsEpochDate = totalReq.epoch === "startOfSelectedPeriod" ? moment.utc(startDate).subtract(1, "day")
+					: typeof totalReq.epoch !== "number" ? endDate
+						: moment.utc(endDate).subtract(totalReq.epoch * -1, "days");
 
 				const actorEndTableName = makePeriodJoinTableName(totalEditsEpochDate, "atPeriodEnd", "actor", `Ct${serializeChangeTagFilterDefinition(ct)}`);
 
@@ -466,15 +700,16 @@ function addUserRequirementFilters(
 
 	// Total edits with change tag at most
 	if (typeof userRequirements.totalEditsWithChangeTagAtMost !== "undefined") {
+		const totalReq = userRequirements.totalEditsWithChangeTagAtMost;
 		const changeTags = Array.isArray(userRequirements.totalEditsWithChangeTagAtMost.changeTag)
 			? userRequirements.totalEditsWithChangeTagAtMost.changeTag
 			: [userRequirements.totalEditsWithChangeTagAtMost.changeTag];
 
 		query = query.andWhere(
 			changeTags.map(ct => {
-				const totalEditsEpochDate = typeof userRequirements.totalEditsWithChangeTagAtMost?.epoch !== "number"
-					? endDate
-					: moment.utc(endDate).subtract(userRequirements.totalEditsWithChangeTagAtMost.epoch * -1, "days");
+				const totalEditsEpochDate = totalReq.epoch === "startOfSelectedPeriod" ? moment.utc(startDate).subtract(1, "day")
+					: typeof totalReq.epoch !== "number" ? endDate
+						: moment.utc(endDate).subtract(totalReq.epoch * -1, "days");
 
 				const actorEndTableName = makePeriodJoinTableName(totalEditsEpochDate, "atPeriodEnd", "actor", `Ct${serializeChangeTagFilterDefinition(ct)}`);
 
@@ -492,9 +727,10 @@ function addUserRequirementFilters(
 
 		query = query.andWhere(
 			changeTags.map(ct => {
-				const periodStatCalculationStartDate = typeof reqInPeriod.epoch === "number"
-					? moment.utc(endDate).subtract(reqInPeriod.period + reqInPeriod.epoch * -1, "days")
-					: moment.utc(endDate).subtract(reqInPeriod.period, "days");
+				const periodStatCalculationStartDate = typeof reqInPeriod.period !== "number" ? startDate
+					: reqInPeriod.epoch === "startOfSelectedPeriod" ? moment.utc(startDate).subtract(1, "day").subtract(reqInPeriod.period, "days")
+						: typeof reqInPeriod.epoch === "number" ? moment.utc(endDate).subtract(reqInPeriod.period + reqInPeriod.epoch * -1, "days")
+							: moment.utc(endDate).subtract(reqInPeriod.period, "days");
 				const periodStatCalculationEndDate = typeof reqInPeriod.epoch === "number"
 					? moment.utc(endDate).subtract(reqInPeriod.epoch * -1, "days")
 					: endDate;
@@ -518,9 +754,11 @@ function addUserRequirementFilters(
 
 		query = query.andWhere(
 			changeTags.map(ct => {
-				const periodStatCalculationStartDate = typeof reqInPeriod.epoch === "number"
-					? moment.utc(endDate).subtract(reqInPeriod.period + reqInPeriod.epoch * -1, "days")
-					: moment.utc(endDate).subtract(reqInPeriod.period, "days");
+				const periodStatCalculationStartDate = typeof reqInPeriod.period !== "number" ? startDate
+					: reqInPeriod.epoch === "startOfSelectedPeriod" ? moment.utc(startDate).subtract(1, "day").subtract(reqInPeriod.period, "days")
+						: typeof reqInPeriod.epoch === "number" ? moment.utc(endDate).subtract(reqInPeriod.period + reqInPeriod.epoch * -1, "days")
+							: moment.utc(endDate).subtract(reqInPeriod.period, "days");
+
 				const periodStatCalculationEndDate = typeof reqInPeriod.epoch === "number"
 					? moment.utc(endDate).subtract(reqInPeriod.epoch * -1, "days")
 					: endDate;
@@ -534,10 +772,18 @@ function addUserRequirementFilters(
 			{ inPeriodEditsWithChangeTagAtMost: userRequirements.inPeriodEditsWithChangeTagAtMost.edits }
 		);
 	}
+	return query;
+}
 
+function generateRevertedEditUserRequirementWhereClauses(
+	query: SelectQueryBuilder<ActorTypeModel>,
+	userRequirements: UserRequirements,
+	startDate: moment.Moment | undefined,
+	endDate: moment.Moment
+) {
 	// Total reverted edits at least
 	if (typeof userRequirements.totalRevertedEditsAtLeast !== "undefined") {
-		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalRevertedEditsAtLeast, endDate);
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalRevertedEditsAtLeast, startDate, endDate);
 
 		const totalRevertedEditsAtLeast = typeof userRequirements.totalRevertedEditsAtLeast === "number"
 			? userRequirements.totalRevertedEditsAtLeast
@@ -551,7 +797,7 @@ function addUserRequirementFilters(
 
 	// Total reverted edits at most
 	if (typeof userRequirements.totalRevertedEditsAtMost !== "undefined") {
-		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalRevertedEditsAtMost, endDate);
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalRevertedEditsAtMost, startDate, endDate);
 
 		const totalRevertedEditsAtMost = typeof userRequirements.totalRevertedEditsAtMost === "number"
 			? userRequirements.totalRevertedEditsAtMost
@@ -566,12 +812,11 @@ function addUserRequirementFilters(
 	// Total reverted edits milestone reached in period
 	if (typeof userRequirements.totalRevertedEditsMilestoneReachedInPeriod !== "undefined"
 		&& userRequirements.totalRevertedEditsMilestoneReachedInPeriod.length > 0
-		&& typeof startDate !== "undefined"
-	) {
+		&& typeof startDate !== "undefined") {
 		const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
 		const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
 
-		const whereParameters: { [index: string]: unknown } = {};
+		const whereParameters: { [index: string]: unknown; } = {};
 		query = query.andWhere(
 			"(" + userRequirements.totalEditsMilestoneReachedInPeriod.map((milestone, index) => {
 				const milestoneParameterKey = `totalRevertedEditsMilestone${index}`;
@@ -586,34 +831,50 @@ function addUserRequirementFilters(
 	// Period reverted edits at least
 	if (typeof userRequirements.inPeriodRevertedEditsAtLeast !== "undefined") {
 		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
-			userRequirements.inPeriodRevertedEditsAtLeast, endDate
+			userRequirements.inPeriodRevertedEditsAtLeast, startDate, endDate
 		);
 
 		query = query.andWhere(
 			`IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0) `
 			+ `- IFNULL(${actorStartTableName}.revertedEditsToDate + ${actorStartTableName}.dailyRevertedEdits, 0)`
 			+ " >= :inPeriodRevertedEditsAtLeast",
-			{ inPeriodRevertedEditsAtLeast: userRequirements.inPeriodRevertedEditsAtLeast.count }
+			{
+				inPeriodRevertedEditsAtLeast: typeof userRequirements.inPeriodRevertedEditsAtLeast === "number"
+					? userRequirements.inPeriodRevertedEditsAtLeast
+					: userRequirements.inPeriodRevertedEditsAtLeast.count
+			}
 		);
 	}
 
 	// Period reverted edits at most
 	if (typeof userRequirements.inPeriodRevertedEditsAtMost !== "undefined") {
 		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
-			userRequirements.inPeriodRevertedEditsAtMost, endDate
+			userRequirements.inPeriodRevertedEditsAtMost, startDate, endDate
 		);
 
 		query = query.andWhere(
 			`IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0) `
 			+ `- IFNULL(${actorStartTableName}.revertedEditsToDate + ${actorStartTableName}.dailyRevertedEdits, 0)`
 			+ " >= :inPeriodEditsAtLeast",
-			{ inPeriodRevertedEditsAtMost: userRequirements.inPeriodRevertedEditsAtMost.count }
+			{
+				inPeriodRevertedEditsAtMost: typeof userRequirements.inPeriodRevertedEditsAtMost === "number"
+					? userRequirements.inPeriodRevertedEditsAtMost
+					: userRequirements.inPeriodRevertedEditsAtMost.count
+			}
 		);
 	}
+	return query;
+}
 
+function generateReceivedThanksUserRequirementWhereClauses(
+	query: SelectQueryBuilder<ActorTypeModel>,
+	userRequirements: UserRequirements,
+	startDate: moment.Moment | undefined,
+	endDate: moment.Moment
+) {
 	// Total received thanks at least
 	if (typeof userRequirements.totalReceivedThanksAtLeast !== "undefined") {
-		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalReceivedThanksAtLeast, endDate);
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalReceivedThanksAtLeast, startDate, endDate);
 
 		const totalReceivedThanksAtLeast = typeof userRequirements.totalReceivedThanksAtLeast === "number"
 			? userRequirements.totalReceivedThanksAtLeast
@@ -627,7 +888,7 @@ function addUserRequirementFilters(
 
 	// Total received thanks at most
 	if (typeof userRequirements.totalReceivedThanksAtMost !== "undefined") {
-		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalReceivedThanksAtMost, endDate);
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalReceivedThanksAtMost, startDate, endDate);
 
 		const totalReceivedThanksAtMost = typeof userRequirements.totalReceivedThanksAtMost === "number"
 			? userRequirements.totalReceivedThanksAtMost
@@ -642,12 +903,11 @@ function addUserRequirementFilters(
 	// Total received thanks milestone reached in period
 	if (typeof userRequirements.totalReceivedThanksMilestoneReachedInPeriod !== "undefined"
 		&& userRequirements.totalReceivedThanksMilestoneReachedInPeriod.length > 0
-		&& typeof startDate !== "undefined"
-	) {
+		&& typeof startDate !== "undefined") {
 		const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
 		const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
 
-		const whereParameters: { [index: string]: unknown } = {};
+		const whereParameters: { [index: string]: unknown; } = {};
 		query = query.andWhere(
 			"(" + userRequirements.totalReceivedThanksMilestoneReachedInPeriod.map((milestone, index) => {
 				const milestoneParameterKey = `totalReceivedThanksMilestone${index}`;
@@ -662,34 +922,50 @@ function addUserRequirementFilters(
 	// Period received thanks at least
 	if (typeof userRequirements.inPeriodReceivedThanksAtLeast !== "undefined") {
 		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
-			userRequirements.inPeriodReceivedThanksAtLeast, endDate
+			userRequirements.inPeriodReceivedThanksAtLeast, startDate, endDate
 		);
 
 		query = query.andWhere(
 			`IFNULL(${actorEndTableName}.receivedThanksToDate + ${actorEndTableName}.dailyReceivedThanks, 0) `
 			+ `- IFNULL(${actorStartTableName}.receivedThanksToDate + ${actorStartTableName}.dailyReceivedThanks, 0)`
 			+ " >= :inPeriodReceivedThanksAtLeast",
-			{ inPeriodReceivedThanksAtLeast: userRequirements.inPeriodReceivedThanksAtLeast.count }
+			{
+				inPeriodReceivedThanksAtLeast: typeof userRequirements.inPeriodReceivedThanksAtLeast === "number"
+					? userRequirements.inPeriodReceivedThanksAtLeast
+					: userRequirements.inPeriodReceivedThanksAtLeast.count
+			}
 		);
 	}
 
 	// Period received thanks at most
 	if (typeof userRequirements.inPeriodReceivedThanksAtMost !== "undefined") {
 		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
-			userRequirements.inPeriodReceivedThanksAtMost, endDate
+			userRequirements.inPeriodReceivedThanksAtMost, startDate, endDate
 		);
 
 		query = query.andWhere(
 			`IFNULL(${actorEndTableName}.receivedThanksToDate + ${actorEndTableName}.dailyReceivedThanks, 0) `
 			+ `- IFNULL(${actorStartTableName}.receivedThanksToDate + ${actorStartTableName}.dailyReceivedThanks, 0)`
 			+ " >= :inPeriodEditsAtLeast",
-			{ inPeriodReceivedThanksAtMost: userRequirements.inPeriodReceivedThanksAtMost.count }
+			{
+				inPeriodReceivedThanksAtMost: typeof userRequirements.inPeriodReceivedThanksAtMost === "number"
+					? userRequirements.inPeriodReceivedThanksAtMost
+					: userRequirements.inPeriodReceivedThanksAtMost.count
+			}
 		);
 	}
+	return query;
+}
 
+function generateActiveDaysUserRequirementWhereClauses(
+	query: SelectQueryBuilder<ActorTypeModel>,
+	userRequirements: UserRequirements,
+	startDate: moment.Moment | undefined,
+	endDate: moment.Moment
+) {
 	// Total active days at least
 	if (typeof userRequirements.totalActiveDaysAtLeast !== "undefined") {
-		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalActiveDaysAtLeast, endDate);
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalActiveDaysAtLeast, startDate, endDate);
 
 		const totalActiveDaysAtLeast = typeof userRequirements.totalActiveDaysAtLeast === "number"
 			? userRequirements.totalActiveDaysAtLeast
@@ -703,7 +979,7 @@ function addUserRequirementFilters(
 
 	// Total active days at most
 	if (typeof userRequirements.totalActiveDaysAtMost !== "undefined") {
-		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalActiveDaysAtMost, endDate);
+		const actorEndTableName = getTableNameForUserTotalRequirement(userRequirements.totalActiveDaysAtMost, startDate, endDate);
 
 		const totalActiveDaysAtMost = typeof userRequirements.totalActiveDaysAtMost === "number"
 			? userRequirements.totalActiveDaysAtMost
@@ -718,12 +994,11 @@ function addUserRequirementFilters(
 	// Total active days milestone reached in period
 	if (typeof userRequirements.totalActiveDaysMilestoneReachedInPeriod !== "undefined"
 		&& userRequirements.totalActiveDaysMilestoneReachedInPeriod.length > 0
-		&& typeof startDate !== "undefined"
-	) {
+		&& typeof startDate !== "undefined") {
 		const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
 		const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
 
-		const whereParameters: { [index: string]: unknown } = {};
+		const whereParameters: { [index: string]: unknown; } = {};
 		query = query.andWhere(
 			"(" + userRequirements.totalActiveDaysMilestoneReachedInPeriod.map((milestone, index) => {
 				const milestoneParameterKey = `totalActiveDaysMilestone${index}`;
@@ -738,50 +1013,110 @@ function addUserRequirementFilters(
 	// Period active days at least
 	if (typeof userRequirements.inPeriodActiveDaysAtLeast !== "undefined") {
 		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
-			userRequirements.inPeriodActiveDaysAtLeast, endDate
+			userRequirements.inPeriodActiveDaysAtLeast, startDate, endDate
 		);
 
 		query = query.andWhere(
 			`IFNULL(${actorEndTableName}.activeDaysToDate + ${actorEndTableName}.dailyActiveDay, 0) `
 			+ `- IFNULL(${actorStartTableName}.activeDaysToDate + ${actorStartTableName}.dailyActiveDay, 0)`
 			+ " >= :inPeriodActiveDaysAtLeast",
-			{ inPeriodActiveDaysAtLeast: userRequirements.inPeriodActiveDaysAtLeast.count }
+			{
+				inPeriodActiveDaysAtLeast: typeof userRequirements.inPeriodActiveDaysAtLeast === "number"
+					? userRequirements.inPeriodActiveDaysAtLeast
+					: userRequirements.inPeriodActiveDaysAtLeast.count
+			}
 		);
 	}
 
 	// Period active days at most
 	if (typeof userRequirements.inPeriodActiveDaysAtMost !== "undefined") {
 		const { actorEndTableName, actorStartTableName } = getTableNamesForUserPeriodRequirement(
-			userRequirements.inPeriodActiveDaysAtMost, endDate
+			userRequirements.inPeriodActiveDaysAtMost, startDate, endDate
 		);
 
 		query = query.andWhere(
 			`IFNULL(${actorEndTableName}.activeDaysToDate + ${actorEndTableName}.dailyActiveDay, 0) `
 			+ `- IFNULL(${actorStartTableName}.activeDaysToDate + ${actorStartTableName}.dailyActiveDay, 0)`
 			+ " >= :inPeriodEditsAtLeast",
-			{ inPeriodActiveDaysAtMost: userRequirements.inPeriodActiveDaysAtMost.count }
+			{
+				inPeriodActiveDaysAtMost: typeof userRequirements.inPeriodActiveDaysAtMost === "number"
+					? userRequirements.inPeriodActiveDaysAtMost
+					: userRequirements.inPeriodActiveDaysAtMost.count
+			}
 		);
 	}
-
 	return query;
 }
 
-function getTableNameForUserTotalRequirement(req: number | UserStatisticsInTimeRequirement, endDate: moment.Moment) {
-	const totalEditsEpochDate = typeof req === "number"
-		? endDate
-		: moment.utc(endDate).subtract(req.epoch * -1, "days");
+function generateHasUserPageTemplatesWhereClause(opts: {
+	query: SelectQueryBuilder<ActorTypeModel>,
+	checkedTemplateList: string[],
+	wikiEntities: WikiStatisticsTypesResult,
+	isNonExistenceCheck: boolean,
+	joinOperator: "and" | "or"
+}) {
+	return opts.query.andWhere(qb => {
+		const subQuery = opts.checkedTemplateList.map((templateName, templateIndex): string => {
+			const singleTemplateQuery = qb.subQuery()
+				.select("1")
+				.from(opts.wikiEntities.actorUserPageTemplate, "att")
+				.innerJoin(
+					opts.wikiEntities.template,
+					"tmpl",
+					"tmpl.templatePageId = att.templatePageId "
+				)
+				.where("att.actorId = actor.actorId")
+				.andWhere(
+					`tmpl.templateName = :hasAnyUserPageTemplate${templateIndex}Name`,
+					{ [`hasAnyUserPageTemplate${templateIndex}Name`]: templateName }
+				)
+				.getQuery();
 
-	const actorEndTableName = makePeriodJoinTableName(totalEditsEpochDate, "atPeriodEnd", "actor");
+			if (opts.isNonExistenceCheck)
+				return `NOT EXISTS(${singleTemplateQuery})`;
+
+			return `EXISTS(${singleTemplateQuery})`;
+		}).join(opts.joinOperator === "and" ? " AND " : " OR ");
+
+		return `(${subQuery})`;
+	});
+}
+
+function getTableNameForUserTotalRequirement(
+	req: number | UserStatisticsInTimeRequirement,
+	startDate: moment.Moment | undefined,
+	endDate: moment.Moment
+) {
+	let date: moment.Moment;
+	if (typeof req === "number") {
+		date = endDate;
+	} else if (req.epoch === "startOfSelectedPeriod") {
+		if (typeof startDate === "undefined")
+			return null;
+
+		date = moment.utc(startDate).subtract(1, "day");
+	} else {
+		date = moment.utc(endDate).subtract(req.epoch * -1, "days");
+	}
+
+	const actorEndTableName = makePeriodJoinTableName(date, "atPeriodEnd", "actor");
 	return actorEndTableName;
 }
 
-function getTableNamesForUserPeriodRequirement(reqInPeriod: UserStatisticsInPeriodRequirement, endDate: moment.Moment, prefix = "") {
-	const periodStatCalculationStartDate = typeof reqInPeriod.epoch === "number"
-		? moment.utc(endDate).subtract(reqInPeriod.period + reqInPeriod.epoch * -1, "days")
-		: moment.utc(endDate).subtract(reqInPeriod.period, "days");
-	const periodStatCalculationEndDate = typeof reqInPeriod.epoch === "number"
-		? moment.utc(endDate).subtract(reqInPeriod.epoch * -1, "days")
-		: endDate;
+function getTableNamesForUserPeriodRequirement(
+	reqInPeriod: number | UserStatisticsInPeriodRequirement,
+	startDate: moment.Moment | undefined,
+	endDate: moment.Moment,
+	prefix = ""
+) {
+	const periodStatCalculationStartDate = typeof reqInPeriod === "number" ? startDate
+		: reqInPeriod.epoch === "startOfSelectedPeriod" ? moment.utc(startDate).subtract(1, "day").subtract(reqInPeriod.period, "days")
+			: typeof reqInPeriod.epoch === "number" ? moment.utc(endDate).subtract(reqInPeriod.period + reqInPeriod.epoch * -1, "days")
+				: moment.utc(endDate).subtract(reqInPeriod.period, "days");
+
+	const periodStatCalculationEndDate = typeof reqInPeriod === "number" || typeof reqInPeriod.epoch !== "number"
+		? endDate
+		: moment.utc(endDate).subtract(reqInPeriod.epoch * -1, "days");
 
 	const actorStartTableName = makePeriodJoinTableName(periodStatCalculationStartDate, "beforePeriodStart", "actor", prefix);
 	const actorEndTableName = makePeriodJoinTableName(periodStatCalculationEndDate, "atPeriodEnd", "actor", prefix);
@@ -818,6 +1153,7 @@ function addColumnSelfFilterRules(
 function addColumSelects(
 	ctx: StatisticsQueryBuildingContext,
 	query: SelectQueryBuilder<ActorTypeModel>,
+	wikiEntities: WikiStatisticsTypesResult,
 	columns: ListColumn[] | undefined,
 	startDate: moment.Moment | undefined,
 	endDate: moment.Moment
@@ -827,7 +1163,7 @@ function addColumSelects(
 
 	let columnIndex = 0;
 	for (const column of columns) {
-		query = addSingleColumSelect(ctx, query, column, columnIndex, startDate, endDate);
+		query = addSingleColumSelect(ctx, query, wikiEntities, column, columnIndex, startDate, endDate);
 
 		columnIndex++;
 	}
@@ -838,6 +1174,7 @@ function addColumSelects(
 function addSingleColumSelect(
 	ctx: StatisticsQueryBuildingContext,
 	query: SelectQueryBuilder<ActorTypeModel>,
+	wikiEntities: WikiStatisticsTypesResult,
 	column: ListColumn,
 	columnIndex: number,
 	startDate: moment.Moment | undefined,
@@ -884,6 +1221,30 @@ function addSingleColumSelect(
 			break;
 		}
 
+		case "editsSinceRegistrationMilestone": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const selectParameters: { [index: string]: unknown } = {};
+
+			query.addSelect(
+				"CASE " + column.milestones.map((milestone: number, index: number) => {
+					const milestoneParameterKey = `totalEditsMilestone${selectedColumnName}_${index}`;
+					selectParameters[milestoneParameterKey] = milestone;
+
+					return `WHEN IFNULL(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits, 0) >= :${milestoneParameterKey}`
+						+ ` AND IFNULL(${actorStartTableName}.editsToDate + ${actorStartTableName}.dailyEdits, 0) < :${milestoneParameterKey}`
+						+ ` THEN :${milestoneParameterKey}`;
+				}).join(" ")
+				+ " ELSE NULL END",
+				selectedColumnName
+			);
+
+			for (const key of Object.keys(selectParameters)) {
+				query = query.setParameter(key, selectParameters[key]);
+			}
+			break;
+		}
+
 		case "editsInNamespaceInPeriod": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
@@ -922,7 +1283,7 @@ function addSingleColumSelect(
 		case "editsInNamespaceInPeriodPercentageToOwnTotalEdits": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
-			const actorTotalStartTableName = makePeriodJoinTableName(endDate, "beforePeriodStart", "actor");
+			const actorTotalStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
 			const actorTotalEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
 
 			query = query.addSelect(
@@ -1067,6 +1428,31 @@ function addSingleColumSelect(
 				+ `(${actorEndTableName}.editsToDate + ${actorEndTableName}.dailyEdits), 0)`, selectedColumnName);
 			break;
 		}
+
+		case "revertedEditsSinceRegistrationMilestone": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const selectParameters: { [index: string]: unknown } = {};
+
+			query.addSelect(
+				"CASE " + column.milestones.map((milestone: number, index: number) => {
+					const milestoneParameterKey = `totalRevertedEditsMilestone${selectedColumnName}_${index}`;
+					selectParameters[milestoneParameterKey] = milestone;
+
+					return `WHEN IFNULL(${actorEndTableName}.revertedEditsToDate + ${actorEndTableName}.dailyRevertedEdits, 0) >= :${milestoneParameterKey}`
+						+ ` AND IFNULL(${actorStartTableName}.revertedEditsToDate + ${actorStartTableName}.dailyRevertedEdits, 0) < :${milestoneParameterKey}`
+						+ ` THEN :${milestoneParameterKey}`;
+				}).join(" ")
+				+ " ELSE NULL END",
+				selectedColumnName
+			);
+
+			for (const key of Object.keys(selectParameters)) {
+				query = query.setParameter(key, selectParameters[key]);
+			}
+			break;
+		}
+
 		case "revertedEditsInNamespaceInPeriod": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
@@ -1105,7 +1491,7 @@ function addSingleColumSelect(
 		case "revertedEditsInNamespaceInPeriodPercentageToOwnTotalEdits": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
-			const actorTotalStartTableName = makePeriodJoinTableName(endDate, "beforePeriodStart", "actor");
+			const actorTotalStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
 			const actorTotalEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
 
 			query = query.addSelect(
@@ -1206,6 +1592,31 @@ function addSingleColumSelect(
 				+ `(${wikiEndTableName}.characterChangesToDate + ${wikiEndTableName}.dailyCharacterChanges), 0)`, selectedColumnName);
 			break;
 		}
+
+		case "characterChangesSinceRegistrationMilestone": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const selectParameters: { [index: string]: unknown } = {};
+
+			query.addSelect(
+				"CASE " + column.milestones.map((milestone: number, index: number) => {
+					const milestoneParameterKey = `totalCharacterChangesMilestone${selectedColumnName}_${index}`;
+					selectParameters[milestoneParameterKey] = milestone;
+
+					return `WHEN IFNULL(${actorEndTableName}.characterChangesToDate + ${actorEndTableName}.dailyCharacterChanges, 0) >= :${milestoneParameterKey}`
+						+ ` AND IFNULL(${actorStartTableName}.characterChangesToDate + ${actorStartTableName}.dailyCharacterChanges, 0) < :${milestoneParameterKey}`
+						+ ` THEN :${milestoneParameterKey}`;
+				}).join(" ")
+				+ " ELSE NULL END",
+				selectedColumnName
+			);
+
+			for (const key of Object.keys(selectParameters)) {
+				query = query.setParameter(key, selectParameters[key]);
+			}
+			break;
+		}
+
 		case "characterChangesInNamespaceInPeriod": {
 			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
 
@@ -1334,6 +1745,30 @@ function addSingleColumSelect(
 			break;
 		}
 
+		case "receivedThanksSinceRegistrationMilestone": {
+			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const selectParameters: { [index: string]: unknown } = {};
+
+			query.addSelect(
+				"CASE " + column.milestones.map((milestone: number, index: number) => {
+					const milestoneParameterKey = `totalReceivedThanksMilestone${selectedColumnName}_${index}`;
+					selectParameters[milestoneParameterKey] = milestone;
+
+					return `WHEN IFNULL(${actorEndTableName}.receivedThanksToDate + ${actorEndTableName}.dailyReceivedThanks, 0) >= :${milestoneParameterKey}`
+						+ ` AND IFNULL(${actorStartTableName}.receivedThanksToDate + ${actorStartTableName}.dailyReceivedThanks, 0) < :${milestoneParameterKey}`
+						+ ` THEN :${milestoneParameterKey}`;
+				}).join(" ")
+				+ " ELSE NULL END",
+				selectedColumnName
+			);
+
+			for (const key of Object.keys(selectParameters)) {
+				query = query.setParameter(key, selectParameters[key]);
+			}
+			break;
+		}
+
 		case "sentThanksInPeriod": {
 			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
 			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
@@ -1436,52 +1871,57 @@ function addSingleColumSelect(
 			break;
 		}
 
-		case "firstLogEventDateByType": {
-			const logFilters = Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter];
-			if (logFilters.length === 1) {
-				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Log${serializeLogFilterDefinition(logFilters[0])}`);
-
-				query = query.addSelect(
-					`DATE(IFNULL(${actorEndTableName}Date.firstDate, "2100-01-01"))`,
-					selectedColumnName
-				);
-			} else {
-				query = query.addSelect("DATE(LEAST(" + logFilters.map(log => {
-					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Log${serializeLogFilterDefinition(log)}`);
-
-					return `IFNULL(${actorEndTableName}Date.firstDate, "2100-01-01")`;
-				}).join(", ") + "))", selectedColumnName);
-			}
-			break;
-		}
-
 		case "lastLogEventDateByType": {
 			const logFilters = Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter];
 			if (logFilters.length === 1) {
 				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Log${serializeLogFilterDefinition(logFilters[0])}`);
 
 				query = query.addSelect(
-					`DATE(IFNULL(${actorEndTableName}Date.lastDate, "1900-01-01"))`,
+					`DATE(IFNULL(${actorEndTableName}.date, "1900-01-01"))`,
 					selectedColumnName
 				);
 			} else {
 				query = query.addSelect("DATE(GREATEST(" + logFilters.map(log => {
 					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Log${serializeLogFilterDefinition(log)}`);
 
-					return `IFNULL(${actorEndTableName}Date.lastDate, "1900-01-01")`;
+					return `IFNULL(${actorEndTableName}.date, "1900-01-01")`;
 				}).join(", ") + "))", selectedColumnName);
 			}
 			break;
 		}
-		case "firstEditDate":
-			query = query.addSelect("editDates.firstEditDate", selectedColumnName);
+		case "firstEditDate": {
+			query = query.addSelect("DATE(actor.firstEditTimestamp)", selectedColumnName);
 			break;
-		case "lastEditDate":
-			query = query.addSelect("editDates.lastEditDate", selectedColumnName);
+		}
+		case "lastEditDate": {
+			query = query.addSelect("DATE(actor.lastEditTimestamp)", selectedColumnName);
 			break;
-		case "daysBetweenFirstAndLastEdit":
-			query = query.addSelect("DATEDIFF(editDates.lastEditDate, editDates.firstEditDate)", selectedColumnName);
+		}
+		case "lastEditDateInNamespace": {
+			const namespaces = Array.isArray(column.namespace) ? column.namespace : [column.namespace];
+			if (namespaces.length === 1) {
+				const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(namespaces[0])}`);
+
+				query = query.addSelect(
+					`DATE(IFNULL(${actorEndTableName}.date, "1900-01-01"))`,
+					selectedColumnName
+				);
+			} else {
+				query = query.addSelect("DATE(GREATEST(" + namespaces.map(ns => {
+					const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ns${formatNamespaceParameter(ns)}`);
+
+					return `IFNULL(${actorEndTableName}.date, "1900-01-01")`;
+				}).join(", ") + "))", selectedColumnName);
+			}
 			break;
+		}
+		case "daysBetweenFirstAndLastEdit": {
+			query = query.addSelect(
+				"DATEDIFF(DATE(actor.lastEditTimestamp), DATE(actor.firstEditTimestamp))",
+				selectedColumnName
+			);
+			break;
+		}
 		case "averageEditsPerDayInPeriod": {
 			const actorStartTableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
 			const actorEndTableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
@@ -1533,7 +1973,12 @@ function addSingleColumSelect(
 			query = query.addSelect("DATE(actor.registrationTimestamp)", selectedColumnName);
 			break;
 		case "daysSinceRegistration":
-			query = query.addSelect("DATEDIFF(:endDate, DATE(actor.registrationTimestamp))", selectedColumnName);
+			query = query
+				.addSelect(
+					"DATEDIFF(:endDate, DATE(actor.registrationTimestamp))",
+					selectedColumnName
+				)
+				.setParameter("endDate", endDate.toDate());
 			break;
 
 		case "activeDaysInPeriod": {
@@ -1578,7 +2023,7 @@ function addStartLevelColumnSelects(
 		`${selectedColumnName}_startEdits`
 	);
 	query = query.addSelect(
-		`IFNULL(${actorStartTableName}.logEventsToDate + ${actorStartTableName}.dailyLogEvents, 0)`,
+		`IFNULL(${actorStartTableName}.serviceAwardLogEventsToDate + ${actorStartTableName}.dailyServiceAwardLogEvents, 0)`,
 		`${selectedColumnName}_startLogEvents`
 	);
 	query = query.addSelect(
@@ -1596,7 +2041,7 @@ function addEndLevelColumnSelects(query: SelectQueryBuilder<ActorTypeModel>, sel
 		`${selectedColumnName}_endEdits`
 	);
 	query = query.addSelect(
-		`IFNULL(${actorEndTableName}.logEventsToDate + ${actorEndTableName}.dailyLogEvents, 0)`,
+		`IFNULL(${actorEndTableName}.serviceAwardLogEventsToDate + ${actorEndTableName}.dailyServiceAwardLogEvents, 0)`,
 		`${selectedColumnName}_endLogEvents`
 	);
 	query = query.addSelect(
@@ -1623,20 +2068,18 @@ function addColumnJoins(
 
 	query = addDailyStatisticsColumnJoins(ctx, query, wikiEntities);
 
-	query = addEditDateColumnJoins(columns, query, wikiEntities, endDate);
-
 	query = addLogEventDateColumnJoins(columns, query, wikiEntities, endDate);
 
 	for (const namespaceCollection of ctx.columns.requiredNamespaceStatisticsColumns) {
-		query = addNamespaceColumnJoins(namespaceCollection, query, wikiEntities, endDate);
+		query = addNamespaceColumnJoins(ctx, namespaceCollection, query, wikiEntities, endDate);
 	}
 
 	for (const changeTagCollection of ctx.columns.requiredChangeTagStatisticsColumns) {
-		query = addChangeTagColumnJoins(changeTagCollection, query, wikiEntities, endDate);
+		query = addChangeTagColumnJoins(ctx, changeTagCollection, query, wikiEntities, endDate);
 	}
 
 	for (const logTypeCollection of ctx.columns.requiredLogTypeStatisticsColumns) {
-		query = addLogTypeColumnJoins(logTypeCollection, query, wikiEntities, endDate);
+		query = addLogTypeColumnJoins(ctx, logTypeCollection, query, wikiEntities, endDate);
 	}
 
 	return query;
@@ -1651,6 +2094,10 @@ function collectColumnJoinInformation(column: ListColumn, ctx: StatisticsQueryBu
 		case "receivedThanksInPeriod":
 		case "sentThanksInPeriod":
 		case "logEventsInPeriod":
+		case "editsSinceRegistrationMilestone":
+		case "revertedEditsSinceRegistrationMilestone":
+		case "characterChangesSinceRegistrationMilestone":
+		case "receivedThanksSinceRegistrationMilestone":
 			ctx.columns.needsSelectedPeriodActorStatistics = true;
 			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodStarts, startDate);
 			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
@@ -1705,8 +2152,10 @@ function collectColumnJoinInformation(column: ListColumn, ctx: StatisticsQueryBu
 				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
 			}
 
-			if (column.type === "editsInNamespaceInPeriodPercentageToOwnTotalEdits") {
+			if (column.type === "editsInNamespaceInPeriodPercentageToOwnTotalEdits"
+				|| column.type === "revertedEditsInNamespaceInPeriodPercentageToOwnTotalEdits") {
 				ctx.columns.needsSinceRegisteredActorStatistics = true;
+				addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodStarts, startDate);
 				addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodEnds, endDate);
 			}
 			break;
@@ -1778,6 +2227,15 @@ function collectColumnJoinInformation(column: ListColumn, ctx: StatisticsQueryBu
 			break;
 		}
 
+		case "lastEditDateInNamespace": {
+			for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
+				const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
+				namespaceCollector.needsSinceRegisteredActorStatistics = true;
+				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
+			}
+			break;
+		}
+
 		case "averageEditsPerDayInPeriod":
 			ctx.columns.needsSelectedPeriodActorStatistics = true;
 			addNeededPeriodToCollection(ctx.columns.neededDates.neededActorPeriodStarts, startDate);
@@ -1805,18 +2263,10 @@ function collectColumnJoinInformation(column: ListColumn, ctx: StatisticsQueryBu
 			}
 			break;
 		}
-		case "firstLogEventDateByType": {
-			for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
-				const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
-				logTypeCollector.needsFirstLogEntryDate = true;
-				addNeededPeriodToCollection(logTypeCollector.neededDates.neededActorPeriodEnds, endDate);
-			}
-			break;
-		}
 		case "lastLogEventDateByType": {
 			for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
 				const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
-				logTypeCollector.needsLastEntryDate = true;
+				logTypeCollector.needsLastLogEntryDate = true;
 				addNeededPeriodToCollection(logTypeCollector.neededDates.neededActorPeriodEnds, endDate);
 			}
 			break;
@@ -1850,64 +2300,50 @@ function collectColumnJoinInformation(column: ListColumn, ctx: StatisticsQueryBu
 function addDailyStatisticsColumnJoins(ctx: StatisticsQueryBuildingContext, query: SelectQueryBuilder<ActorTypeModel>, wikiEntities: WikiStatisticsTypesResult) {
 	if (ctx.columns.needsSelectedPeriodActorStatistics) {
 		for (const startDate of ctx.columns.neededDates.neededActorPeriodStarts) {
-			const tableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
+			const tableAlias = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor");
 			const startDateParameterName = startDate.format("YYYYMMDD");
 
-			query = query.leftJoin(qb => {
-				return qb.subQuery()
-					.select("lads.actorId", "actorId")
-					.addSelect("MAX(lads.date)", "lastDate")
-					.from(wikiEntities.actorDailyStatistics, "lads")
-					.where(`lads.date < :${startDateParameterName}`, { [startDateParameterName]: startDate.toDate() })
-					.groupBy("lads.actorId");
-			}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+			const tableName = ctx.conn.getRepository(wikiEntities.actorDailyStatistics).metadata.tableName;
 
 			query = query.innerJoin(
 				wikiEntities.actorDailyStatistics,
-				tableName,
-				`${tableName}.actorId = actor.actorId AND ${tableName}.date = ${tableName}Date.lastDate`
+				tableAlias,
+				`${tableAlias}.actorId = actor.actorId `
+				+ `AND ${tableAlias}.date = (SELECT MAX(date) FROM ${tableName} WHERE actor_id = actor.actorId AND date < :${startDateParameterName})`,
+				{ [startDateParameterName]: startDate.toDate() }
 			);
 		}
 	}
 
 	if (ctx.columns.needsSelectedPeriodWikiStatistics) {
 		for (const startDate of ctx.columns.neededDates.neededWikiPeriodStarts) {
-			const tableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki");
+			const tableAlias = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki");
 			const startDateParameterName = startDate.format("YYYYMMDD");
 
-			query = query.leftJoin(qb => {
-				return qb.subQuery()
-					.select("MAX(lwds.date)", "lastDate")
-					.from(wikiEntities.dailyStatistics, "lwds")
-					.where(`lwds.date < :${startDateParameterName}`, { [startDateParameterName]: startDate.toDate() });
-			}, `${tableName}Date`, "true");
+			const tableName = ctx.conn.getRepository(wikiEntities.dailyStatistics).metadata.tableName;
 
 			query = query.leftJoin(
 				wikiEntities.dailyStatistics,
-				tableName,
-				`${tableName}.date = ${tableName}Date.lastDate`
+				tableAlias,
+				`${tableAlias}.date = (SELECT MAX(date) FROM ${tableName} WHERE date < :${startDateParameterName})`,
+				{ [startDateParameterName]: startDate.toDate() }
 			);
 		}
 	}
 
 	if (ctx.columns.needsSinceRegisteredActorStatistics || ctx.columns.needsSelectedPeriodActorStatistics) {
 		for (const endDate of ctx.columns.neededDates.neededActorPeriodEnds) {
-			const tableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const tableAlias = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
 			const endDateParameterName = endDate.format("YYYYMMDD");
 
-			query = query.leftJoin(qb => {
-				return qb.subQuery()
-					.select("lads.actorId", "actorId")
-					.addSelect("MAX(lads.date)", "lastDate")
-					.from(wikiEntities.actorDailyStatistics, "lads")
-					.where(`lads.date <= :${endDateParameterName}`, { [endDateParameterName]: endDate.toDate() })
-					.groupBy("lads.actorId");
-			}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+			const tableName = ctx.conn.getRepository(wikiEntities.actorDailyStatistics).metadata.tableName;
 
 			query = query.innerJoin(
 				wikiEntities.actorDailyStatistics,
-				tableName,
-				`${tableName}.actorId = actor.actorId AND ${tableName}.date = ${tableName}Date.lastDate`
+				tableAlias,
+				`${tableAlias}.actorId = actor.actorId `
+				+ `AND ${tableAlias}.date = (SELECT MAX(date) FROM ${tableName} WHERE actor_id = actor.actorId AND date <= :${endDateParameterName})`,
+				{ [endDateParameterName]: endDate.toDate() }
 			);
 		}
 	}
@@ -1915,52 +2351,18 @@ function addDailyStatisticsColumnJoins(ctx: StatisticsQueryBuildingContext, quer
 	if (ctx.columns.needsSelectedPeriodWikiStatistics
 		|| ctx.columns.needsSinceRegisteredWikiStatistics) {
 		for (const endDate of ctx.columns.neededDates.neededWikiPeriodEnds) {
-			const tableName = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
+			const tableAlias = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor");
 			const endDateParameterName = endDate.format("YYYYMMDD");
 
-			query = query.leftJoin(qb => {
-				return qb.subQuery()
-					.select("MAX(lwds.date)", "lastDate")
-					.from(wikiEntities.dailyStatistics, "lwds")
-					.where(`lwds.date <= :${endDateParameterName}`, { [endDateParameterName]: endDate.toDate() });
-			}, `${tableName}Date`, "true");
+			const tableName = ctx.conn.getRepository(wikiEntities.dailyStatistics).metadata.tableName;
 
 			query = query.leftJoin(
 				wikiEntities.dailyStatistics,
-				tableName,
-				`${tableName}.date = ${tableName}Date.lastDate`
+				tableAlias,
+				`${tableAlias}.date = (SELECT MAX(date) FROM ${tableName} WHERE date <= :${endDateParameterName})`,
+				{ [endDateParameterName]: endDate.toDate() }
 			);
 		}
-	}
-	return query;
-}
-
-function addEditDateColumnJoins(columns: ListColumn[], query: SelectQueryBuilder<ActorTypeModel>, wikiEntities: WikiStatisticsTypesResult, endDate: moment.Moment) {
-	const needsDaysBetweenFirstAndLastEdit = columns.findIndex(x => x.type === "daysBetweenFirstAndLastEdit") !== -1;
-	const needsFirstEditDate = needsDaysBetweenFirstAndLastEdit || columns.findIndex(x => x.type === "firstEditDate") !== -1;
-	const needsLastEditDate = needsDaysBetweenFirstAndLastEdit || columns.findIndex(x => x.type === "lastEditDate") !== -1;
-
-	if (needsDaysBetweenFirstAndLastEdit || needsFirstEditDate || needsLastEditDate) {
-		query = query.innerJoin(qb => {
-			let subQuery = qb.subQuery()
-				.select("ads.actorId", "actorId");
-
-			if (needsFirstEditDate) {
-				subQuery = subQuery.addSelect("MIN(date)", "firstEditDate");
-			}
-
-			if (needsLastEditDate) {
-				subQuery = subQuery.addSelect("MAX(date)", "lastEditDate");
-			}
-
-			return subQuery
-				.from(wikiEntities.actorDailyStatistics, "ads")
-				.where(
-					"ads.date <= :endDate", { endDate: endDate.toDate() }
-				)
-				.andWhere("ads.dailyEdits > 0")
-				.groupBy("ads.actorId");
-		}, "editDates", "editDates.actorId = actor.actorId");
 	}
 	return query;
 }
@@ -1995,229 +2397,208 @@ function addLogEventDateColumnJoins(columns: ListColumn[], query: SelectQueryBui
 	return query;
 }
 
-function addNamespaceColumnJoins(namespaceCollection: NamespaceRequiredColumns, query: SelectQueryBuilder<ActorTypeModel>, wikiEntities: WikiStatisticsTypesResult, endDate: moment.Moment) {
-	const namespaceKey = formatNamespaceParameter(namespaceCollection.namespace);
+function addNamespaceColumnJoins(ctx: StatisticsQueryBuildingContext, namespaceRequirement: NamespaceRequiredColumns, query: SelectQueryBuilder<ActorTypeModel>, wikiEntities: WikiStatisticsTypesResult, endDate: moment.Moment) {
+	const namespaceKey = formatNamespaceParameter(namespaceRequirement.namespace);
 
-	if (namespaceCollection.needsSelectedPeriodActorStatistics) {
-		for (const startDate of namespaceCollection.neededDates.neededActorPeriodStarts) {
-			const tableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ns${namespaceKey}`);
+	if (namespaceRequirement.needsSelectedPeriodActorStatistics) {
+		for (const startDate of namespaceRequirement.neededDates.neededActorPeriodStarts) {
+			const tableAlias = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ns${namespaceKey}`);
 			const startDateParameterName = startDate.format("YYYYMMDD");
 
-			query = query.leftJoin(qb => {
-				let subQuery = qb.subQuery()
-					.select("lads.actorId", "actorId")
-					.addSelect("MAX(lads.date)", "lastDate")
-					.from(wikiEntities.actorDailyStatisticsByNamespace, "lads")
-					.where(`lads.date < :${startDateParameterName}`, { [startDateParameterName]: startDate.toDate() });
-
-				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "lads");
-
-				return subQuery.groupBy("lads.actorId");
-			}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+			const tableName = ctx.conn.getRepository(wikiEntities.actorDailyStatisticsByNamespace).metadata.tableName;
 
 			query = query.leftJoin(
 				wikiEntities.actorDailyStatisticsByNamespace,
-				tableName,
-				`${tableName}.actorId = actor.actorId`
-				+ ` AND ${tableName}.namespace = :namespace${namespaceCollection.namespace}`
-				+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
-				{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
+				tableAlias,
+				`${tableAlias}.actorId = actor.actorId`
+				+ ` AND ${tableAlias}.namespace = :namespace${namespaceRequirement.namespace}`
+				+ ` AND ${tableAlias}.date = (`
+				+ `SELECT MAX(date) FROM ${tableName} `
+				+ `WHERE namespace = :namespace${namespaceRequirement.namespace}`
+				+ " AND actor_id = actor.actorId"
+				+ ` AND date < :${startDateParameterName}`
+				+ ")",
+				{
+					[`namespace${namespaceRequirement.namespace}`]: namespaceRequirement.namespace,
+					[startDateParameterName]: startDate.toDate()
+				}
 			);
 		}
 	}
 
-	if (namespaceCollection.needsSelectedPeriodWikiStatistics) {
-		for (const startDate of namespaceCollection.neededDates.neededWikiPeriodStarts) {
-			const tableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki", `Ns${namespaceKey}`);
+	if (namespaceRequirement.needsSelectedPeriodWikiStatistics) {
+		for (const startDate of namespaceRequirement.neededDates.neededWikiPeriodStarts) {
+			const tableAlias = makePeriodJoinTableName(startDate, "beforePeriodStart", "wiki", `Ns${namespaceKey}`);
 			const startDateParameterName = startDate.format("YYYYMMDD");
 
-			query = query.leftJoin(qb => {
-				const subQuery = qb.subQuery()
-					.select("MAX(lwds.date)", "lastDate")
-					.from(wikiEntities.dailyStatisticsByNamespace, "lwds")
-					.where(`lwds.date < :${startDateParameterName}`, { [startDateParameterName]: startDate.toDate() });
-
-				return createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "lwds");
-			}, `${tableName}Date`, "true");
+			const tableName = ctx.conn.getRepository(wikiEntities.dailyStatisticsByNamespace).metadata.tableName;
 
 			query = query.leftJoin(
 				wikiEntities.dailyStatisticsByNamespace,
-				tableName,
-				`${tableName}.date = ${namespaceKey}Date.lastDate`
-				+ ` AND ${tableName}.namespace = :namespace${namespaceCollection.namespace}`,
-				{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
+				tableAlias,
+				`${tableAlias}.namespace = :namespace${namespaceRequirement.namespace}`
+				+ ` AND ${tableAlias}.date = (`
+				+ `SELECT MAX(date) FROM ${tableName} `
+				+ `WHERE namespace = :namespace${namespaceRequirement.namespace}`
+				+ ` AND date < :${startDateParameterName}`
+				+ ")",
+				{
+					[`namespace${namespaceRequirement.namespace}`]: namespaceRequirement.namespace,
+					[startDateParameterName]: startDate.toDate()
+				}
 			);
 		}
 	}
 
-	if (namespaceCollection.needsSinceRegisteredActorStatistics || namespaceCollection.needsSelectedPeriodActorStatistics) {
-		for (const startDate of namespaceCollection.neededDates.neededActorPeriodEnds) {
-			const tableName = makePeriodJoinTableName(startDate, "atPeriodEnd", "actor", `Ns${namespaceKey}`);
+	if (namespaceRequirement.needsSinceRegisteredActorStatistics || namespaceRequirement.needsSelectedPeriodActorStatistics) {
+		for (const startDate of namespaceRequirement.neededDates.neededActorPeriodEnds) {
+			const tableAlias = makePeriodJoinTableName(startDate, "atPeriodEnd", "actor", `Ns${namespaceKey}`);
 			const endDateParameterName = endDate.format("YYYYMMDD");
 
-			query = query.leftJoin(qb => {
-				let subQuery = qb.subQuery()
-					.select("lads.actorId", "actorId")
-					.addSelect("MAX(lads.date)", "lastDate")
-					.from(wikiEntities.actorDailyStatisticsByNamespace, "lads")
-					.where(`lads.date <= :${endDateParameterName}`, { [endDateParameterName]: endDate.toDate() })
-					.groupBy("lads.actorId");
-
-				subQuery = createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "lads");
-
-				return subQuery.groupBy("lads.actorId");
-			}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+			const tableName = ctx.conn.getRepository(wikiEntities.actorDailyStatisticsByNamespace).metadata.tableName;
 
 			query = query.leftJoin(
 				wikiEntities.actorDailyStatisticsByNamespace,
-				tableName,
-				`${tableName}.actorId = actor.actorId `
-				+ ` AND ${tableName}.namespace = :namespace${namespaceCollection.namespace}`
-				+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
-				{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
+				tableAlias,
+				`${tableAlias}.actorId = actor.actorId `
+				+ ` AND ${tableAlias}.namespace = :namespace${namespaceRequirement.namespace}`
+				+ ` AND ${tableAlias}.date = (`
+				+ `SELECT MAX(date) FROM ${tableName} `
+				+ `WHERE namespace = :namespace${namespaceRequirement.namespace}`
+				+ " AND actor_id = actor.actorId"
+				+ ` AND date <= :${endDateParameterName}`
+				+ ")",
+				{
+					[`namespace${namespaceRequirement.namespace}`]: namespaceRequirement.namespace,
+					[endDateParameterName]: endDate.toDate()
+				}
 			);
 		}
 	}
 
-	if (namespaceCollection.needsSelectedPeriodWikiStatistics || namespaceCollection.needsSinceRegisteredWikiStatistics) {
-		for (const startDate of namespaceCollection.neededDates.neededWikiPeriodEnds) {
-			const tableName = makePeriodJoinTableName(startDate, "atPeriodEnd", "wiki", `Ns${namespaceKey}`);
+	if (namespaceRequirement.needsSelectedPeriodWikiStatistics || namespaceRequirement.needsSinceRegisteredWikiStatistics) {
+		for (const startDate of namespaceRequirement.neededDates.neededWikiPeriodEnds) {
+			const tableAlias = makePeriodJoinTableName(startDate, "atPeriodEnd", "wiki", `Ns${namespaceKey}`);
 			const endDateParameterName = endDate.format("YYYYMMDD");
 
-			query = query.leftJoin(qb => {
-				const subQuery = qb.subQuery()
-					.select("MAX(lwds.date)", "lastDate")
-					.from(wikiEntities.dailyStatisticsByNamespace, "lwds")
-					.where(`lwds.date <= :${endDateParameterName}`, { [endDateParameterName]: endDate.toDate() });
-
-				return createNamespaceWhereClauseFromNamespaceDefinition(namespaceCollection, subQuery, "lwds");
-			}, `${tableName}Date`, "true");
+			const tableName = ctx.conn.getRepository(wikiEntities.dailyStatisticsByNamespace).metadata.tableName;
 
 			query = query.leftJoin(
 				wikiEntities.dailyStatisticsByNamespace,
-				tableName,
-				`${tableName}.date = ${tableName}Date.lastDate`
-				+ ` AND ${tableName}.namespace = :namespace${namespaceCollection.namespace}`,
-				{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
+				tableAlias,
+				`${tableAlias}.namespace = :namespace${namespaceRequirement.namespace} `
+				+ `${tableAlias}.date = (`
+				+ `SELECT MAX(date) FROM ${tableName} `
+				+ `WHERE namespace = :namespace${namespaceRequirement.namespace}`
+				+ ` AND date <= :${endDateParameterName}`
+				+ ")",
+				{
+					[`namespace${namespaceRequirement.namespace}`]: namespaceRequirement.namespace,
+					[endDateParameterName]: endDate.toDate()
+				}
 			);
 		}
 	}
 	return query;
 }
 
-function addChangeTagColumnJoins(changeTagCollection: ChangeTagStatisticsRequiredColumns, query: SelectQueryBuilder<ActorTypeModel>, wikiEntities: WikiStatisticsTypesResult, endDate: moment.Moment) {
-	const normalizedCtKey = changeTagCollection.serializedChangeTagFilter;
+function addChangeTagColumnJoins(ctx: StatisticsQueryBuildingContext, changeTagRequirement: ChangeTagStatisticsRequiredColumns, query: SelectQueryBuilder<ActorTypeModel>, wikiEntities: WikiStatisticsTypesResult, endDate: moment.Moment) {
+	const normalizedCtKey = changeTagRequirement.serializedChangeTagFilter;
 
-	if (changeTagCollection.needsSelectedPeriodActorStatistics) {
-		for (const startDate of changeTagCollection.neededDates.neededActorPeriodStarts) {
-			const tableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ct${normalizedCtKey}`);
+	if (changeTagRequirement.needsSelectedPeriodActorStatistics) {
+		for (const startDate of changeTagRequirement.neededDates.neededActorPeriodStarts) {
+			const tableAlias = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Ct${normalizedCtKey}`);
 			const startDateParameterName = startDate.format("YYYYMMDD");
 
-			if (typeof changeTagCollection.changeTagFilter.namespace !== "number") {
-				query = query.leftJoin(qb => {
-					let subQuery = qb.subQuery()
-						.select("lads.actorId", "actorId")
-						.addSelect("MAX(lads.date)", "lastDate")
-						.from(wikiEntities.actorEditStatisticsByChangeTag, "lads")
-						.where(`lads.date < :${startDateParameterName}`, { [startDateParameterName]: startDate?.toDate() });
-
-					subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "lads");
-
-					return subQuery.groupBy("lads.actorId");
-				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+			if (typeof changeTagRequirement.changeTagFilter.namespace !== "number") {
+				const tableName = ctx.conn.getRepository(wikiEntities.actorEditStatisticsByChangeTag).metadata.tableName;
 
 				query = query.leftJoin(
 					wikiEntities.actorEditStatisticsByChangeTag,
-					tableName,
-					`${tableName}.actorId = actor.actorId`
-					+ ` AND ${tableName}.changeTagId = :changeTag${changeTagCollection.changeTagFilter.changeTagId}`
-					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					tableAlias,
+					`${tableAlias}.actorId = actor.actorId`
+					+ ` AND ${tableAlias}.changeTagId = :changeTag${changeTagRequirement.changeTagFilter.changeTagId}`
+					+ ` AND ${tableAlias}.date = (`
+					+ `SELECT MAX(date) FROM ${tableName} `
+					+ `WHERE change_tag_id = :changeTag${changeTagRequirement.changeTagFilter.changeTagId}`
+					+ " AND actor_id = actor.actorId"
+					+ ` AND date < :${startDateParameterName}`
+					+ ")",
 					{
-						[`changeTag${changeTagCollection.changeTagFilter.changeTagId}`]: changeTagCollection.changeTagFilter.changeTagId
+						[`changeTag${changeTagRequirement.changeTagFilter.changeTagId}`]: changeTagRequirement.changeTagFilter.changeTagId,
+						[startDateParameterName]: startDate.toDate()
 					}
 				);
 			} else {
-				query = query.leftJoin(qb => {
-					let subQuery = qb.subQuery()
-						.select("lads.actorId", "actorId")
-						.addSelect("MAX(lads.date)", "lastDate")
-						.from(wikiEntities.actorEditStatisticsByNamespaceAndChangeTag, "lads")
-						.where(`lads.date < :${startDateParameterName}`, { [startDateParameterName]: startDate?.toDate() });
-
-					subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "lads");
-
-					return subQuery.groupBy("lads.actorId");
-				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+				const tableName = ctx.conn.getRepository(wikiEntities.actorEditStatisticsByNamespaceAndChangeTag).metadata.tableName;
 
 				query = query.leftJoin(
 					wikiEntities.actorEditStatisticsByNamespaceAndChangeTag,
-					`${tableName}`,
-					`${tableName}.actorId = actor.actorId`
-					+ ` AND ${tableName}.namespace = :namespace${changeTagCollection.changeTagFilter.namespace}`
-					+ ` AND ${tableName}.changeTagId = :changeTag${changeTagCollection.changeTagFilter.changeTagId}`
-					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					tableAlias,
+					`${tableAlias}.actorId = actor.actorId`
+					+ ` AND ${tableAlias}.namespace = :namespace${changeTagRequirement.changeTagFilter.namespace}`
+					+ ` AND ${tableAlias}.changeTagId = :changeTag${changeTagRequirement.changeTagFilter.changeTagId}`
+					+ ` AND ${tableAlias}.date = (`
+					+ `SELECT MAX(date) FROM ${tableName} `
+					+ `WHERE namespace = :namespace${changeTagRequirement.changeTagFilter.namespace}`
+					+ ` AND change_tag_id = :changeTag${changeTagRequirement.changeTagFilter.changeTagId}`
+					+ " AND actor_id = actor.actorId"
+					+ ` AND date < :${startDateParameterName}`
+					+ ")",
 					{
-						[`namespace${changeTagCollection.changeTagFilter.namespace}`]: changeTagCollection.changeTagFilter.namespace,
-						[`changeTag${changeTagCollection.changeTagFilter.changeTagId}`]: changeTagCollection.changeTagFilter.changeTagId
+						[`namespace${changeTagRequirement.changeTagFilter.namespace}`]: changeTagRequirement.changeTagFilter.namespace,
+						[`changeTag${changeTagRequirement.changeTagFilter.changeTagId}`]: changeTagRequirement.changeTagFilter.changeTagId,
+						[startDateParameterName]: startDate.toDate()
 					}
 				);
 			}
 		}
 	}
 
-	if (changeTagCollection.needsSinceRegisteredActorStatistics || changeTagCollection.needsSelectedPeriodActorStatistics) {
-		for (const startDate of changeTagCollection.neededDates.neededActorPeriodStarts) {
-			const tableName = makePeriodJoinTableName(startDate, "atPeriodEnd", "actor", `Ct${normalizedCtKey}`);
+	if (changeTagRequirement.needsSinceRegisteredActorStatistics || changeTagRequirement.needsSelectedPeriodActorStatistics) {
+		for (const endDate of changeTagRequirement.neededDates.neededActorPeriodEnds) {
+			const tableAlias = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Ct${normalizedCtKey}`);
 			const endDateParameterName = endDate.format("YYYYMMDD");
 
-			if (typeof changeTagCollection.changeTagFilter.namespace !== "number") {
-				query = query.leftJoin(qb => {
-					let subQuery = qb.subQuery()
-						.select("lads.actorId", "actorId")
-						.addSelect("MAX(lads.date)", "lastDate")
-						.from(wikiEntities.actorEditStatisticsByChangeTag, "lads")
-						.where(`lads.date <= :${endDateParameterName}`, { [endDateParameterName]: endDate.toDate() })
-						.groupBy("lads.actorId");
-
-					subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "lads");
-
-					return subQuery.groupBy("lads.actorId");
-				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+			if (typeof changeTagRequirement.changeTagFilter.namespace !== "number") {
+				const tableName = ctx.conn.getRepository(wikiEntities.actorEditStatisticsByChangeTag).metadata.tableName;
 
 				query = query.leftJoin(
 					wikiEntities.actorEditStatisticsByChangeTag,
-					tableName,
-					`${tableName}.actorId = actor.actorId `
-					+ ` AND ${tableName}.changeTagId = :changeTag${changeTagCollection.changeTagFilter.changeTagId}`
-					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					tableAlias,
+					`${tableAlias}.actorId = actor.actorId `
+					+ ` AND ${tableAlias}.changeTagId = :changeTag${changeTagRequirement.changeTagFilter.changeTagId}`
+					+ ` AND ${tableAlias}.date = (`
+					+ `SELECT MAX(date) FROM ${tableName} `
+					+ `WHERE change_tag_id = :changeTag${changeTagRequirement.changeTagFilter.changeTagId}`
+					+ " AND actor_id = actor.actorId"
+					+ ` AND date <= :${endDateParameterName}`
+					+ ")",
 					{
-						[`changeTag${changeTagCollection.changeTagFilter.changeTagId}`]: changeTagCollection.changeTagFilter.changeTagId
+						[`changeTag${changeTagRequirement.changeTagFilter.changeTagId}`]: changeTagRequirement.changeTagFilter.changeTagId,
+						[endDateParameterName]: endDate.toDate()
 					}
 				);
 			} else {
-				query = query.leftJoin(qb => {
-					let subQuery = qb.subQuery()
-						.select("lads.actorId", "actorId")
-						.addSelect("MAX(lads.date)", "lastDate")
-						.from(wikiEntities.actorEditStatisticsByNamespaceAndChangeTag, "lads")
-						.where(`lads.date <= :${endDateParameterName}`, { [endDateParameterName]: endDate.toDate() })
-						.groupBy("lads.actorId");
-
-					subQuery = createChangeTagWhereClauseFromFilterDefinition(changeTagCollection, subQuery, "lads");
-
-					return subQuery.groupBy("lads.actorId");
-				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+				const tableName = ctx.conn.getRepository(wikiEntities.actorEditStatisticsByNamespaceAndChangeTag).metadata.tableName;
 
 				query = query.leftJoin(
 					wikiEntities.actorEditStatisticsByNamespaceAndChangeTag,
-					`${tableName}`,
-					`${tableName}.actorId = actor.actorId `
-					+ ` AND ${tableName}.namespace = :namespace${changeTagCollection.changeTagFilter.namespace}`
-					+ ` AND ${tableName}.changeTagId = :changeTag${changeTagCollection.changeTagFilter.changeTagId}`
-					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					tableAlias,
+					`${tableAlias}.actorId = actor.actorId `
+					+ ` AND ${tableAlias}.namespace = :namespace${changeTagRequirement.changeTagFilter.namespace}`
+					+ ` AND ${tableAlias}.changeTagId = :changeTag${changeTagRequirement.changeTagFilter.changeTagId}`
+					+ ` AND ${tableAlias}.date = (`
+					+ `SELECT MAX(date) FROM ${tableName} `
+					+ `WHERE namespace = :namespace${changeTagRequirement.changeTagFilter.namespace}`
+					+ ` AND change_tag_id = :changeTag${changeTagRequirement.changeTagFilter.changeTagId}`
+					+ " AND actor_id = actor.actorId"
+					+ ` AND date <= :${endDateParameterName}`
+					+ ")",
 					{
-						[`namespace${changeTagCollection.changeTagFilter.namespace}`]: changeTagCollection.changeTagFilter.namespace,
-						[`changeTag${changeTagCollection.changeTagFilter.changeTagId}`]: changeTagCollection.changeTagFilter.changeTagId
+						[`namespace${changeTagRequirement.changeTagFilter.namespace}`]: changeTagRequirement.changeTagFilter.namespace,
+						[`changeTag${changeTagRequirement.changeTagFilter.changeTagId}`]: changeTagRequirement.changeTagFilter.changeTagId,
+						[endDateParameterName]: endDate.toDate()
 					}
 				);
 			}
@@ -2226,245 +2607,166 @@ function addChangeTagColumnJoins(changeTagCollection: ChangeTagStatisticsRequire
 	return query;
 }
 
-function addLogTypeColumnJoins(logTypeCollection: LogTypeStatisticsRequiredColumns, query: SelectQueryBuilder<ActorTypeModel>, wikiEntities: WikiStatisticsTypesResult, endDate: moment.Moment) {
-	const normalizedLogKey = logTypeCollection.serializedLogFilter;
+function addLogTypeColumnJoins(ctx: StatisticsQueryBuildingContext, logTypeRequirement: LogTypeStatisticsRequiredColumns, query: SelectQueryBuilder<ActorTypeModel>, wikiEntities: WikiStatisticsTypesResult, endDate: moment.Moment) {
+	const normalizedLogKey = logTypeRequirement.serializedLogFilter;
 
-	if (logTypeCollection.needsSelectedPeriodActorStatistics) {
-		for (const startDate of logTypeCollection.neededDates.neededActorPeriodStarts) {
-			const tableName = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Log${normalizedLogKey}`);
+	if (logTypeRequirement.needsSelectedPeriodActorStatistics) {
+		for (const startDate of logTypeRequirement.neededDates.neededActorPeriodStarts) {
+			const tableAlias = makePeriodJoinTableName(startDate, "beforePeriodStart", "actor", `Log${normalizedLogKey}`);
 			const startDateParameterName = startDate.format("YYYYMMDD");
 
-			if (typeof logTypeCollection.logFilter.logAction === "string" && typeof logTypeCollection.logFilter.logType === "string") {
-				query = query.leftJoin(qb => {
-					let subQuery = qb.subQuery()
-						.select("lads.actorId", "actorId")
-						.addSelect("MAX(lads.date)", "lastDate")
-						.from(wikiEntities.actorLogStatisticsByLogTypeAndLogAction, "lads")
-						.where(`lads.date < :${startDateParameterName}`, { [startDateParameterName]: startDate?.toDate() });
-
-					subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "lads");
-
-					return subQuery.groupBy("lads.actorId");
-				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+			if (typeof logTypeRequirement.logFilter.logAction === "string" && typeof logTypeRequirement.logFilter.logType === "string") {
+				const tableName = ctx.conn.getRepository(wikiEntities.actorLogStatisticsByLogTypeAndLogAction).metadata.tableName;
 
 				query = query.leftJoin(
 					wikiEntities.actorLogStatisticsByLogTypeAndLogAction,
-					`${tableName}`,
-					`${tableName}.actorId = actor.actorId`
-					+ ` AND ${tableName}.logType = :logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`
-					+ ` AND ${tableName}.logAction = :logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`
-					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					tableAlias,
+					`${tableAlias}.actorId = actor.actorId`
+					+ ` AND ${tableAlias}.logType = :logType${sanitizeNameForSql(logTypeRequirement.logFilter.logType)}`
+					+ ` AND ${tableAlias}.logAction = :logAction${sanitizeNameForSql(logTypeRequirement.logFilter.logAction)}`
+					+ ` AND ${tableAlias}.date = (`
+					+ `SELECT MAX(date) FROM ${tableName} `
+					+ `WHERE log_type = :logType${sanitizeNameForSql(logTypeRequirement.logFilter.logType)}`
+					+ ` AND log_action = :logAction${sanitizeNameForSql(logTypeRequirement.logFilter.logAction)}`
+					+ " AND actor_id = actor.actorId"
+					+ ` AND date < :${startDateParameterName}`
+					+ ")",
 					{
-						[`logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`]: logTypeCollection.logFilter.logType,
-						[`logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`]: logTypeCollection.logFilter.logAction,
+						[`logType${sanitizeNameForSql(logTypeRequirement.logFilter.logType)}`]: logTypeRequirement.logFilter.logType,
+						[`logAction${sanitizeNameForSql(logTypeRequirement.logFilter.logAction)}`]: logTypeRequirement.logFilter.logAction,
+						[startDateParameterName]: startDate.toDate()
 					}
 				);
-			} else if (typeof logTypeCollection.logFilter.logAction === "string") {
-				query = query.leftJoin(qb => {
-					let subQuery = qb.subQuery()
-						.select("lads.actorId", "actorId")
-						.addSelect("MAX(lads.date)", "lastDate")
-						.from(wikiEntities.actorLogStatisticsByLogAction, "lads")
-						.where(`lads.date < :${startDateParameterName}`, { [startDateParameterName]: startDate?.toDate() });
-
-					subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "lads");
-
-					return subQuery.groupBy("lads.actorId");
-				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+			} else if (typeof logTypeRequirement.logFilter.logAction === "string") {
+				const tableName = ctx.conn.getRepository(wikiEntities.actorLogStatisticsByLogAction).metadata.tableName;
 
 				query = query.leftJoin(
 					wikiEntities.actorLogStatisticsByLogAction,
-					`${tableName}`,
-					`${tableName}.actorId = actor.actorId`
-					+ ` AND ${tableName}.logAction = :logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`
-					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					tableAlias,
+					`${tableAlias}.actorId = actor.actorId`
+					+ ` AND ${tableAlias}.logAction = :logAction${sanitizeNameForSql(logTypeRequirement.logFilter.logAction)}`
+					+ ` AND ${tableAlias}.date = (`
+					+ `SELECT MAX(date) FROM ${tableName} `
+					+ `WHERE log_action = :logAction${sanitizeNameForSql(logTypeRequirement.logFilter.logAction)}`
+					+ " AND actor_id = actor.actorId"
+					+ ` AND date < :${startDateParameterName}`
+					+ ")",
 					{
-						[`logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`]: logTypeCollection.logFilter.logAction
+						[`logAction${sanitizeNameForSql(logTypeRequirement.logFilter.logAction)}`]: logTypeRequirement.logFilter.logAction,
+						[startDateParameterName]: startDate.toDate()
 					}
 				);
-			} else if (typeof logTypeCollection.logFilter.logType === "string") {
-				query = query.leftJoin(qb => {
-					let subQuery = qb.subQuery()
-						.select("lads.actorId", "actorId")
-						.addSelect("MAX(lads.date)", "lastDate")
-						.from(wikiEntities.actorLogStatisticsByLogType, "lads")
-						.where(`lads.date < :${startDateParameterName}`, { [startDateParameterName]: startDate?.toDate() });
-
-					subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "lads");
-
-					return subQuery.groupBy("lads.actorId");
-				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
+			} else if (typeof logTypeRequirement.logFilter.logType === "string") {
+				const tableName = ctx.conn.getRepository(wikiEntities.actorLogStatisticsByLogType).metadata.tableName;
 
 				query = query.leftJoin(
 					wikiEntities.actorLogStatisticsByLogType,
-					`${tableName}`,
-					`${tableName}.actorId = actor.actorId`
-					+ ` AND ${tableName}.logType = :logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`
-					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					tableAlias,
+					`${tableAlias}.actorId = actor.actorId`
+					+ ` AND ${tableAlias}.logType = :logType${sanitizeNameForSql(logTypeRequirement.logFilter.logType)}`
+					+ ` AND ${tableAlias}.date = (`
+					+ `SELECT MAX(date) FROM ${tableName} `
+					+ `WHERE log_type = :logType${sanitizeNameForSql(logTypeRequirement.logFilter.logType)}`
+					+ " AND actor_id = actor.actorId"
+					+ ` AND date < :${startDateParameterName}`
+					+ ")",
 					{
-						[`logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`]: logTypeCollection.logFilter.logType
+						[`logType${sanitizeNameForSql(logTypeRequirement.logFilter.logType)}`]: logTypeRequirement.logFilter.logType,
+						[startDateParameterName]: startDate.toDate()
 					}
 				);
 			}
 		}
 	}
 
-	if (logTypeCollection.needsSinceRegisteredActorStatistics
-		|| logTypeCollection.needsSelectedPeriodActorStatistics
-		|| logTypeCollection.needsFirstLogEntryDate
-		|| logTypeCollection.needsLastEntryDate) {
-		const entity = typeof logTypeCollection.logFilter.logAction === "string" && typeof logTypeCollection.logFilter.logType === "string" ? wikiEntities.actorLogStatisticsByLogTypeAndLogAction
-			: typeof logTypeCollection.logFilter.logAction === "string" ? wikiEntities.actorLogStatisticsByLogAction
-				: typeof logTypeCollection.logFilter.logType === "string" ? wikiEntities.actorLogStatisticsByLogType
-					: null;
+	if (logTypeRequirement.needsSinceRegisteredActorStatistics
+		|| logTypeRequirement.needsSelectedPeriodActorStatistics
+		|| logTypeRequirement.needsLastLogEntryDate) {
+		for (const endDate of logTypeRequirement.neededDates.neededActorPeriodEnds) {
+			const tableAlias = makePeriodJoinTableName(endDate, "atPeriodEnd", "actor", `Log${normalizedLogKey}`);
+			const endDateParameterName = endDate.format("YYYYMMDD");
 
-		if (entity) {
-			for (const startDate of logTypeCollection.neededDates.neededActorPeriodEnds) {
-				const tableName = makePeriodJoinTableName(startDate, "atPeriodEnd", "actor", `Log${normalizedLogKey}`);
-				const endDateParameterName = endDate.format("YYYYMMDD");
+			if (typeof logTypeRequirement.logFilter.logAction === "string" && typeof logTypeRequirement.logFilter.logType === "string") {
+				const tableName = ctx.conn.getRepository(wikiEntities.actorLogStatisticsByLogTypeAndLogAction).metadata.tableName;
 
-				query = query.leftJoin(qb => {
-					let subQuery = qb.subQuery()
-						.select("lads.actorId", "actorId");
-
-					if (logTypeCollection.needsFirstLogEntryDate) {
-						subQuery = subQuery.addSelect("MIN(lads.date)", "firstDate");
-					}
-
-					if (logTypeCollection.needsSinceRegisteredActorStatistics
-						|| logTypeCollection.needsSelectedPeriodActorStatistics
-						|| logTypeCollection.needsLastEntryDate) {
-						subQuery = subQuery.addSelect("MAX(lads.date)", "lastDate");
-					}
-
-					subQuery = subQuery.from(entity, "lads")
-						.where(`lads.date <= :${endDateParameterName}`, { [endDateParameterName]: endDate.toDate() })
-						.groupBy("lads.actorId");
-
-					subQuery = createLogWhereClauseFromFilterDefinition(logTypeCollection, subQuery, "lads");
-
-					return subQuery.groupBy("lads.actorId");
-				}, `${tableName}Date`, `${tableName}Date.actorId = actor.actorId`);
-			}
-		}
-	}
-
-	if (logTypeCollection.needsSinceRegisteredActorStatistics || logTypeCollection.needsSelectedPeriodActorStatistics) {
-		for (const startDate of logTypeCollection.neededDates.neededActorPeriodEnds) {
-			const tableName = makePeriodJoinTableName(startDate, "atPeriodEnd", "actor", `Log${normalizedLogKey}`);
-
-			if (typeof logTypeCollection.logFilter.logAction === "string" && typeof logTypeCollection.logFilter.logType === "string") {
 				query = query.leftJoin(
 					wikiEntities.actorLogStatisticsByLogTypeAndLogAction,
-					tableName,
-					`${tableName}.actorId = actor.actorId `
-					+ ` AND ${tableName}.logType = :logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`
-					+ ` AND ${tableName}.logAction = :logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`
-					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					tableAlias,
+					`${tableAlias}.actorId = actor.actorId `
+					+ ` AND ${tableAlias}.logType = :logType${sanitizeNameForSql(logTypeRequirement.logFilter.logType)}`
+					+ ` AND ${tableAlias}.logAction = :logAction${sanitizeNameForSql(logTypeRequirement.logFilter.logAction)}`
+					+ ` AND ${tableAlias}.date = (`
+					+ `SELECT MAX(date) FROM ${tableName} `
+					+ `WHERE log_type = :logType${sanitizeNameForSql(logTypeRequirement.logFilter.logType)}`
+					+ ` AND log_action = :logAction${sanitizeNameForSql(logTypeRequirement.logFilter.logAction)}`
+					+ " AND actor_id = actor.actorId"
+					+ ` AND date <= :${endDateParameterName}`
+					+ ")",
 					{
-						[`logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`]: logTypeCollection.logFilter.logType,
-						[`logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`]: logTypeCollection.logFilter.logAction,
+						[`logType${sanitizeNameForSql(logTypeRequirement.logFilter.logType)}`]: logTypeRequirement.logFilter.logType,
+						[`logAction${sanitizeNameForSql(logTypeRequirement.logFilter.logAction)}`]: logTypeRequirement.logFilter.logAction,
+						[endDateParameterName]: endDate.toDate()
 					}
 				);
-			} else if (typeof logTypeCollection.logFilter.logAction === "string") {
+			} else if (typeof logTypeRequirement.logFilter.logAction === "string") {
+				const tableName = ctx.conn.getRepository(wikiEntities.actorLogStatisticsByLogAction).metadata.tableName;
+
 				query = query.leftJoin(
 					wikiEntities.actorLogStatisticsByLogAction,
-					tableName,
-					`${tableName}.actorId = actor.actorId `
-					+ ` AND ${tableName}.logAction = :logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`
-					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					tableAlias,
+					`${tableAlias}.actorId = actor.actorId `
+					+ ` AND ${tableAlias}.logAction = :logAction${sanitizeNameForSql(logTypeRequirement.logFilter.logAction)}`
+					+ ` AND ${tableAlias}.date = (`
+					+ `SELECT MAX(date) FROM ${tableName} `
+					+ `WHERE log_action = :logAction${sanitizeNameForSql(logTypeRequirement.logFilter.logAction)}`
+					+ " AND actor_id = actor.actorId"
+					+ ` AND date <= :${endDateParameterName}`
+					+ ")",
 					{
-						[`logAction${sanitizeNameForSql(logTypeCollection.logFilter.logAction)}`]: logTypeCollection.logFilter.logAction
+						[`logAction${sanitizeNameForSql(logTypeRequirement.logFilter.logAction)}`]: logTypeRequirement.logFilter.logAction,
+						[endDateParameterName]: endDate.toDate()
 					}
 				);
-			} else if (typeof logTypeCollection.logFilter.logType === "string") {
+			} else if (typeof logTypeRequirement.logFilter.logType === "string") {
+				const tableName = ctx.conn.getRepository(wikiEntities.actorLogStatisticsByLogType).metadata.tableName;
+
 				query = query.leftJoin(
 					wikiEntities.actorLogStatisticsByLogType,
-					`${tableName}`,
-					`${tableName}.actorId = actor.actorId `
-					+ ` AND ${tableName}.logType = :logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`
-					+ ` AND ${tableName}.date = ${tableName}Date.lastDate`,
+					`${tableAlias}`,
+					`${tableAlias}.actorId = actor.actorId `
+					+ ` AND ${tableAlias}.logType = :logType${sanitizeNameForSql(logTypeRequirement.logFilter.logType)}`
+					+ ` AND ${tableAlias}.date = (`
+					+ `SELECT MAX(date) FROM ${tableName} `
+					+ `WHERE log_type = :logType${sanitizeNameForSql(logTypeRequirement.logFilter.logType)}`
+					+ " AND actor_id = actor.actorId"
+					+ ` AND date <= :${endDateParameterName}`
+					+ ")",
 					{
-						[`logType${sanitizeNameForSql(logTypeCollection.logFilter.logType)}`]: logTypeCollection.logFilter.logType
+						[`logType${sanitizeNameForSql(logTypeRequirement.logFilter.logType)}`]: logTypeRequirement.logFilter.logType,
+						[endDateParameterName]: endDate.toDate()
 					}
 				);
 			}
 		}
 	}
+
 	return query;
 }
 
-function createNamespaceWhereClauseFromNamespaceDefinition(
-	namespaceCollection: NamespaceRequiredColumns,
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	queryBuilder: SelectQueryBuilder<any>,
-	tableAlias: string
-) {
-	queryBuilder = queryBuilder.andWhere(
-		`${tableAlias}.namespace = :namespace${namespaceCollection.namespace}`,
-		{ [`namespace${namespaceCollection.namespace}`]: namespaceCollection.namespace }
-	);
-
-	return queryBuilder;
-}
-
-function createChangeTagWhereClauseFromFilterDefinition(
-	ctCollection: ChangeTagStatisticsRequiredColumns,
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	queryBuilder: SelectQueryBuilder<any>,
-	tableAlias: string
-) {
-	if (typeof ctCollection.changeTagFilter.namespace === "number") {
-		queryBuilder = queryBuilder.andWhere(
-			`${tableAlias}.namespace = :namespace${ctCollection.changeTagFilter.namespace}`,
-			{ [`namespace${ctCollection.changeTagFilter.namespace}`]: ctCollection.changeTagFilter.namespace }
-		);
-	}
-
-	queryBuilder = queryBuilder.andWhere(
-		`${tableAlias}.changeTagId = :changeTagId${ctCollection.changeTagFilter.changeTagId}`,
-		{ [`changeTagId${ctCollection.changeTagFilter.changeTagId}`]: ctCollection.changeTagFilter.changeTagId }
-	);
-
-	return queryBuilder;
-}
-
-function createLogWhereClauseFromFilterDefinition(
-	namespaceCollection: LogTypeStatisticsRequiredColumns,
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	queryBuilder: SelectQueryBuilder<any>,
-	tableAlias: string
-) {
-	if (typeof namespaceCollection.logFilter.logType === "string") {
-		queryBuilder = queryBuilder.andWhere(
-			`${tableAlias}.logType = :logType${namespaceCollection.logFilter.logType.replace("-", "_")}`,
-			{ [`logType${namespaceCollection.logFilter.logType.replace("-", "_")}`]: namespaceCollection.logFilter.logType.replace("-", "_") }
-		);
-	}
-
-	if (typeof namespaceCollection.logFilter.logAction === "string") {
-		queryBuilder = queryBuilder.andWhere(
-			`${tableAlias}.logAction = :logAction${namespaceCollection.logFilter.logAction.replace("-", "_")}`,
-			{ [`logAction${namespaceCollection.logFilter.logAction.replace("-", "_")}`]: namespaceCollection.logFilter.logAction.replace("-", "_") }
-		);
-	}
-
-	return queryBuilder;
-}
-
-function addOrderBy(
-	query: SelectQueryBuilder<ActorTypeModel>,
+function doOrderBy(
+	data: ActorLike[],
 	columns: ListColumn[] | undefined,
 	orderByList?: ListOrderBy[] | undefined
-) {
+): void {
 	if (!orderByList
 		|| orderByList.length === 0
 		|| !columns
 		|| columns.length === 0
 	) {
-		return query;
+		return;
 	}
 
+	const orderByRules: [string, "ascending" | "descending"][] = [];
 	for (const orderBy of orderByList) {
 		if (!orderBy.columnId) {
 			// TODO error out
@@ -2478,16 +2780,48 @@ function addOrderBy(
 		}
 
 		const referencedColumn = columns[referencedColumnIndex];
-
-		query = query.addOrderBy(
+		orderByRules.push([
 			referencedColumn.type === "userName"
 				? "actorName"
-				: `column${referencedColumnIndex} `,
-			orderBy.direction === "descending" ? "DESC" : "ASC"
-		);
+				: `column${referencedColumnIndex}`,
+			orderBy.direction
+		]);
 	}
 
-	return query;
+	data.sort((a, b) => {
+		for (const ele of orderByRules) {
+			const aValue = a[ele[0]];
+			const bValue = b[ele[0]];
+			const multiplier = ele[1] === "descending" ? -1 : 1;
+
+			let result;
+			if (typeof aValue === "string") {
+				result = aValue.localeCompare(bValue);
+				if (result === 0)
+					continue;
+			} else if (typeof aValue === "number" || typeof bValue === "number") {
+				result = compareNumbers(aValue, bValue);
+				if (result === 0)
+					continue;
+
+				return result * multiplier;
+			} else if (aValue instanceof Date || bValue instanceof Date) {
+				result = compareMoments(
+					aValue instanceof Date ? moment.utc(aValue) : moment.invalid(),
+					bValue instanceof Date ? moment.utc(bValue) : moment.invalid()
+				);
+
+				if (result === 0)
+					continue;
+			} else {
+				result = (a.actorName ?? "").localeCompare(b.actorName ?? "");
+			}
+
+			return result * multiplier;
+		}
+
+		return (a.actorName ?? "").localeCompare(b.actorName ?? "");
+	});
 }
 
 function getOrCreateNamespaceCollector(ctx: StatisticsQueryBuildingContext, namespace: number): NamespaceRequiredColumns {
@@ -2516,14 +2850,12 @@ function getOrCreateNamespaceCollector(ctx: StatisticsQueryBuildingContext, name
 	return existingCollector;
 }
 
-function formatNamespaceParameter(namespace: number | number[]): string {
-	return Array.isArray(namespace)
-		? namespace.join("_")
-		: namespace.toString();
+function formatNamespaceParameter(namespace: number): string {
+	return namespace.toString();
 }
 
 function getOrCreateChangeTagCollector(ctx: StatisticsQueryBuildingContext, changeTagFilter: ChangeTagFilterDefinition): ChangeTagStatisticsRequiredColumns {
-	const serializedChangeTagFilter = formatChangeTagFilterDefinitionCollection(changeTagFilter);
+	const serializedChangeTagFilter = serializeChangeTagFilterDefinition(changeTagFilter);
 
 	let existingCollector = ctx.columns.requiredChangeTagStatisticsColumns
 		.find(x => x.serializedChangeTagFilter === serializedChangeTagFilter);
@@ -2551,18 +2883,12 @@ function getOrCreateChangeTagCollector(ctx: StatisticsQueryBuildingContext, chan
 	return existingCollector;
 }
 
-function formatChangeTagFilterDefinitionCollection(changeTagFilter: ChangeTagFilterDefinition | ChangeTagFilterDefinition[]): string {
-	return Array.isArray(changeTagFilter)
-		? changeTagFilter.map(x => serializeChangeTagFilterDefinition(x)).join("_")
-		: serializeChangeTagFilterDefinition(changeTagFilter).toString();
-}
-
 function serializeChangeTagFilterDefinition(changeTagFilter: ChangeTagFilterDefinition) {
 	return sanitizeNameForSql(`${changeTagFilter.namespace ?? "any"}_${changeTagFilter.changeTagId}`);
 }
 
 function getOrCreateLogTypeCollector(ctx: StatisticsQueryBuildingContext, logFilter: LogFilterDefinition): LogTypeStatisticsRequiredColumns {
-	const serializedLogFilter = formatLogFilterDefinitionCollection(logFilter);
+	const serializedLogFilter = serializeLogFilterDefinition(logFilter);
 
 	let existingCollector = ctx.columns.requiredLogTypeStatisticsColumns
 		.find(x => x.serializedLogFilter === serializedLogFilter);
@@ -2583,19 +2909,12 @@ function getOrCreateLogTypeCollector(ctx: StatisticsQueryBuildingContext, logFil
 
 			needsSinceRegisteredActorStatistics: false,
 			needsSinceRegisteredWikiStatistics: false,
-			needsFirstLogEntryDate: false,
-			needsLastEntryDate: false
+			needsLastLogEntryDate: false
 		};
 		ctx.columns.requiredLogTypeStatisticsColumns.push(existingCollector);
 	}
 
 	return existingCollector;
-}
-
-function formatLogFilterDefinitionCollection(logFilter: LogFilterDefinition | LogFilterDefinition[]): string {
-	return Array.isArray(logFilter)
-		? logFilter.map(x => serializeLogFilterDefinition(x)).join("_")
-		: serializeLogFilterDefinition(logFilter).toString();
 }
 
 function serializeLogFilterDefinition(logFilter: LogFilterDefinition) {

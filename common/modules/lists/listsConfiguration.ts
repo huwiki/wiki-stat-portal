@@ -20,17 +20,25 @@ export type ListConfiguration =
 	NonLocalizedListConfiguration
 	| LocalizedListConfiguration;
 
-export interface NonLocalizedListConfiguration {
+export type DateMode = "userSelectable";
+
+interface LocalizationListConfigurationCommon {
 	id: string;
 	version?: number;
 	groupId: string;
-	name: string;
 	itemCount: number;
 	userRequirements: UserRequirements;
 	isTimeless: boolean;
 	columns: ListColumn[];
 	orderBy: ListOrderBy[];
 	displaySettings: ListDisplaySettings;
+	enableCaching: boolean;
+	dateMode?: DateMode;
+}
+
+export interface NonLocalizedListConfiguration extends LocalizationListConfigurationCommon {
+	name: string;
+	description?: string;
 }
 
 export function isNonLocalizedListConfiguration(obj: unknown): obj is NonLocalizedListConfiguration {
@@ -42,17 +50,8 @@ export function isNonLocalizedListConfiguration(obj: unknown): obj is NonLocaliz
 		&& typeof obj["orderBy"] === "object";
 }
 
-export interface LocalizedListConfiguration {
-	id: string;
-	version?: number;
-	groupId: string;
+export interface LocalizedListConfiguration extends LocalizationListConfigurationCommon {
 	i18nKey: string;
-	itemCount: number;
-	isTimeless: boolean;
-	userRequirements: UserRequirements;
-	columns: ListColumn[];
-	orderBy: ListOrderBy[];
-	displaySettings: ListDisplaySettings;
 }
 
 export function isLocalizedListConfiguration(obj: unknown): obj is LocalizedListConfiguration {
@@ -66,6 +65,7 @@ export function isLocalizedListConfiguration(obj: unknown): obj is LocalizedList
 
 export interface ListDisplaySettings {
 	fadeBots: boolean;
+	fadeNonSysops: boolean;
 	skipBotsFromCounting: boolean;
 }
 
@@ -74,103 +74,102 @@ export type ListColumn =
 	| UserNameListColumn
 	| ListColumnWithNamespaceParameter
 	| ListColumnWithChangeTagParameter
-	| ListColumnWithLogTypeParameter;
+	| ListColumnWithLogTypeParameter
+	| ListColumnWithMilestoneParameter;
 
 const parameterlessListColumnTypes = [
 	"counter",
-	"userGroups", // OK
+	"userGroups",
 
-	"editsInPeriod", // OK
-	"editsInPeriodPercentageToWikiTotal", // OK
-	"editsAtPeriodStart", // OK, internal for now
-	"editsSinceRegistration", // OK
-	"editsSinceRegistrationPercentageToWikiTotal", // OK
+	"editsInPeriod",
+	"editsInPeriodPercentageToWikiTotal",
+	"editsSinceRegistration",
+	"editsSinceRegistrationPercentageToWikiTotal",
 
-	"revertedEditsInPeriod", // OK
-	"revertedEditsInPeriodPercentageToWikiTotal", // OK
+	"revertedEditsInPeriod",
+	"revertedEditsInPeriodPercentageToWikiTotal",
 	"revertedEditsInPeriodPercentageToOwnTotalEdits",
-	"revertedEditsSinceRegistration", // OK
-	"revertedEditsSinceRegistrationPercentageToWikiTotal", // OK
+	"revertedEditsSinceRegistration",
+	"revertedEditsSinceRegistrationPercentageToWikiTotal",
 	"revertedEditsSinceRegistrationPercentageToOwnTotalEdits",
 
-	"firstEditDate", // OK
-	"lastEditDate", // OK
-	"daysBetweenFirstAndLastEdit", // OK
-	"averageEditsPerDaySinceRegistration", // OK
-	"averageEditsPerDayInPeriod", // OK
+	"firstEditDate",
+	"lastEditDate",
+	"daysBetweenFirstAndLastEdit",
+	"averageEditsPerDaySinceRegistration",
+	"averageEditsPerDayInPeriod",
 
-	"characterChangesInPeriod", // OK
-	"characterChangesInPeriodPercentageToWikiTotal", // OK
-	"characterChangesSinceRegistration", // OK
-	"characterChangesSinceRegistrationPercentageToWikiTotal", // OK
+	"characterChangesInPeriod",
+	"characterChangesInPeriodPercentageToWikiTotal",
+	"characterChangesSinceRegistration",
+	"characterChangesSinceRegistrationPercentageToWikiTotal",
 
-	"receivedThanksInPeriod", // OK
-	"receivedThanksInPeriodPercentageToWikiTotal", // OK
-	"receivedThanksSinceRegistration", // OK
-	"receivedThanksSinceRegistrationPercentageToWikiTotal", // OK
+	"receivedThanksInPeriod",
+	"receivedThanksInPeriodPercentageToWikiTotal",
+	"receivedThanksSinceRegistration",
+	"receivedThanksSinceRegistrationPercentageToWikiTotal",
 
-	"sentThanksInPeriod", // OK
-	"sentThanksInPeriodPercentageToWikiTotal", // OK
-	"sentThanksSinceRegistration", // OK
-	"sentThanksSinceRegistrationPercentageToWikiTotal", // OK
+	"sentThanksInPeriod",
+	"sentThanksInPeriodPercentageToWikiTotal",
+	"sentThanksSinceRegistration",
+	"sentThanksSinceRegistrationPercentageToWikiTotal",
 
-	"logEventsInPeriod", // OK
-	"logEventsInPeriodPercentageToWikiTotal", // OK
-	"logEventsAtPeriodStart", // OK, internal for now
-	"logEventsSinceRegistration", // OK
-	"logEventsSinceRegistrationPercentageToWikiTotal", // OK
+	"logEventsInPeriod",
+	"logEventsInPeriodPercentageToWikiTotal",
+	"logEventsSinceRegistration",
+	"logEventsSinceRegistrationPercentageToWikiTotal",
 
-	"firstLogEventDate", // OK
-	"lastLogEventDate", // OK
-	"daysBetweenFirstAndLastLogEvent", // OK
-	"averageLogEventsPerDaySinceRegistration", // OK
-	"averageLogEventsPerDayInPeriod", // OK
+	"firstLogEventDate",
+	"lastLogEventDate",
+	"daysBetweenFirstAndLastLogEvent",
+	"averageLogEventsPerDaySinceRegistration",
+	"averageLogEventsPerDayInPeriod",
 
-	"registrationDate", // OK
-	"daysSinceRegistration", // OK
-	"activeDaysInPeriod", // OK
-	"activeDaysSinceRegistration", // OK
+	"registrationDate",
+	"daysSinceRegistration",
+	"activeDaysInPeriod",
+	"activeDaysSinceRegistration",
 
-	"levelAtPeriodStart", // OK
-	"levelAtPeriodEnd", // OK
-	"levelAtPeriodEndWithChange" // OK
+	"levelAtPeriodStart",
+	"levelAtPeriodEnd",
+	"levelAtPeriodEndWithChange"
 ] as const;
 export type ParameterlessListColumnTypes = typeof parameterlessListColumnTypes[number];
 
 const columnsWithNamespaceParameter = [
-	"editsInNamespaceInPeriod", // OK
-	"editsInNamespaceInPeriodPercentageToWikiTotal", // OK
+	"editsInNamespaceInPeriod",
+	"editsInNamespaceInPeriodPercentageToWikiTotal",
 	"editsInNamespaceInPeriodPercentageToOwnTotalEdits",
-	"editsInNamespaceSinceRegistration", // OK
-	"editsInNamespaceSinceRegistrationPercentageToWikiTotal", // OK
+	"editsInNamespaceSinceRegistration",
+	"editsInNamespaceSinceRegistrationPercentageToWikiTotal",
 	"editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits",
-	"revertedEditsInNamespaceInPeriod", // OK
-	"revertedEditsInNamespaceInPeriodPercentageToWikiTotal", // OK
+	"revertedEditsInNamespaceInPeriod",
+	"revertedEditsInNamespaceInPeriodPercentageToWikiTotal",
 	"revertedEditsInNamespaceInPeriodPercentageToOwnTotalEdits",
-	"revertedEditsInNamespaceSinceRegistration", // OK
-	"revertedEditsInNamespaceSinceRegistrationPercentageToWikiTotal", // OK
+	"revertedEditsInNamespaceSinceRegistration",
+	"revertedEditsInNamespaceSinceRegistrationPercentageToWikiTotal",
 	"revertedEditsInNamespaceSinceRegistrationPercentageToOwnTotalEdits",
-	"characterChangesInNamespaceInPeriod", // OK
-	"characterChangesInNamespaceInPeriodPercentageToWikiTotal", // OK
-	"characterChangesInNamespaceSinceRegistration", // OK
-	"characterChangesInNamespaceSinceRegistrationPercentageToWikiTotal", // OK
-	"activeDaysInNamespaceInPeriod", // OK
-	"activeDaysInNamespaceSinceRegistration", // OK
+	"characterChangesInNamespaceInPeriod",
+	"characterChangesInNamespaceInPeriodPercentageToWikiTotal",
+	"characterChangesInNamespaceSinceRegistration",
+	"characterChangesInNamespaceSinceRegistrationPercentageToWikiTotal",
+	"activeDaysInNamespaceInPeriod",
+	"activeDaysInNamespaceSinceRegistration",
+	"lastEditDateInNamespace",
 ] as const;
 export type ListColumnTypesWithNamespaceParameter = typeof columnsWithNamespaceParameter[number];
 
 const columnsWithChangeTagParameter = [
-	"editsInPeriodByChangeTag", // OK
-	"editsSinceRegistrationByChangeTag", // OK
-	"characterChangesInPeriodByChangeTag", // OK
-	"characterChangesSinceRegistrationByChangeTag" // OK
+	"editsInPeriodByChangeTag",
+	"editsSinceRegistrationByChangeTag",
+	"characterChangesInPeriodByChangeTag",
+	"characterChangesSinceRegistrationByChangeTag"
 ] as const;
 export type ListColumnTypesWithChangeTagParameter = typeof columnsWithChangeTagParameter[number];
 
 const columnsWithLogTypeParameter = [
 	"logEventsInPeriodByType", // OK
 	"logEventsSinceRegistrationByType", // OK
-	"firstLogEventDateByType",
 	"lastLogEventDateByType",
 ] as const;
 export type ListColumnTypesWithLogTypeParameter = typeof columnsWithLogTypeParameter[number];
@@ -200,6 +199,7 @@ export interface UserNameListColumn extends ColumnCommonProperties {
 export interface UserLinksDefinition {
 	talkPage?: boolean;
 	edits?: boolean;
+	rightsLog?: boolean;
 }
 
 export function isUserNameListColumn(obj: unknown): obj is UserNameListColumn {
@@ -259,9 +259,23 @@ export interface ListOrderBy {
 	direction: "ascending" | "descending"
 }
 
+const columnsWithMilestoneParameter = [
+	"editsSinceRegistrationMilestone",
+	"revertedEditsSinceRegistrationMilestone",
+	"characterChangesSinceRegistrationMilestone",
+	"receivedThanksSinceRegistrationMilestone"
+] as const;
+export type ListColumnTypesWithMilestoneParameter = typeof columnsWithMilestoneParameter[number];
+
+export interface ListColumnWithMilestoneParameter extends ColumnCommonProperties {
+	type: ListColumnTypesWithMilestoneParameter;
+	milestones: number[];
+}
+
 export type AllColumnTypes =
 	ParameterlessListColumnTypes
 	| ListColumnTypesWithNamespaceParameter
 	| ListColumnTypesWithLogTypeParameter
 	| ListColumnTypesWithChangeTagParameter
+	| ListColumnTypesWithMilestoneParameter
 	| "userName";

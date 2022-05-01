@@ -225,7 +225,7 @@ export class WikiEditCacher {
 		this.logger.info(`[getCachedTemplates/${this.wiki.id}] ${rawCachedTemplates.length} templates fetched from cache db`);
 
 		for (const rct of rawCachedTemplates) {
-			this.cachedTemplates.set(rct.templateId, rct.templateName);
+			this.cachedTemplates.set(rct.templatePageId, rct.templateName);
 		}
 	}
 
@@ -932,10 +932,10 @@ export class WikiEditCacher {
 	private async saveTemplatesToDatabase(em: EntityManager): Promise<void> {
 		this.logger.info(`[saveChangeTagDefinitionsToDatabase/${this.wiki.id}] Saving ${this.wikiTemplates.size} templates to database...`);
 
-		for (const templateId of this.wikiTemplates.keys()) {
-			if (this.cachedTemplates.has(templateId)) {
-				const cachedName = this.cachedTemplates.get(templateId);
-				const wikiName = this.wikiTemplates.get(templateId);
+		for (const templatePageId of this.wikiTemplates.keys()) {
+			if (this.cachedTemplates.has(templatePageId)) {
+				const cachedName = this.cachedTemplates.get(templatePageId);
+				const wikiName = this.wikiTemplates.get(templatePageId);
 				if (cachedName !== wikiName) {
 					await em
 						.createQueryBuilder()
@@ -943,7 +943,7 @@ export class WikiEditCacher {
 						.set({
 							templateName: wikiName
 						})
-						.where("templateId = :templateId", { templateId: templateId })
+						.where("templatePageId = :templatePageId", { templatePageId: templatePageId })
 						.execute();
 				}
 			} else {
@@ -951,21 +951,21 @@ export class WikiEditCacher {
 					.insert()
 					.into(this.wikiStatisticsEntities.template)
 					.values({
-						templateId: templateId,
-						templateName: this.wikiTemplates.get(templateId)
+						templatePageId: templatePageId,
+						templateName: this.wikiTemplates.get(templatePageId)
 					})
 					.execute();
 			}
 		}
 
-		for (const removedTemplateId of [...this.cachedTemplates.keys()]
+		for (const removedTemplatePageId of [...this.cachedTemplates.keys()]
 			.filter(ele => this.wikiTemplates.has(ele) === false)
 		) {
-			this.logger.info(`[saveTemplatesToDatabase/${this.wiki.id}] Deleting template with id '${removedTemplateId}'...`);
+			this.logger.info(`[saveTemplatesToDatabase/${this.wiki.id}] Deleting template with id '${removedTemplatePageId}'...`);
 			await em.createQueryBuilder()
 				.delete()
 				.from(this.wikiStatisticsEntities.template)
-				.where("templateId = :templateId", { templateId: removedTemplateId })
+				.where("templatePageId = :templatePageId", { templatePageId: removedTemplatePageId })
 				.execute();
 		}
 
@@ -1060,13 +1060,13 @@ export class WikiEditCacher {
 			? [...wikiActorUserPageTemplateSet.values()]
 			: [];
 
-		for (const userPageTemplateId of wikiActorUserPageTemplates) {
+		for (const userPageTemplatePageId of wikiActorUserPageTemplates) {
 			await em.createQueryBuilder()
 				.insert()
 				.into(this.wikiStatisticsEntities.actorUserPageTemplate)
 				.values({
 					actorId: mwDbActor.id,
-					templatePageId: userPageTemplateId
+					templatePageId: userPageTemplatePageId
 				})
 				.execute();
 		}

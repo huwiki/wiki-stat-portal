@@ -23,8 +23,8 @@
 					"type": "number",
 					"minimum": 1
 				},
-				"userGroups": {
-					"description": "If specified, only users who belong to any the specified groups will be counted/shown.",
+				"inAnyUserGroups": {
+					"description": "If specified, only users who belong to any of the specified groups will be counted/shown.",
 					"type": "array",
 					"items": {
 						"$ref": "#/definitions/userGroup"
@@ -32,7 +32,25 @@
 					"minItems": 1,
 					"uniqueItems": true
 				},
-				"notInUserGroups": {
+				"inAllUserGroups": {
+					"description": "If specified, only users who belong to all of the specified groups will be counted/shown.",
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/userGroup"
+					},
+					"minItems": 1,
+					"uniqueItems": true
+				},
+				"notInAnyUserGroups": {
+					"description": "If specified, only users who do not belong to any of the specified groups will be counted/shown.",
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/userGroup"
+					},
+					"minItems": 1,
+					"uniqueItems": true
+				},
+				"notInAllUserGroups": {
 					"description": "If specified, only users who do not belong to all of the specified groups will be counted/shown.",
 					"type": "array",
 					"items": {
@@ -41,8 +59,8 @@
 					"minItems": 1,
 					"uniqueItems": true
 				},
-				"hasUserPageTemplates": {
-					"description": "If specified, only users whose user/talk page has the specified templates embedded will be counted/shown.",
+				"hasAnyUserPageTemplates": {
+					"description": "If specified, only users whose user/talk page has any of the specified templates embedded will be counted/shown.",
 					"type": "array",
 					"items": {
 						"type": "string",
@@ -51,8 +69,28 @@
 					"minItems": 1,
 					"uniqueItems": true
 				},
-				"hasNoUserPageTemplates": {
-					"description": "If specified, only users whose user/talk page does not have the specified templates embedded will be counted/shown.",
+				"hasAllUserPageTemplates": {
+					"description": "If specified, only users whose user/talk page has any of the specified templates embedded will be counted/shown.",
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 1,
+					"uniqueItems": true
+				},
+				"notHasAnyUserPageTemplates": {
+					"description": "If specified, only users whose user/talk page does not have any of the specified templates embedded will be counted/shown.",
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 1,
+					"uniqueItems": true
+				},
+				"notHasAllUserPageTemplates": {
+					"description": "If specified, only users whose user/talk page does not have all of the specified templates embedded will be counted/shown.",
 					"type": "array",
 					"items": {
 						"type": "string",
@@ -97,11 +135,27 @@
 				},
 				"inPeriodEditsAtLeast": {
 					"description": "If specified, only users with edits at least this amount in the specified days before the requested date will be counted/shown.",
-					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+						}
+					]
 				},
 				"inPeriodEditsAtMost": {
 					"description": "If specified, only users with edits at most this amount in the specified days before the requested date will be counted/shown.",
-					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+						}
+					]
 				},
 				"totalEditsWithChangeTagAtLeast": {
 					"description": "If specified, only users with at least this amount of total edits with a given change tag/given change tags at the requested date will be counted/shown.",
@@ -172,11 +226,27 @@
 				},
 				"inPeriodRevertedEditsAtLeast": {
 					"description": "If specified, only users with reverted edits at least this amount in the specified days before the requested date will be counted/shown.",
-					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+						}
+					]
 				},
 				"inPeriodRevertedEditsAtMost": {
 					"description": "If specified, only users with reverted edits at most this amount in the specified days before the requested date will be counted/shown.",
-					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+						}
+					]
 				},
 				"totalReceivedThanksAtLeast": {
 					"description": "If specified, only users with at least this amount of received thanks at the requested date will be counted/shown.",
@@ -214,11 +284,27 @@
 				},
 				"inPeriodReceivedThanksAtLeast": {
 					"description": "If specified, only users with received thanks at least this amount in the specified days before the requested date will be counted/shown.",
-					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+						}
+					]
 				},
 				"inPeriodReceivedThanksAtMost": {
 					"description": "If specified, only users with received thanks at most this amount in the specified days before the requested date will be counted/shown.",
-					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+						}
+					]
 				},
 				"totalActiveDaysAtLeast": {
 					"description": "If specified, only users with at least this amount of active days at the requested date will be counted/shown.",
@@ -256,11 +342,27 @@
 				},
 				"inPeriodActiveDaysAtLeast": {
 					"description": "If specified, only users with active days at least this amount in the specified days before the requested date will be counted/shown.",
-					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+						}
+					]
 				},
 				"inPeriodActiveDaysAtMost": {
 					"description": "If specified, only users with active days at most this amount in the specified days before the requested date will be counted/shown.",
-					"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+					"oneOf": [
+						{
+							"type": "number",
+							"minimum": 1
+						},
+						{
+							"$ref": "#/definitions/userStatisticsInPeriodRequirement"
+						}
+					]
 				}
 			},
 			"additionalProperties": false

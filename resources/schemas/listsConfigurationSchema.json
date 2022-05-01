@@ -46,6 +46,9 @@
 				"name": {
 					"type": "string"
 				},
+				"description": {
+					"type": "string"
+				},
 				"itemCount": {
 					"type": "integer"
 				},
@@ -63,6 +66,15 @@
 				},
 				"displaySettings": {
 					"$ref": "#/definitions/listDisplaySettings"
+				},
+				"enableCaching": {
+					"type": "boolean"
+				},
+				"dateMode": {
+					"type": "string",
+					"enum": [
+						"userSelectable"
+					]
 				}
 			},
 			"required": [
@@ -104,6 +116,15 @@
 				},
 				"displaySettings": {
 					"$ref": "#/definitions/listDisplaySettings"
+				},
+				"enableCaching": {
+					"type": "boolean"
+				},
+				"dateMode": {
+					"type": "string",
+					"enum": [
+						"userSelectable"
+					]
 				}
 			},
 			"required": [
@@ -134,6 +155,9 @@
 					},
 					{
 						"$ref": "#/definitions/columnWithLogTypeParameter"
+					},
+					{
+						"$ref": "#/definitions/columnWithMilestoneParameter"
 					}
 				]
 			},
@@ -233,6 +257,9 @@
 						},
 						"edits": {
 							"type": "boolean"
+						},
+						"rightsLog": {
+							"type": "boolean"
 						}
 					}
 				}
@@ -268,7 +295,8 @@
 						"characterChangesInNamespaceSinceRegistration",
 						"characterChangesInNamespaceSinceRegistrationPercentageToWikiTotal",
 						"activeDaysInNamespaceInPeriod",
-						"activeDaysInNamespaceSinceRegistration"
+						"activeDaysInNamespaceSinceRegistration",
+						"lastEditDateInNamespace"
 					]
 				},
 				"headerI18nKey": {
@@ -359,7 +387,6 @@
 					"enum": [
 						"logEventsInPeriodByType",
 						"logEventsSinceRegistrationByType",
-						"firstLogEventDateByType",
 						"lastLogEventDateByType"
 					]
 				},
@@ -415,6 +442,38 @@
 				}
 			]
 		},
+		"columnWithMilestoneParameter": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"columnId": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string",
+					"enum": [
+						"editsSinceRegistrationMilestone",
+						"revertedEditsSinceRegistrationMilestone",
+						"characterChangesSinceRegistrationMilestone",
+						"receivedThanksSinceRegistrationMilestone"
+					]
+				},
+				"headerI18nKey": {
+					"type": "string"
+				},
+				"milestones": {
+					"type": "array",
+					"items": {
+						"type": "number"
+					},
+					"minItems": 1
+				}
+			},
+			"required": [
+				"type",
+				"milestones"
+			]
+		},
 		"listOrderByList": {
 			"type": "array",
 			"items": {
@@ -447,6 +506,9 @@
 			"additionalProperties": false,
 			"properties": {
 				"fadeBots": {
+					"type": "boolean"
+				},
+				"fadeNonSysops": {
 					"type": "boolean"
 				},
 				"skipBotsFromCounting": {

@@ -10,17 +10,26 @@ export interface UserRequirements {
 	registrationAgeAtLeast?: number;
 	registrationAgeAtMost?: number;
 
-	userGroups?: UserGroup[];
-	notInUserGroups?: UserGroup[];
+	inAnyUserGroups?: UserGroup[];
+	inAllUserGroups?: UserGroup[];
+	notInAnyUserGroups?: UserGroup[];
+	notInAllUserGroups?: UserGroup[];
 
-	hasUserPageTemplates: string[];
-	hasNoUserPageTemplates: string[];
+	hasAnyUserPageTemplates?: string[];
+	hasAllUserPageTemplates?: string[];
+	notHasAnyUserPageTemplates?: string[];
+	notHasAllUserPageTemplates?: string[];
 
 	totalEditsAtLeast?: number | UserStatisticsInTimeRequirement;
 	totalEditsAtMost?: number | UserStatisticsInTimeRequirement;
+	inPeriodEditsAtLeast?: number | UserStatisticsInPeriodRequirement;
+	inPeriodEditsAtMost?: number | UserStatisticsInPeriodRequirement;
 	totalEditsMilestoneReachedInPeriod: number[];
-	inPeriodEditsAtLeast?: UserStatisticsInPeriodRequirement;
-	inPeriodEditsAtMost?: UserStatisticsInPeriodRequirement;
+
+	totalEditsInNamespaceAtLeast?: UserEditsInTimeWithNamespaceRequirement;
+	totalEditsInNamespaceAtMost?: UserEditsInTimeWithNamespaceRequirement;
+	inPeriodEditsInNamespaceAtLeast?: UserEditsInPeriodWithNamespaceRequirement;
+	inPeriodEditsInNamespaceAtMost?: UserEditsInPeriodWithNamespaceRequirement;
 
 	totalEditsWithChangeTagAtLeast?: UserEditsInTimeWithChangeTagRequirement;
 	totalEditsWithChangeTagAtMost?: UserEditsInTimeWithChangeTagRequirement;
@@ -30,42 +39,55 @@ export interface UserRequirements {
 	totalRevertedEditsAtLeast?: number | UserStatisticsInTimeRequirement;
 	totalRevertedEditsAtMost?: number | UserStatisticsInTimeRequirement;
 	totalRevertedEditsMilestoneReachedInPeriod: number[];
-	inPeriodRevertedEditsAtLeast?: UserStatisticsInPeriodRequirement;
-	inPeriodRevertedEditsAtMost?: UserStatisticsInPeriodRequirement;
+	inPeriodRevertedEditsAtLeast?: number | UserStatisticsInPeriodRequirement;
+	inPeriodRevertedEditsAtMost?: number | UserStatisticsInPeriodRequirement;
 
 	totalReceivedThanksAtLeast?: number | UserStatisticsInTimeRequirement;
 	totalReceivedThanksAtMost?: number | UserStatisticsInTimeRequirement;
 	totalReceivedThanksMilestoneReachedInPeriod: number[];
-	inPeriodReceivedThanksAtLeast?: UserStatisticsInPeriodRequirement;
-	inPeriodReceivedThanksAtMost?: UserStatisticsInPeriodRequirement;
+	inPeriodReceivedThanksAtLeast?: number | UserStatisticsInPeriodRequirement;
+	inPeriodReceivedThanksAtMost?: number | UserStatisticsInPeriodRequirement;
 
 	totalActiveDaysAtLeast?: number | UserStatisticsInTimeRequirement;
 	totalActiveDaysAtMost?: number | UserStatisticsInTimeRequirement;
 	totalActiveDaysMilestoneReachedInPeriod: number[];
-	inPeriodActiveDaysAtLeast?: UserStatisticsInPeriodRequirement;
-	inPeriodActiveDaysAtMost?: UserStatisticsInPeriodRequirement;
+	inPeriodActiveDaysAtLeast?: number | UserStatisticsInPeriodRequirement;
+	inPeriodActiveDaysAtMost?: number | UserStatisticsInPeriodRequirement;
 }
 
 export interface UserStatisticsInTimeRequirement {
 	count: number;
-	epoch: number;
+	epoch: number | "startOfSelectedPeriod";
 }
 
 export interface UserStatisticsInPeriodRequirement {
 	count: number;
 	period: number;
-	epoch?: number;
+	epoch?: number | "startOfSelectedPeriod";
+}
+
+export interface UserEditsInTimeWithNamespaceRequirement {
+	namespace: number | number[];
+	edits: number;
+	epoch?: number | "startOfSelectedPeriod";
+}
+
+export interface UserEditsInPeriodWithNamespaceRequirement {
+	namespace: number | number[];
+	edits: number;
+	period?: number;
+	epoch?: number | "startOfSelectedPeriod";
 }
 
 export interface UserEditsInTimeWithChangeTagRequirement {
 	changeTag: ChangeTagFilterDefinition | ChangeTagFilterDefinition[];
 	edits: number;
-	epoch?: number;
+	epoch?: number | "startOfSelectedPeriod";
 }
 
 export interface UserEditsInPeriodWithChangeTagRequirement {
 	changeTag: ChangeTagFilterDefinition | ChangeTagFilterDefinition[];
 	edits: number;
-	period: number;
-	epoch?: number;
+	period?: number;
+	epoch?: number | "startOfSelectedPeriod";
 }
