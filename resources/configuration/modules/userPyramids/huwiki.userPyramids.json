@@ -431,7 +431,7 @@
 				{
 					"i18nKey": "userGroup.bot",
 					"requirements": {
-						"userGroups": [
+						"inAnyUserGroups": [
 							"bot"
 						]
 					}
@@ -439,7 +439,7 @@
 				{
 					"i18nKey": "userGroup.trusted",
 					"requirements": {
-						"userGroups": [
+						"inAnyUserGroups": [
 							"trusted"
 						]
 					}
@@ -447,7 +447,7 @@
 				{
 					"i18nKey": "userGroup.editor",
 					"requirements": {
-						"userGroups": [
+						"inAnyUserGroups": [
 							"editor"
 						]
 					}
@@ -455,7 +455,7 @@
 				{
 					"i18nKey": "userGroup.sysop",
 					"requirements": {
-						"userGroups": [
+						"inAnyUserGroups": [
 							"sysop"
 						]
 					}
@@ -463,7 +463,7 @@
 				{
 					"i18nKey": "userGroup.checkuser",
 					"requirements": {
-						"userGroups": [
+						"inAnyUserGroups": [
 							"checkuser"
 						]
 					}
@@ -471,7 +471,7 @@
 				{
 					"i18nKey": "userGroup.bureaucrat",
 					"requirements": {
-						"userGroups": [
+						"inAnyUserGroups": [
 							"bureaucrat"
 						]
 					}
@@ -479,7 +479,7 @@
 				{
 					"i18nKey": "userGroup.templateeditor",
 					"requirements": {
-						"userGroups": [
+						"inAnyUserGroups": [
 							"templateeditor"
 						]
 					}
@@ -487,7 +487,7 @@
 				{
 					"i18nKey": "userGroup.interface-editor",
 					"requirements": {
-						"userGroups": [
+						"inAnyUserGroups": [
 							"interface-editor"
 						]
 					}
@@ -495,7 +495,7 @@
 				{
 					"i18nKey": "userGroup.interface-admin",
 					"requirements": {
-						"userGroups": [
+						"inAnyUserGroups": [
 							"interface-admin"
 						]
 					}

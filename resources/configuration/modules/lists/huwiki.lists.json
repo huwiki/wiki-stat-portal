@@ -1,429 +1,6 @@
 {
 	"lists": [
 		{
-			"id": "test1",
-			"groupId": "tests",
-			"name": "Tesztlista API teszteléshez",
-			"itemCount": 500,
-			"columns": [
-				{
-					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true
-					}
-				},
-				{
-					"columnId": "editsInPeriod",
-					"type": "editsInPeriod"
-				},
-				{
-					"type": "editsInPeriodPercentageToWikiTotal"
-				},
-				{
-					"type": "editsSinceRegistration"
-				},
-				{
-					"type": "editsSinceRegistrationPercentageToWikiTotal"
-				},
-				{
-					"type": "editsInNamespaceInPeriod",
-					"namespace": 0
-				},
-				{
-					"type": "editsInNamespaceInPeriodPercentageToWikiTotal",
-					"namespace": 0
-				},
-				{
-					"type": "editsInNamespaceSinceRegistration",
-					"namespace": 0
-				},
-				{
-					"type": "editsInNamespaceSinceRegistrationPercentageToWikiTotal",
-					"namespace": 0
-				},
-				{
-					"type": "editsInNamespaceInPeriod",
-					"namespace": 4
-				},
-				{
-					"type": "editsInNamespaceInPeriodPercentageToWikiTotal",
-					"namespace": 4
-				},
-				{
-					"type": "editsInNamespaceSinceRegistration",
-					"namespace": 4
-				},
-				{
-					"type": "editsInNamespaceSinceRegistrationPercentageToWikiTotal",
-					"namespace": 4
-				},
-				{
-					"type": "editsInNamespaceInPeriod",
-					"namespace": [
-						0,
-						4
-					]
-				},
-				{
-					"type": "editsInNamespaceInPeriodPercentageToWikiTotal",
-					"namespace": [
-						0,
-						4
-					]
-				},
-				{
-					"type": "editsInNamespaceSinceRegistration",
-					"namespace": [
-						0,
-						4
-					]
-				},
-				{
-					"type": "editsInNamespaceSinceRegistrationPercentageToWikiTotal",
-					"namespace": [
-						0,
-						4
-					]
-				},
-				{
-					"type": "firstEditDate"
-				},
-				{
-					"type": "lastEditDate"
-				},
-				{
-					"type": "daysBetweenFirstAndLastEdit"
-				},
-				{
-					"type": "averageEditsPerDayInPeriod"
-				},
-				{
-					"type": "averageEditsPerDaySinceRegistration"
-				},
-				{
-					"type": "revertedEditsInPeriod"
-				},
-				{
-					"type": "revertedEditsInPeriodPercentageToWikiTotal"
-				},
-				{
-					"type": "revertedEditsSinceRegistration"
-				},
-				{
-					"type": "revertedEditsSinceRegistrationPercentageToWikiTotal"
-				},
-				{
-					"type": "revertedEditsInNamespaceInPeriod",
-					"namespace": 0
-				},
-				{
-					"type": "revertedEditsInNamespaceInPeriodPercentageToWikiTotal",
-					"namespace": 0
-				},
-				{
-					"type": "revertedEditsInNamespaceSinceRegistration",
-					"namespace": 0
-				},
-				{
-					"type": "revertedEditsInNamespaceSinceRegistrationPercentageToWikiTotal",
-					"namespace": 0
-				},
-				{
-					"type": "revertedEditsInNamespaceInPeriod",
-					"namespace": 4
-				},
-				{
-					"type": "revertedEditsInNamespaceInPeriodPercentageToWikiTotal",
-					"namespace": 4
-				},
-				{
-					"type": "revertedEditsInNamespaceSinceRegistration",
-					"namespace": 4
-				},
-				{
-					"type": "revertedEditsInNamespaceSinceRegistrationPercentageToWikiTotal",
-					"namespace": 4
-				},
-				{
-					"type": "characterChangesInPeriod"
-				},
-				{
-					"type": "characterChangesInPeriodPercentageToWikiTotal"
-				},
-				{
-					"type": "characterChangesSinceRegistration"
-				},
-				{
-					"type": "characterChangesSinceRegistrationPercentageToWikiTotal"
-				},
-				{
-					"type": "characterChangesInNamespaceInPeriod",
-					"namespace": 0
-				},
-				{
-					"type": "characterChangesInNamespaceInPeriodPercentageToWikiTotal",
-					"namespace": 0
-				},
-				{
-					"type": "characterChangesInNamespaceSinceRegistration",
-					"namespace": 0
-				},
-				{
-					"type": "characterChangesInNamespaceSinceRegistrationPercentageToWikiTotal",
-					"namespace": 0
-				},
-				{
-					"type": "characterChangesInNamespaceInPeriod",
-					"namespace": 4
-				},
-				{
-					"type": "characterChangesInNamespaceInPeriodPercentageToWikiTotal",
-					"namespace": 4
-				},
-				{
-					"type": "characterChangesInNamespaceSinceRegistration",
-					"namespace": 4
-				},
-				{
-					"type": "characterChangesInNamespaceSinceRegistrationPercentageToWikiTotal",
-					"namespace": 4
-				},
-				{
-					"type": "receivedThanksInPeriod"
-				},
-				{
-					"type": "receivedThanksInPeriodPercentageToWikiTotal"
-				},
-				{
-					"type": "receivedThanksSinceRegistration"
-				},
-				{
-					"type": "receivedThanksSinceRegistrationPercentageToWikiTotal"
-				},
-				{
-					"type": "logEventsInPeriod"
-				},
-				{
-					"type": "logEventsInPeriodPercentageToWikiTotal"
-				},
-				{
-					"type": "logEventsSinceRegistration"
-				},
-				{
-					"type": "logEventsSinceRegistrationPercentageToWikiTotal"
-				},
-				{
-					"type": "firstLogEventDate"
-				},
-				{
-					"type": "lastLogEventDate"
-				},
-				{
-					"type": "daysBetweenFirstAndLastLogEvent"
-				},
-				{
-					"type": "averageLogEventsPerDaySinceRegistration"
-				},
-				{
-					"type": "averageLogEventsPerDayInPeriod"
-				},
-				{
-					"type": "registrationDate"
-				},
-				{
-					"type": "daysSinceRegistration"
-				},
-				{
-					"type": "activeDaysInPeriod"
-				},
-				{
-					"type": "activeDaysSinceRegistration"
-				}
-			],
-			"orderBy": [
-				{
-					"columnId": "editsInPeriod",
-					"direction": "descending"
-				}
-			]
-		},
-		{
-			"id": "test2",
-			"groupId": "tests",
-			"name": "Tesztlista API teszteléshez 2 (change tag & log type)",
-			"itemCount": 500,
-			"columns": [
-				{
-					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true
-					}
-				},
-				{
-					"columnId": "editsInPeriod",
-					"type": "editsInPeriod"
-				},
-				{
-					"type": "logEventsInPeriodByType",
-					"logFilter": {
-						"logAction": "create",
-						"logType": "create"
-					}
-				},
-				{
-					"type": "logEventsInPeriodByType",
-					"logFilter": {
-						"logAction": "create"
-					}
-				},
-				{
-					"type": "logEventsInPeriodByType",
-					"logFilter": {
-						"logType": "create"
-					}
-				},
-				{
-					"type": "logEventsInPeriodByType",
-					"logFilter": [
-						{
-							"logAction": "create",
-							"logType": "create"
-						},
-						{
-							"logAction": "delete",
-							"lgType": "delete"
-						}
-					]
-				},
-				{
-					"type": "logEventsSinceRegistrationByType",
-					"logFilter": {
-						"logAction": "create",
-						"logType": "create"
-					}
-				},
-				{
-					"type": "logEventsSinceRegistrationByType",
-					"logFilter": {
-						"logAction": "create"
-					}
-				},
-				{
-					"type": "logEventsSinceRegistrationByType",
-					"logFilter": {
-						"logType": "create"
-					}
-				},
-				{
-					"type": "logEventsSinceRegistrationByType",
-					"logFilter": [
-						{
-							"logAction": "create",
-							"logType": "create"
-						},
-						{
-							"logAction": "delete",
-							"lgType": "delete"
-						}
-					]
-				},
-				{
-					"type": "editsInPeriodByChangeTag",
-					"changeTag": {
-						"changeTagId": 1
-					}
-				},
-				{
-					"type": "editsInPeriodByChangeTag",
-					"changeTag": {
-						"changeTagId": 1,
-						"namespace": 0
-					}
-				},
-				{
-					"type": "editsSinceRegistrationByChangeTag",
-					"changeTag": {
-						"changeTagId": 1
-					}
-				},
-				{
-					"type": "editsSinceRegistrationByChangeTag",
-					"changeTag": {
-						"changeTagId": 1,
-						"namespace": 0
-					}
-				},
-				{
-					"type": "characterChangesInPeriodByChangeTag",
-					"changeTag": {
-						"changeTagId": 1
-					}
-				},
-				{
-					"type": "characterChangesInPeriodByChangeTag",
-					"changeTag": {
-						"changeTagId": 1,
-						"namespace": 0
-					}
-				},
-				{
-					"type": "characterChangesSinceRegistrationByChangeTag",
-					"changeTag": {
-						"changeTagId": 1
-					}
-				},
-				{
-					"type": "characterChangesSinceRegistrationByChangeTag",
-					"changeTag": {
-						"changeTagId": 1,
-						"namespace": 0
-					}
-				}
-			],
-			"orderBy": [
-				{
-					"columnId": "editsInPeriod",
-					"direction": "descending"
-				}
-			]
-		},
-		{
-			"id": "test3",
-			"groupId": "tests",
-			"name": "Tesztlista API teszteléshez 3 (szintek)",
-			"itemCount": 500,
-			"columns": [
-				{
-					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true
-					}
-				},
-				{
-					"columnId": "editsSinceRegistration",
-					"type": "editsSinceRegistration"
-				},
-				{
-					"type": "levelAtPeriodStart"
-				},
-				{
-					"type": "levelAtPeriodEnd"
-				},
-				{
-					"type": "levelAtPeriodEndWithChange"
-				}
-			],
-			"orderBy": [
-				{
-					"columnId": "editsSinceRegistration",
-					"direction": "descending"
-				}
-			]
-		},
-		{
 			"id": "byEditCount",
 			"groupId": "topLists",
 			"i18nKey": "lists.list.topLists.byEditCount",
@@ -437,7 +14,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
@@ -482,10 +60,14 @@
 					"direction": "descending"
 				}
 			],
+			"userRequirements": {
+				"totalEditsAtLeast": 1
+			},
 			"displaySettings": {
 				"fadeBots": true,
 				"skipBotsFromCounting": true
-			}
+			},
+			"enableCaching": true
 		},
 		{
 			"id": "byEditCountInPeriod",
@@ -501,7 +83,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
@@ -555,10 +138,16 @@
 					"direction": "descending"
 				}
 			],
+			"userRequirements": {
+				"totalEditsAtLeast": 1,
+				"inPeriodEditsAtLeast": 1
+			},
 			"displaySettings": {
 				"fadeBots": true,
 				"skipBotsFromCounting": true
-			}
+			},
+			"enableCaching": true,
+			"dateMode": "userSelectable"
 		},
 		{
 			"id": "sysopsByLogEventCount",
@@ -574,7 +163,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
@@ -683,8 +273,7 @@
 							"logType": "delete",
 							"logAction": "delete"
 						}
-					],
-					"filterByRule": "moreThanZero"
+					]
 				},
 				{
 					"type": "logEventsSinceRegistrationByType",
@@ -856,7 +445,11 @@
 					"columnId": "totalLogEventCount",
 					"direction": "descending"
 				}
-			]
+			],
+			"displaySettings": {
+				"fadeNonSysops": true
+			},
+			"enableCaching": true
 		},
 		{
 			"id": "sysopsByLogEventCountInPeriod",
@@ -872,7 +465,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
@@ -965,8 +559,7 @@
 							"logType": "delete",
 							"logAction": "delete"
 						}
-					],
-					"filterByRule": "moreThanZero"
+					]
 				},
 				{
 					"type": "logEventsInPeriodByType",
@@ -1122,7 +715,9 @@
 					"columnId": "totalLogEventCount",
 					"direction": "descending"
 				}
-			]
+			],
+			"enableCaching": true,
+			"dateMode": "userSelectable"
 		},
 		{
 			"id": "editorsByPatrolCount",
@@ -1138,7 +733,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
@@ -1184,7 +780,8 @@
 					"columnId": "totalPatrolCount",
 					"direction": "descending"
 				}
-			]
+			],
+			"enableCaching": true
 		},
 		{
 			"id": "editorsByPatrolCountInPeriod",
@@ -1200,7 +797,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
@@ -1237,8 +835,7 @@
 							"logType": "review",
 							"logAction": "unapprove2"
 						}
-					],
-					"filterByRule": "moreThanZero"
+					]
 				},
 				{
 					"type": "logEventsInPeriodByType",
@@ -1269,7 +866,8 @@
 							"logType": "review",
 							"logAction": "unapprove2"
 						}
-					]
+					],
+					"filterByRule": "moreThanZero"
 				}
 			],
 			"orderBy": [
@@ -1281,7 +879,9 @@
 					"columnId": "totalPatrolCount",
 					"direction": "descending"
 				}
-			]
+			],
+			"enableCaching": true,
+			"dateMode": "userSelectable"
 		},
 		{
 			"id": "botsByEditCount",
@@ -1289,7 +889,7 @@
 			"i18nKey": "lists.list.topLists.botsByEditCount",
 			"itemCount": 500,
 			"userRequirements": {
-				"userGroups": [
+				"inAnyUserGroups": [
 					"bot",
 					"flaglessBot"
 				]
@@ -1303,7 +903,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
@@ -1355,7 +956,7 @@
 			"i18nKey": "lists.list.topLists.botsByEditCountInPeriod",
 			"itemCount": 500,
 			"userRequirements": {
-				"userGroups": [
+				"inAnyUserGroups": [
 					"bot",
 					"flaglessBot"
 				]
@@ -1369,7 +970,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
@@ -1422,7 +1024,243 @@
 					"columnId": "orderBy",
 					"direction": "descending"
 				}
+			],
+			"dateMode": "userSelectable"
+		},
+		{
+			"id": "templateEditorsByEditCount",
+			"groupId": "topLists",
+			"itemCount": 0,
+			"i18nKey": "lists.list.topLists.templateEditorsByEditCount",
+			"userRequirements": {
+				"inAnyUserGroups": [
+					"templateeditor"
+				]
+			},
+			"columns": [
+				{
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true,
+						"rightsLog": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "userGroups",
+					"headerI18nKey": "lists.header.rights"
+				},
+				{
+					"type": "editsInNamespaceSinceRegistration",
+					"namespace": 10,
+					"headerI18nKey": "lists.header.totalEditsInTemplateNs"
+				},
+				{
+					"type": "editsInNamespaceSinceRegistration",
+					"namespace": 828,
+					"headerI18nKey": "lists.header.totalEditsInModuleNs"
+				},
+				{
+					"columnId": "totalEdits",
+					"type": "editsInNamespaceSinceRegistration",
+					"namespace": [
+						10,
+						828
+					],
+					"headerI18nKey": "lists.header.totalTemplateRelatedEdits"
+				},
+				{
+					"type": "editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits",
+					"namespace": [
+						10,
+						828
+					],
+					"headerI18nKey": "lists.header.totalTemplateRelatedEditsPercentageToOwnTotalEdits"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "totalEdits",
+					"direction": "descending"
+				}
 			]
+		},
+		{
+			"id": "templateEditorsByEditCountInPeriod",
+			"groupId": "topLists",
+			"i18nKey": "lists.list.topLists.templateEditorsByEditCountInPeriod",
+			"itemCount": 500,
+			"userRequirements": {
+				"inAnyUserGroups": [
+					"templateeditor"
+				],
+				"inPeriodEditsAtLeast": {
+					"count": 1,
+					"period": 30
+				}
+			},
+			"columns": [
+				{
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true,
+						"rightsLog": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "userGroups",
+					"headerI18nKey": "lists.header.rights"
+				},
+				{
+					"type": "editsInNamespaceInPeriod",
+					"headerI18nKey": "lists.header.inPeriodEditsInTemplateNs",
+					"namespace": 10
+				},
+				{
+					"type": "editsInNamespaceInPeriod",
+					"headerI18nKey": "lists.header.inPeriodEditsInModuleNs",
+					"namespace": 828
+				},
+				{
+					"columnId": "totalEdits",
+					"type": "editsInNamespaceInPeriod",
+					"headerI18nKey": "lists.header.inPeriodTemplateRelatedEdits",
+					"namespace": [
+						10,
+						828
+					]
+				},
+				{
+					"type": "editsInNamespaceInPeriodPercentageToOwnTotalEdits",
+					"namespace": [
+						10,
+						828
+					],
+					"headerI18nKey": "lists.header.inPeriodTemplateRelatedEditsPercentageToOwnTotalEdits"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "totalEdits",
+					"direction": "descending"
+				}
+			],
+			"dateMode": "userSelectable"
+		},
+		{
+			"id": "interfaceEditorsByEditCount",
+			"groupId": "topLists",
+			"itemCount": 0,
+			"i18nKey": "lists.list.topLists.interfaceEditorsByEditCount",
+			"userRequirements": {
+				"inAnyUserGroups": [
+					"interface-editor"
+				]
+			},
+			"columns": [
+				{
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true,
+						"rightsLog": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "userGroups",
+					"headerI18nKey": "lists.header.rights"
+				},
+				{
+					"columnId": "templateEdits",
+					"type": "editsInNamespaceSinceRegistration",
+					"namespace": 8,
+					"headerI18nKey": "lists.header.totalEdits"
+				},
+				{
+					"type": "editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits",
+					"namespace": 8,
+					"headerI18nKey": "lists.header.totalEdits"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "templateEdits",
+					"direction": "descending"
+				}
+			]
+		},
+		{
+			"id": "interfaceEditorsByEditCountInPeriod",
+			"groupId": "topLists",
+			"i18nKey": "lists.list.topLists.interfaceEditorsByEditCountInPeriod",
+			"itemCount": 500,
+			"userRequirements": {
+				"inAnyUserGroups": [
+					"interface-editor"
+				],
+				"inPeriodEditsAtLeast": {
+					"count": 1,
+					"period": 30
+				}
+			},
+			"columns": [
+				{
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true,
+						"rightsLog": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "userGroups",
+					"headerI18nKey": "lists.header.rights"
+				},
+				{
+					"columnId": "templateEditsInPeriod",
+					"type": "editsInNamespaceSinceRegistration",
+					"namespace": 8,
+					"headerI18nKey": "lists.header.totalEdits"
+				},
+				{
+					"type": "editsInNamespaceInPeriod",
+					"headerI18nKey": "lists.header.totalEditsInPeriodInNs0",
+					"namespace": 8
+				},
+				{
+					"type": "editsInNamespaceInPeriodPercentageToOwnTotalEdits",
+					"namespace": 8,
+					"headerI18nKey": "lists.header.totalEdits"
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "templateEditsInPeriod",
+					"direction": "descending"
+				}
+			],
+			"dateMode": "userSelectable"
 		},
 		{
 			"id": "usersWithAtLeast100Edits",
@@ -1442,7 +1280,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
@@ -1473,7 +1312,11 @@
 					"columnId": "editsSinceRegistration",
 					"direction": "descending"
 				}
-			]
+			],
+			"displaySettings": {
+				"fadeBots": true
+			},
+			"enableCaching": true
 		},
 		{
 			"id": "anonsWithAtLeast100Edits",
@@ -1493,7 +1336,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
@@ -1534,7 +1378,8 @@
 					"columnId": "editsSinceRegistration",
 					"direction": "descending"
 				}
-			]
+			],
+			"enableCaching": true
 		},
 		{
 			"id": "first1000RegisteredUsers",
@@ -1553,7 +1398,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
@@ -1614,7 +1460,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
@@ -1659,7 +1506,10 @@
 			"itemCount": 0,
 			"userRequirements": {
 				"registrationStatus": "registered",
-				"registrationAgeAtMost": 30
+				"registrationAgeAtMost": 30,
+				"notHasAnyUserPageTemplates": [
+					"Üdv-meta"
+				]
 			},
 			"columns": [
 				{
@@ -1671,7 +1521,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
@@ -1705,22 +1556,67 @@
 			]
 		},
 		{
-			"id": "newcomersToCelebrate",
+			"id": "beginnersToCelebrate",
 			"groupId": "newUsers",
-			"i18nKey": "lists.list.newUsers.newcomersToCelebrate",
+			"i18nKey": "lists.list.newUsers.beginnersToCelebrate",
 			"itemCount": 500,
 			"columns": [
 				{
-					"columnId": "test",
-					"type": "counter"
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"columnId": "userName",
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true,
+						"rightsLog": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "editsSinceRegistrationMilestone",
+					"milestones": [
+						1000,
+						100
+					],
+					"headerI18nKey": "lists.header.editMilestone"
+				},
+				{
+					"columnId": "totalEdits",
+					"type": "editsSinceRegistration",
+					"headerI18nKey": "lists.header.totalEdits"
+				},
+				{
+					"columnId": "registrationDate",
+					"type": "registrationDate",
+					"headerI18nKey": "lists.header.registrationDate"
+				},
+				{
+					"type": "firstEditDate",
+					"headerI18nKey": "lists.header.firstEdit"
+				},
+				{
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
 				}
 			],
+			"userRequirements": {
+				"totalEditsMilestoneReachedInPeriod": [
+					1000,
+					100
+				],
+				"totalEditsAtLeast": 1,
+				"registrationStatus": "registered"
+			},
 			"orderBy": [
 				{
-					"columnId": "test",
-					"direction": "ascending"
+					"columnId": "totalEdits",
+					"direction": "descending"
 				}
-			]
+			],
+			"dateMode": "userSelectable"
 		},
 		{
 			"id": "goodNewcomers",
@@ -1729,14 +1625,56 @@
 			"itemCount": 500,
 			"columns": [
 				{
-					"columnId": "test",
-					"type": "counter"
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"columnId": "userName",
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true,
+						"rightsLog": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"columnId": "totalEdits",
+					"type": "editsSinceRegistration",
+					"headerI18nKey": "lists.header.totalEdits"
+				},
+				{
+					"type": "receivedThanksSinceRegistration",
+					"headerI18nKey": "lists.header.totalReceivedThanks"
+				},
+				{
+					"columnId": "registrationDate",
+					"type": "registrationDate",
+					"headerI18nKey": "lists.header.registrationDate"
+				},
+				{
+					"type": "firstEditDate",
+					"headerI18nKey": "lists.header.firstEdit"
+				},
+				{
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
 				}
 			],
+			"userRequirements": {
+				"registrationStatus": "registered",
+				"registrationAgeAtMost": 30,
+				"totalEditsAtLeast": 5,
+				"totalActiveDaysAtLeast": 3,
+				"notHasAnyUserPageTemplates": [
+					"Figy-meta"
+				],
+				"totalRevertedEditsAtMost": 3
+			},
 			"orderBy": [
 				{
-					"columnId": "test",
-					"direction": "ascending"
+					"columnId": "totalEdits",
+					"direction": "descending"
 				}
 			]
 		},
@@ -1747,14 +1685,51 @@
 			"itemCount": 500,
 			"columns": [
 				{
-					"columnId": "test",
-					"type": "counter"
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"columnId": "userName",
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true,
+						"rightsLog": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "editsSinceRegistration",
+					"headerI18nKey": "lists.header.totalEdits"
+				},
+				{
+					"columnId": "totalReceivedThanks",
+					"type": "receivedThanksSinceRegistration",
+					"headerI18nKey": "lists.header.totalReceivedThanks"
+				},
+				{
+					"columnId": "registrationDate",
+					"type": "registrationDate",
+					"headerI18nKey": "lists.header.registrationDate"
+				},
+				{
+					"type": "firstEditDate",
+					"headerI18nKey": "lists.header.firstEdit"
+				},
+				{
+					"type": "lastEditDate",
+					"headerI18nKey": "lists.header.lastEdit"
 				}
 			],
+			"userRequirements": {
+				"registrationStatus": "registered",
+				"registrationAgeAtMost": 30,
+				"totalReceivedThanksAtLeast": 1
+			},
 			"orderBy": [
 				{
-					"columnId": "test",
-					"direction": "ascending"
+					"columnId": "totalReceivedThanks",
+					"direction": "descending"
 				}
 			]
 		},
@@ -1764,7 +1739,7 @@
 			"i18nKey": "lists.list.activity.inactiveSysops",
 			"itemCount": 0,
 			"userRequirements": {
-				"userGroups": [
+				"inAnyUserGroups": [
 					"sysop"
 				]
 			},
@@ -1777,16 +1752,21 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
 				{
-					"columnId": "lastEditDate",
+					"type": "userGroups",
+					"headerI18nKey": "lists.header.rights"
+				},
+				{
 					"type": "lastEditDate",
 					"headerI18nKey": "lists.header.lastEdit"
 				},
 				{
+					"columnId": "lastLogEventDate",
 					"type": "lastLogEventDateByType",
 					"logFilter": [
 						{
@@ -1810,8 +1790,8 @@
 			],
 			"orderBy": [
 				{
-					"columnId": "lastEditDate",
-					"direction": "ascending"
+					"columnId": "lastLogEventDate",
+					"direction": "descending"
 				}
 			]
 		},
@@ -1821,7 +1801,7 @@
 			"i18nKey": "lists.list.activity.inactiveBureaucrats",
 			"itemCount": 0,
 			"userRequirements": {
-				"userGroups": [
+				"inAnyUserGroups": [
 					"bureaucrat"
 				]
 			},
@@ -1834,9 +1814,14 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "userGroups",
+					"headerI18nKey": "lists.header.rights"
 				},
 				{
 					"columnId": "lastLogEventDate",
@@ -1866,7 +1851,7 @@
 					"count": 0,
 					"period": 180
 				},
-				"userGroups": [
+				"inAnyUserGroups": [
 					"interface-editor"
 				]
 			},
@@ -1879,18 +1864,30 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
 				{
-					"type": "lastEditDate",
-					"headerI18nKey": "lists.header.lastEdit"
+					"type": "userGroups",
+					"headerI18nKey": "lists.header.rights"
+				},
+				{
+					"type": "editsInNamespaceSinceRegistration",
+					"namespace": 8,
+					"headerI18nKey": "lists.header.totalEditsInMediaWikiNs"
+				},
+				{
+					"columnId": "lastEditDateInMwNamespace",
+					"type": "lastEditDateInNamespace",
+					"namespace": 8,
+					"headerI18nKey": "lists.header.lastEditInMediaWikiNs"
 				}
 			],
 			"orderBy": [
 				{
-					"columnId": "lastEditDate",
+					"columnId": "lastEditDateInMwNamespace",
 					"direction": "descending"
 				}
 			]
@@ -1905,7 +1902,7 @@
 					"count": 0,
 					"period": 180
 				},
-				"userGroups": [
+				"inAnyUserGroups": [
 					"interface-admin"
 				]
 			},
@@ -1918,18 +1915,30 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
 				{
-					"type": "lastEditDate",
-					"headerI18nKey": "lists.header.lastEdit"
+					"type": "userGroups",
+					"headerI18nKey": "lists.header.rights"
+				},
+				{
+					"type": "editsInNamespaceSinceRegistration",
+					"namespace": 8,
+					"headerI18nKey": "lists.header.totalEditsInMediaWikiNs"
+				},
+				{
+					"columnId": "lastEditDateInMwNamespace",
+					"type": "lastEditDateInNamespace",
+					"namespace": 8,
+					"headerI18nKey": "lists.header.lastEditInMediaWikiNs"
 				}
 			],
 			"orderBy": [
 				{
-					"columnId": "lastEditDate",
+					"columnId": "lastEditDateInMwNamespace",
 					"direction": "descending"
 				}
 			]
@@ -1944,7 +1953,7 @@
 					"count": 0,
 					"period": 365
 				},
-				"userGroups": [
+				"inAnyUserGroups": [
 					"bot"
 				]
 			},
@@ -1957,7 +1966,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
@@ -1996,7 +2006,8 @@
 					"type": "userName",
 					"userLinks": {
 						"edits": true,
-						"talkPage": true
+						"talkPage": true,
+						"rightsLog": true
 					},
 					"headerI18nKey": "lists.header.user"
 				},
