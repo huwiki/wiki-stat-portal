@@ -15,6 +15,9 @@
 			"source.organizeImports": true
 		}
 	},
+	"[sql]": {
+		"editor.formatOnSave": false
+	},
 	"typescript.tsdk": "node_modules/typescript/lib",
 	"json.schemas": [
 		{
