@@ -2059,16 +2059,17 @@ function addColumnJoins(
 	startDate: moment.Moment | undefined,
 	endDate: moment.Moment,
 ) {
-	if (!columns || columns.length == 0)
-		return query;
-
-	for (const column of columns) {
-		collectColumnJoinInformation(column, ctx, startDate, endDate);
+	if (columns && columns.length > 0) {
+		for (const column of columns) {
+			collectColumnJoinInformation(column, ctx, startDate, endDate);
+		}
 	}
 
 	query = addDailyStatisticsColumnJoins(ctx, query, wikiEntities);
 
-	query = addLogEventDateColumnJoins(columns, query, wikiEntities, endDate);
+	if (columns && columns.length > 0) {
+		query = addLogEventDateColumnJoins(columns, query, wikiEntities, endDate);
+	}
 
 	for (const namespaceCollection of ctx.columns.requiredNamespaceStatisticsColumns) {
 		query = addNamespaceColumnJoins(ctx, namespaceCollection, query, wikiEntities, endDate);

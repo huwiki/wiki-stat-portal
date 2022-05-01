@@ -84,8 +84,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		res.status(200).json(results);
 	}
 	catch (err) {
+		appCtx.logger.error(err);
 		appCtx.logger.error({
-			errorMessage: "Error while serving statistics data",
+			errorMessage: "Error while serving pyramid data",
 			query: req.query,
 			error: err
 		});
