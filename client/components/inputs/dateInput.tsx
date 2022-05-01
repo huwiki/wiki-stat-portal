@@ -1,7 +1,7 @@
 import { DateInput as BpDateInput } from "@blueprintjs/datetime";
 import moment from "moment";
 import * as React from "react";
-import { Input, InputProps } from "./input";
+import { InputProps, InputWrapper } from "./inputWrapper";
 
 export type DateInputLocaliztaionProvider = {
 	formatDay(day: Date, locale?: string): string;
@@ -25,7 +25,7 @@ export type DateInputLocaliztaionProvider = {
 	];
 };
 
-export interface DateInputProps extends InputProps {
+export interface DateInputProps extends Omit<InputProps, "inputType"> {
 	value: Date;
 	setValue: (newValue: Date) => void;
 	minDate?: Date;
@@ -34,29 +34,31 @@ export interface DateInputProps extends InputProps {
 	disabled?: boolean;
 }
 
-export class DateInput extends Input<DateInputProps> {
-	public get inputType(): string {
-		return "dateInput";
-	}
-
-	protected renderInput(): JSX.Element {
-		return <BpDateInput
-			inputProps={{ readOnly: true }}
-			minDate={this.props.minDate}
-			maxDate={this.props.maxDate}
-			parseDate={() => false}
-			formatDate={date => moment(date).format("LL")}
-			localeUtils={
-				this.props.localizationProvider && {
-					...this.props.localizationProvider,
-					formatDate: () => "",
-					parseDate: () => new Date(),
-				}}
-			value={this.props.value}
-			onChange={this.onChange}
-			disabled={this.props.disabled}
-			canClearSelection={false}
-		/>;
+export class DateInput extends React.Component<DateInputProps> {
+	public render(): JSX.Element {
+		return <InputWrapper
+			inputType="dateInput"
+			inputClassName={this.props.inputClassName}
+			inputLabel={this.props.inputLabel}
+		>
+			<BpDateInput
+				inputProps={{ readOnly: true }}
+				minDate={this.props.minDate}
+				maxDate={this.props.maxDate}
+				parseDate={() => false}
+				formatDate={date => moment(date).format("LL")}
+				localeUtils={
+					this.props.localizationProvider && {
+						...this.props.localizationProvider,
+						formatDate: () => "",
+						parseDate: () => new Date(),
+					}}
+				value={this.props.value}
+				onChange={this.onChange}
+				disabled={this.props.disabled}
+				canClearSelection={false}
+			/>
+		</InputWrapper>;
 	}
 
 	private onChange = (selectedDate: Date) => {

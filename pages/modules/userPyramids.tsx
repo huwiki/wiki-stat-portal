@@ -284,6 +284,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 					}</li>}
 
 				{typeof group.requirements.inPeriodEditsAtLeast !== "undefined"
+					&& typeof group.requirements.inPeriodEditsAtLeast !== "number"
 					&& typeof group.requirements.inPeriodEditsAtLeast.epoch === "undefined"
 					&& <li key="inPeriodEditsAtLeast.simple">{
 						stringFormat(
@@ -294,6 +295,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 					}</li>}
 
 				{typeof group.requirements.inPeriodEditsAtLeast !== "undefined"
+					&& typeof group.requirements.inPeriodEditsAtLeast !== "number"
 					&& typeof group.requirements.inPeriodEditsAtLeast.epoch === "number"
 					&& <li key="inPeriodEditsAtLeast.withEpoch">{
 						stringFormat(
@@ -305,6 +307,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 					}</li>}
 
 				{typeof group.requirements.inPeriodEditsAtMost !== "undefined"
+					&& typeof group.requirements.inPeriodEditsAtMost !== "number"
 					&& typeof group.requirements.inPeriodEditsAtMost.epoch === "undefined"
 					&& <li key="inPeriodEditsAtMost.simple">{
 						stringFormat(
@@ -315,6 +318,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 					}</li>}
 
 				{typeof group.requirements.inPeriodEditsAtMost !== "undefined"
+					&& typeof group.requirements.inPeriodEditsAtMost !== "number"
 					&& typeof group.requirements.inPeriodEditsAtMost.epoch === "number"
 					&& <li key="inPeriodEditsAtMost.withEpoch">{
 						stringFormat(

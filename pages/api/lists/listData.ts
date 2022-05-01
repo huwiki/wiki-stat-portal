@@ -5,13 +5,15 @@ import { FLAGLESS_BOT_VIRTUAL_GROUP_NAME } from "../../../common/consts";
 import { ListConfiguration } from "../../../common/modules/lists/listsConfiguration";
 import { MODULE_IDENTIFIERS } from "../../../common/modules/moduleIdentifiers";
 import { AppRunningContext } from "../../../server/appRunningContext";
-import { createActorEntitiesForWiki } from "../../../server/database/entities/toolsDatabase/actorByWiki";
-import { ActorLike, createStatisticsQuery } from "../../../server/database/statisticsQueryBuilder";
+import { CacheEntryTypeModel, createActorEntitiesForWiki } from "../../../server/database/entities/toolsDatabase/actorByWiki";
+import { ActorLike, createStatisticsQuery as createAndRunStatisticsQuery } from "../../../server/database/statisticsQueryBuilder";
 import { hasLanguage, initializeI18nData } from "../../../server/helpers/i18nServer";
 import { KnownWiki } from "../../../server/interfaces/knownWiki";
 import { ServiceAwardLevelDefinition } from "../../../server/interfaces/serviceAwardLevelDefinition";
 import { ListsModule } from "../../../server/modules/listsModule/listsModule";
 import { moduleManager } from "../../../server/modules/moduleManager";
+
+const DATE_STRING_REGEX = new RegExp(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
 
 export interface ListDataResult {
 	list: ListConfiguration;
@@ -63,20 +65,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		const wikiEntities = createActorEntitiesForWiki(wiki.id);
 
 		const startDateKeySource = startDate == null ? moment.utc([1900, 0, 0]) : startDate;
+
+		let cachedEntry: CacheEntryTypeModel | undefined = undefined;
 		const cacheKey = getQueryCacheKey(list, startDateKeySource, endDate);
 
-		const cachedEntry = await conn.getRepository(wikiEntities.cacheEntry)
-			.createQueryBuilder("ce")
-			.where("ce.key = :key", { key: cacheKey })
-			.getOne();
+		if (list.enableCaching === true) {
+			cachedEntry = await conn.getRepository(wikiEntities.cacheEntry)
+				.createQueryBuilder("ce")
+				.where("ce.key = :key", { key: cacheKey })
+				.getOne();
+		}
 
-		let listDataResult: ListDataResult;
-
-		if (cachedEntry == null) {
-
+		let resultActors: ActorLike[];
+		if (!cachedEntry) {
 			appCtx.logger.info(`[api/lists/listData] running query for '${list.id}'`);
-
-			const resultActors = await createStatisticsQuery({
+			resultActors = await createAndRunStatisticsQuery({
 				appCtx: appCtx,
 				toolsDbConnection: conn,
 				wikiEntities,
@@ -87,101 +90,109 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				startDate: startDate,
 				endDate: endDate,
 			});
+		} else {
+			resultActors = JSON.parse(cachedEntry.content);
+		}
 
-			const actorGroupMap: Map<number, string[]> = new Map();
-			const actorGroups = await conn.getRepository(wikiEntities.actorGroup)
-				.createQueryBuilder()
-				.getMany();
+		const actorGroupMap: Map<number, string[]> = new Map();
+		const actorGroups = await conn.getRepository(wikiEntities.actorGroup)
+			.createQueryBuilder()
+			.getMany();
 
-			for (const actorGroup of actorGroups) {
-				const actorArr = actorGroupMap.get(actorGroup.actorId);
-				if (actorArr) {
-					actorArr.push(actorGroup.groupName);
-				} else {
-					actorGroupMap.set(actorGroup.actorId, [actorGroup.groupName]);
-				}
+		for (const actorGroup of actorGroups) {
+			const actorArr = actorGroupMap.get(actorGroup.actorId);
+			if (actorArr) {
+				actorArr.push(actorGroup.groupName);
+			} else {
+				actorGroupMap.set(actorGroup.actorId, [actorGroup.groupName]);
 			}
+		}
 
-			listDataResult = {
-				list: list,
-				results: [],
-			};
+		const listDataResult: ListDataResult = {
+			list: list,
+			results: [],
+		};
 
-			let counter = 1;
-			for (const actorLike of resultActors) {
-				// console.log(actorLike);
-				const userGroups = actorGroupMap.get(actorLike.actorId) ?? null;
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const columns: any[] = [];
-				const isBot = userGroups != null
-					? !!userGroups.find(x => x === "bot" || x === FLAGLESS_BOT_VIRTUAL_GROUP_NAME)
-					: false;
+		let counter = 1;
+		for (const actorLike of resultActors) {
+			const userGroups = actorGroupMap.get(actorLike.actorId) ?? null;
 
-				let columnIndex = 0;
-				for (const columnDefinition of list.columns) {
-					const dataFromQuery = actorLike[`column${columnIndex}`];
+			const columns: unknown[] = [];
+			const isBot = userGroups != null
+				? !!userGroups.find(x => x === "bot" || x === FLAGLESS_BOT_VIRTUAL_GROUP_NAME)
+				: false;
 
-					if (columnDefinition.type === "counter") {
-						if (list.displaySettings?.skipBotsFromCounting === true && isBot) {
-							columns.push("");
-						} else {
-							columns.push(counter);
-						}
-					} else if (columnDefinition.type === "userName") {
-						columns.push(actorLike.actorName ?? "?");
-					} else if (columnDefinition.type === "userGroups") {
-						columns.push(userGroups ?? null);
-					} else if (columnDefinition.type === "levelAtPeriodStart") {
-						const startLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "start");
-						if (startLevel) {
-							columns.push([startLevel.id, startLevel.label]);
-						} else {
-							columns.push(null);
-						}
-					} else if (columnDefinition.type === "levelAtPeriodEnd") {
-						const endLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "end");
-						if (endLevel) {
-							columns.push([endLevel.id, endLevel.label]);
-						} else {
-							columns.push(null);
-						}
-					} else if (columnDefinition.type === "levelAtPeriodEndWithChange") {
-						const startLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "start");
-						const endLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "end");
-						if (endLevel) {
-							columns.push([endLevel.id, endLevel.label, startLevel === null || startLevel.id !== endLevel.id]);
-						} else {
-							columns.push(null);
-						}
-					} else if (isDate(dataFromQuery)) {
-						columns.push([dataFromQuery.getFullYear(), dataFromQuery.getMonth(), dataFromQuery.getDate()]);
-					} else if (typeof dataFromQuery === "string") {
-						if (dataFromQuery.indexOf(".") !== -1) {
-							const floatNumber = Number.parseFloat(dataFromQuery);
-							columns.push(Number.isNaN(floatNumber) ? "?" : floatNumber);
-						} else {
-							const intNumber = Number.parseInt(dataFromQuery);
-							columns.push(Number.isNaN(intNumber) ? "?" : intNumber);
-						}
+			let columnIndex = 0;
+			for (const columnDefinition of list.columns) {
+				const dataFromQuery = actorLike[`column${columnIndex}`];
+
+				if (columnDefinition.type === "counter") {
+					if (list.displaySettings?.skipBotsFromCounting === true && isBot) {
+						columns.push("");
 					} else {
-						columns.push(dataFromQuery ?? null);
+						columns.push(counter);
 					}
-
-
-					columnIndex++;
+				} else if (columnDefinition.type === "userName") {
+					columns.push(actorLike.actorName ?? "?");
+				} else if (columnDefinition.type === "userGroups") {
+					columns.push(userGroups ?? null);
+				} else if (columnDefinition.type === "levelAtPeriodStart") {
+					const startLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "start");
+					if (startLevel) {
+						columns.push([startLevel.id, startLevel.label]);
+					} else {
+						columns.push(null);
+					}
+				} else if (columnDefinition.type === "levelAtPeriodEnd") {
+					const endLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "end");
+					if (endLevel) {
+						columns.push([endLevel.id, endLevel.label]);
+					} else {
+						columns.push(null);
+					}
+				} else if (columnDefinition.type === "levelAtPeriodEndWithChange") {
+					const startLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "start");
+					const endLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "end");
+					if (endLevel) {
+						columns.push([endLevel.id, endLevel.label, startLevel === null || startLevel.id !== endLevel.id]);
+					} else {
+						columns.push(null);
+					}
+				} else if (isDate(dataFromQuery)) {
+					columns.push([dataFromQuery.getFullYear(), dataFromQuery.getMonth(), dataFromQuery.getDate()]);
+				} else if (typeof dataFromQuery === "string" && DATE_STRING_REGEX.test(dataFromQuery)) {
+					const date = moment.utc(dataFromQuery);
+					columns.push([date.year(), date.month(), date.date()]);
+				} else if (typeof dataFromQuery === "string") {
+					if (dataFromQuery.indexOf(".") !== -1) {
+						const floatNumber = Number.parseFloat(dataFromQuery);
+						columns.push(Number.isNaN(floatNumber) ? "?" : floatNumber);
+					} else {
+						const intNumber = Number.parseInt(dataFromQuery);
+						columns.push(Number.isNaN(intNumber) ? "?" : intNumber);
+					}
+				} else {
+					columns.push(dataFromQuery ?? null);
 				}
 
-				listDataResult.results.push({
-					id: actorLike.actorId,
-					actorName: actorLike.actorName ?? "?",
-					actorGroups: userGroups,
-					data: columns,
-				});
-
-				if (isBot === false || list.displaySettings?.skipBotsFromCounting !== true) {
-					counter++;
-				}
+				columnIndex++;
 			}
+
+			listDataResult.results.push({
+				id: actorLike.actorId,
+				actorName: actorLike.actorName ?? "?",
+				actorGroups: userGroups,
+				data: columns,
+			});
+
+			if (isBot === false || list.displaySettings?.skipBotsFromCounting !== true) {
+				counter++;
+			}
+		}
+
+		if (!cachedEntry && list.enableCaching) {
+			await conn.getRepository(wikiEntities.cacheEntry)
+				.delete(cacheKey);
 
 			await conn.getRepository(wikiEntities.cacheEntry)
 				.insert({
@@ -189,16 +200,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 					cacheTimestamp: moment.utc().toDate(),
 					startDate: startDateKeySource.toDate(),
 					endDate: endDate.toDate(),
-					content: JSON.stringify(listDataResult.results)
+					content: JSON.stringify(resultActors)
 				});
-		} else {
-			listDataResult = {
-				list: list,
-				results: JSON.parse(cachedEntry.content),
-			};
 		}
 
-		// TODO: format results
 		appCtx.logger.info("[api/lists/listData] returning data");
 
 		res.status(200).json(listDataResult);
@@ -324,7 +329,6 @@ function getUserLevel(serviceAwardLevels: ServiceAwardLevelDefinition[] | null, 
 		return null;
 
 	const edits = user[`column${columnIndex}_${where}Edits`];
-	// TODO: do something with log events
 	//const logEntries = user[`column${columnIndex}_${where}LogEvents`];
 	const activeDays = user[`column${columnIndex}_${where}ActiveDays`];
 

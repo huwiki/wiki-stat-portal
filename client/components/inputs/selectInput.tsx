@@ -1,12 +1,13 @@
 import { Classes, Icon, MenuItem } from "@blueprintjs/core";
 import { IItemRendererProps, Select } from "@blueprintjs/select";
 import * as classnames from "classnames";
+import { observer } from "mobx-react";
 import * as React from "react";
-import { Input, InputProps } from "./input";
+import { InputProps, InputWrapper } from "./inputWrapper";
 
-export interface SelectInputProps<T> extends InputProps {
+export interface SelectInputProps<T> extends Omit<InputProps, "inputType"> {
 	items: T[];
-	value: T;
+	value: T | undefined;
 	setValue: (newValue: T) => void;
 	itemKeySelector: (element: T) => string;
 	itemRenderer: (element: T) => React.ReactNode;
@@ -17,40 +18,55 @@ export interface SelectInputProps<T> extends InputProps {
 	disabled?: boolean;
 }
 
-export class SelectInput<T> extends Input<SelectInputProps<T>> {
+@observer
+export class SelectInput<T> extends React.Component<SelectInputProps<T>> {
 	public get inputType(): string {
 		return "selectInput";
 	}
 
-	public renderInput(): JSX.Element {
-		const inputGroupClasses = [Classes.INPUT_GROUP, Classes.FILL];
-		const inputClasses = [Classes.INPUT, Classes.FILL];
+	public render(): JSX.Element {
+		const inputGroupClasses = {
+			[Classes.INPUT_GROUP]: true,
+			[Classes.FILL]: true
+		};
+		const inputClasses = {
+			[Classes.INPUT]: true,
+			[Classes.FILL]: true
+		};
 		if (this.props.disabled) {
-			inputGroupClasses.push(Classes.DISABLED);
-			inputClasses.push(Classes.DISABLED);
+			inputGroupClasses[Classes.DISABLED] = true;
+			inputClasses[Classes.DISABLED] = true;
 		}
 
-		return <Select
-			itemRenderer={this.renderSelectItem}
-			items={this.props.items}
-			onItemSelect={this.onItemSelect}
-			noResults={<MenuItem disabled={true} text={this.props.noSearchResultsLabel} />}
-			scrollToActiveItem
-			filterable={typeof this.props.itemPredicate !== "undefined"}
-			itemPredicate={this.props.itemPredicate}
-			inputProps={{ placeholder: this.props.filterLabel }}
-			popoverProps={{ minimal: true }}
-			disabled={this.props.disabled}
+		const selectLabel = this.props.value != null
+			? this.props.itemRenderer(this.props.value)
+			: this.props.noSelectedItemsLabel;
+
+		return <InputWrapper
+			inputType="selectInput"
+			inputClassName={this.props.inputClassName}
+			inputLabel={this.props.inputLabel}
 		>
-			<div className={classnames(inputGroupClasses)}>
-				<div className={classnames(inputClasses)}>
-					{this.props.value
-						? this.props.itemRenderer(this.props.value)
-						: this.props.noSelectedItemsLabel}
+			<Select
+				itemRenderer={this.renderSelectItem}
+				items={this.props.items}
+				onItemSelect={this.onItemSelect}
+				noResults={<MenuItem disabled={true} text={this.props.noSearchResultsLabel} />}
+				scrollToActiveItem
+				filterable={typeof this.props.itemPredicate !== "undefined"}
+				itemPredicate={this.props.itemPredicate}
+				inputProps={{ placeholder: this.props.filterLabel }}
+				popoverProps={{ minimal: true }}
+				disabled={this.props.disabled}
+			>
+				<div className={classnames(inputGroupClasses)}>
+					<div className={classnames(inputClasses)}>
+						{selectLabel}
+					</div>
+					<Icon icon="caret-down" />
 				</div>
-				<Icon icon="caret-down" />
-			</div>
-		</Select>;
+			</Select>
+		</InputWrapper>;
 	}
 
 	private renderSelectItem = (item: T, itemProps: IItemRendererProps) => {

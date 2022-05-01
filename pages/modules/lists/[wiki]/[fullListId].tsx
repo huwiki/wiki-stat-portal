@@ -1,13 +1,18 @@
-import { AnchorButton, Callout, HTMLTable, Intent, Menu, MenuDivider, MenuItem, Popover, Position, Spinner } from "@blueprintjs/core";
+import { AnchorButton, Button, Callout, Classes, Dialog, HTMLTable, Intent, Menu, MenuDivider, MenuItem, Popover, Position, Spinner, TextArea } from "@blueprintjs/core";
 import Axios from "axios";
 import * as classnames from "classnames";
-import { makeObservable, observable } from "mobx";
+import { action, makeObservable, observable } from "mobx";
 import { observer } from "mobx-react";
 import moment from "moment";
 import { NextPageContext } from "next";
 import { withRouter } from "next/router";
 import * as React from "react";
+import { MonthYearIntervalSelector, SelectableSubYearRangeValueType } from "../../../../client/components/monthYearIntervalSelector";
 import { PageFrame } from "../../../../client/components/pageFrame";
+import { ParameterBox } from "../../../../client/components/parameterBox";
+import { ParameterGroup } from "../../../../client/components/parameterGroup";
+import { generateCsvFromListData, generateWikitextFromListData } from "../../../../client/helpers/exportList";
+import { CellDataTypes, LIST_COLUMN_DATATYPE_MAP } from "../../../../client/helpers/listColumnDataTypes";
 import { NextBasePage } from "../../../../client/helpers/nextBasePage";
 import { FLAGLESS_BOT_VIRTUAL_GROUP_NAME } from "../../../../common/consts";
 import { CommonPageProps } from "../../../../common/interfaces/commonPageProps";
@@ -19,81 +24,8 @@ import { withCommonServerSideProps } from "../../../../server/helpers/serverSide
 import { GetPortalServerSidePropsResult } from "../../../../server/interfaces/getPortalServerSidePropsResult";
 import { ListsModule } from "../../../../server/modules/listsModule/listsModule";
 import { moduleManager } from "../../../../server/modules/moduleManager";
-import { ListDataResult } from "../../../api/lists/listData";
-
-type CellDataTypes = "date" | "datetime" | "string" | "integer" | "float" | "percentage" | "other";
-
-const DATATYPE_MAP: { [index: string]: CellDataTypes } = {
-	"counter": "integer",
-	"userName": "string",
-	"userGroups": "string",
-	"editsInPeriod": "integer",
-	"editsInPeriodPercentageToWikiTotal": "percentage",
-	"editsSinceRegistration": "integer",
-	"editsSinceRegistrationPercentageToWikiTotal": "percentage",
-	"revertedEditsInPeriod": "integer",
-	"revertedEditsInPeriodPercentageToWikiTotal": "percentage",
-	"revertedEditsInPeriodPercentageToOwnTotalEdits": "percentage",
-	"revertedEditsSinceRegistration": "integer",
-	"revertedEditsSinceRegistrationPercentageToWikiTotal": "percentage",
-	"revertedEditsSinceRegistrationPercentageToOwnTotalEdits": "percentage",
-	"firstEditDate": "date",
-	"lastEditDate": "date",
-	"daysBetweenFirstAndLastEdit": "integer",
-	"characterChangesInPeriod": "integer",
-	"characterChangesInPeriodPercentageToWikiTotal": "percentage",
-	"characterChangesSinceRegistration": "integer",
-	"characterChangesSinceRegistrationPercentageToWikiTotal": "percentage",
-	"thanksInPeriod": "integer",
-	"thanksInPeriodPercentageToWikiTotal": "percentage",
-	"thanksSinceRegistration": "integer",
-	"thanksSinceRegistrationPercentageToWikiTotal": "percentage",
-	"logEventsInPeriod": "integer",
-	"logEventsInPeriodPercentageToWikiTotal": "percentage",
-	"logEventsSinceRegistration": "integer",
-	"logEventsSinceRegistrationPercentageToWikiTotal": "percentage",
-	"firstLogEventDate": "date",
-	"lastLogEventDate": "date",
-	"averageLogEventsPerDaySinceRegistration": "float",
-	"averageLogEventsPerDayInPeriod": "float",
-	"registrationDate": "date",
-	"daysSinceRegistration": "integer",
-	"daysBetweenFirstAndLastLogEvent": "integer",
-	"activeDaysInPeriod": "integer",
-	"activeDaysSinceRegistration": "integer",
-	"averageEditsPerDaySinceRegistration": "float",
-	"averageEditsPerDayInPeriod": "float",
-	"levelAtPeriodStart": "integer",
-	"levelAtPeriodEnd": "integer",
-	"levelAtPeriodEndWithChange": "integer",
-	"editsInNamespaceInPeriod": "integer",
-	"editsInNamespaceInPeriodPercentageToWikiTotal": "percentage",
-	"editsInNamespaceInPeriodPercentageToOwnTotalEdits": "percentage",
-	"editsInNamespaceSinceRegistration": "integer",
-	"editsInNamespaceSinceRegistrationPercentageToWikiTotal": "percentage",
-	"editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits": "percentage",
-	"revertedEditsInNamespaceInPeriod": "integer",
-	"revertedEditsInNamespaceInPeriodPercentageToWikiTotal": "percentage",
-	"revertedEditsInNamespaceInPeriodPercentageToOwnTotalEdits": "percentage",
-	"revertedEditsInNamespaceSinceRegistration": "integer",
-	"revertedEditsInNamespaceSinceRegistrationPercentageToWikiTotal": "percentage",
-	"revertedEditsInNamespaceSinceRegistrationPercentageToOwnTotalEdits": "percentage",
-	"characterChangesInNamespaceInPeriod": "integer",
-	"characterChangesInNamespaceInPeriodPercentageToWikiTotal": "percentage",
-	"characterChangesInNamespaceSinceRegistration": "integer",
-	"characterChangesInNamespaceSinceRegistrationPercentageToWikiTotal": "percentage",
-	"activeDaysInNamespaceInPeriod": "integer",
-	"activeDaysInNamespaceSinceRegistration": "integer",
-	"editsInPeriodByChangeTag": "integer",
-	"editsSinceRegistrationByChangeTag": "integer",
-	"characterChangesInPeriodByChangeTag": "integer",
-	"characterChangesSinceRegistrationByChangeTag": "integer",
-	"logEventsInPeriodByType": "integer",
-	"logEventsSinceRegistrationByType": "integer",
-	"firstLogEventDateByType": "date",
-	"lastLogEventDateByType": "date",
-};
-
+import { ListDataEntry, ListDataResult } from "../../../api/lists/listData";
+import styles from "./[fullListId].module.scss";
 
 interface ListByIdPageProps extends CommonPageProps {
 	wikiFound: boolean;
@@ -107,7 +39,12 @@ interface ListByIdPageProps extends CommonPageProps {
 class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 	isLoading: boolean = false;
 	failedToLoad: boolean = false;
-	data: ListDataResult;
+	listData: ListDataResult | null;
+	isWikiTextDialogOpen: boolean = false;
+	wikiTextContent: string = "";
+
+	selectedYear: number = moment().year();
+	selectedSubYearRange: SelectableSubYearRangeValueType = "fullYear";
 
 	private intFormatter: Intl.NumberFormat;
 	private floatFormatter: Intl.NumberFormat;
@@ -119,7 +56,17 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		makeObservable(this, {
 			isLoading: observable,
 			failedToLoad: observable,
-			data: observable,
+			listData: observable,
+			isWikiTextDialogOpen: observable,
+			wikiTextContent: observable,
+			selectedYear: observable,
+			selectedSubYearRange: observable,
+
+			// fetchData: action,
+			onExportToWikitextButtonClick: action,
+			onSelectedYearChange: action,
+			onSelectedSubYearRangeChange: action,
+			onLoadButtonClick: action
 		});
 
 		this.intFormatter = Intl.NumberFormat(this.props.languageCode, {
@@ -143,12 +90,22 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		}
 	}
 
-	private fetchData = async (): Promise<void> => {
+	async fetchData(): Promise<void> {
 		if (!this.props.list)
 			return;
 
 		this.isLoading = true;
+		this.listData = null;
 		this.failedToLoad = false;
+
+		let startDate: moment.Moment = moment();
+		const endDate: moment.Moment = moment();
+
+		if (this.props.list.dateMode === "userSelectable") {
+			this.processUserDateSelection(startDate, endDate);
+		} else {
+			startDate = moment().subtract(1, "month");
+		}
 
 		try {
 			const resp = await Axios.post(
@@ -156,15 +113,15 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 				{
 					wikiId: this.props.wikiId,
 					listId: `${this.props.list.groupId}.${this.props.list.id}`,
-					startDate: "2021-12-01",
-					endDate: "2021-12-31",
+					startDate: startDate.format("YYYY-MM-DD"),
+					endDate: endDate.format("YYYY-MM-DD"),
 					languageCode: this.props.languageCode
 				},
 				{ timeout: 500000 }
 			);
 
 			if (resp.status === 200) {
-				this.data = resp.data;
+				this.listData = resp.data;
 			} else {
 				this.failedToLoad = true;
 			}
@@ -174,6 +131,46 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		}
 
 		this.isLoading = false;
+	}
+
+	private processUserDateSelection(startDate: moment.Moment, endDate: moment.Moment) {
+		startDate.year(this.selectedYear);
+		endDate.year(this.selectedYear);
+
+		switch (this.selectedSubYearRange) {
+			case "fullYear":
+				startDate.month(0).date(1);
+				endDate.month(11).date(31);
+				break;
+			case "firstHalf":
+				startDate.month(0).date(1);
+				endDate.month(5).date(30);
+				break;
+			case "secondHalf":
+				startDate.month(6).date(1);
+				endDate.month(11).date(31);
+				break;
+			case "q1":
+				startDate.month(0).date(1);
+				endDate.month(2).date(31);
+				break;
+			case "q2":
+				startDate.month(3).date(1);
+				endDate.month(5).date(30);
+				break;
+			case "q3":
+				startDate.month(6).date(1);
+				endDate.month(8).date(30);
+				break;
+			case "q4":
+				startDate.month(9).date(1);
+				endDate.month(11).date(31);
+				break;
+			default:
+				startDate.month(this.selectedSubYearRange - 1).date(1);
+				endDate.month(this.selectedSubYearRange - 1).date(1).add(1, "month").subtract(1, "day");
+				break;
+		}
 	}
 
 	public render(): JSX.Element {
@@ -193,9 +190,116 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 			icon={MODULE_ICONS[MODULE_IDENTIFIERS.lists]}
 			title={listTitle}
 			router={this.props.router}
-			i18nProvider={this.i18nProvider}>
+			i18nProvider={this.i18nProvider}
+			titleActions={this.renderTitleActions()}>
+			{this.renderListDescription()}
+			{this.renderControls()}
 			{this.isLoading ? <Spinner /> : this.renderContent()}
 		</PageFrame>;
+	}
+
+	private renderTitleActions() {
+		return <Popover minimal
+			placement="top-end"
+			content={this.renderExportMenu()}
+			disabled={this.isLoading === true}
+		>
+			<Button outlined
+				text={this.t("lists.export")}
+				rightIcon="caret-down"
+				disabled={this.isLoading === true} />
+		</Popover>;
+	}
+
+	private renderExportMenu() {
+		return <Menu>
+			<MenuItem icon="widget-button" text={this.t("lists.export.csv")} onClick={this.onExportToCsvButtonClick} />
+			<MenuItem icon="th" text={this.t("lists.export.wikitext")} onClick={this.onExportToWikitextButtonClick} />
+		</Menu>;
+	}
+
+	private onExportToCsvButtonClick = async () => {
+		if (!this.listData)
+			return;
+
+		const content = generateCsvFromListData(this.listData, this.t);
+		const contentBlob = new Blob([content], {
+			type: "text/csv;charset=utf-8"
+		});
+
+		this.wikiTextContent = generateWikitextFromListData(this.listData, this.t, this.props.languageCode);
+		this.isWikiTextDialogOpen = true;
+		// const { saveAs } = await import("save-as");
+		// saveAs(contentBlob, `statisticsExport-${moment().format("yyyy-MM-dd-HH-mm-ss.csv")}.csv`);
+	}
+
+	onExportToWikitextButtonClick = () => {
+		if (!this.listData)
+			return;
+
+		this.wikiTextContent = generateWikitextFromListData(this.listData, this.t, this.props.languageCode);
+		this.isWikiTextDialogOpen = true;
+	}
+
+	private renderListDescription() {
+		if (!this.props.list)
+			return null;
+
+		let listDescription: string | null = null;
+		if (isLocalizedListConfiguration(this.props.list)) {
+			const descriptionI18nKey = `${this.props.list.i18nKey}.description`;
+			if (this.hasLocalization(descriptionI18nKey)) {
+				listDescription = this.t(descriptionI18nKey);
+			}
+		} else if (this.props.list.description != null) {
+			listDescription = this.props.list.description;
+		}
+
+		if (!listDescription)
+			return null;
+
+		return <Callout
+			icon="info-sign"
+			className={styles.listDescription}>
+			{listDescription}
+		</Callout>;
+	}
+
+	private renderControls(): JSX.Element | null {
+		if (this.props.list?.dateMode !== "userSelectable")
+			return null;
+
+		return <ParameterBox>
+			<ParameterGroup>
+				<MonthYearIntervalSelector
+					translate={this.t}
+					disabled={this.isLoading}
+					selectedYear={this.selectedYear}
+					onSelectedYearChange={this.onSelectedYearChange}
+					selectedSubYearRange={this.selectedSubYearRange}
+					onSelectedSubYearRangeChange={this.onSelectedSubYearRangeChange}
+					startYear={2004}
+					endYear={2022}
+				/>
+				<Button outlined
+					text={this.t("lists.load")}
+					onClick={this.onLoadButtonClick}
+					disabled={this.isLoading === true} />
+			</ParameterGroup>
+		</ParameterBox>;
+	}
+
+	onLoadButtonClick = () => {
+		this.fetchData();
+	}
+
+	onSelectedYearChange = (year: number) => {
+		this.selectedYear = year;
+	}
+
+	onSelectedSubYearRangeChange = (subYearRange: SelectableSubYearRangeValueType) => {
+		this.selectedSubYearRange = subYearRange;
+		console.log(this.selectedSubYearRange);
 	}
 
 	private renderContent(): JSX.Element {
@@ -205,7 +309,7 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 			</Callout>;
 		}
 
-		if (this.data.results.length === 0) {
+		if (!this.listData || this.listData.results.length === 0) {
 			return <Callout intent={Intent.PRIMARY}>
 				{this.t("lists.noUsersOnList")}
 			</Callout>;
@@ -214,21 +318,41 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		return <>
 			<HTMLTable className="wikiStatList" bordered striped condensed interactive>
 				<thead>
-					{this.renderTableColumnHeaders()}
+					<tr>
+						{this.renderTableColumnHeaders()}
+					</tr>
 				</thead>
 				<tbody>
 					{this.renderTableRows()}
 				</tbody>
 			</HTMLTable>
+			<Dialog
+				className={styles.exportDialog}
+				title="Wikitext export"
+				icon="cloud-download"
+				isOpen={this.isWikiTextDialogOpen}
+				isCloseButtonShown={true}
+				onClose={() => this.isWikiTextDialogOpen = false}
+			>
+				<div className={Classes.DIALOG_BODY}>
+					<TextArea
+						className={styles.exportDialogTextArea}
+						value={this.wikiTextContent}
+					/>
+				</div>
+			</Dialog>
 		</>;
 	}
 
 	private renderTableColumnHeaders(): React.ReactNode {
-		return this.data.list.columns.map((col, idx) => {
+		if (!this.listData)
+			return null;
+
+		return this.listData.list.columns.map((col, idx) => {
 			const headerProps: React.ThHTMLAttributes<HTMLTableHeaderCellElement> = {};
 
-			const dataType: CellDataTypes = Object.prototype.hasOwnProperty.call(DATATYPE_MAP, col.type)
-				? DATATYPE_MAP[col.type]
+			const dataType: CellDataTypes | undefined = Object.prototype.hasOwnProperty.call(LIST_COLUMN_DATATYPE_MAP, col.type)
+				? LIST_COLUMN_DATATYPE_MAP[col.type]
 				: "other";
 
 			return <th
@@ -245,11 +369,12 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 	}
 
 	private renderTableRows(): React.ReactNode {
-		return this.data.results.map((row) => {
+		if (!this.listData)
+			return null;
+
+		return this.listData.results.map((row) => {
 			const classes = {
-				"listRow-fadeBot": this.props.list?.displaySettings?.fadeBots
-					&& row.actorGroups
-					&& (row.actorGroups.indexOf("bot") !== -1 || row.actorGroups.indexOf(FLAGLESS_BOT_VIRTUAL_GROUP_NAME) !== -1)
+				"listRow-fadeUser": this.shouldFadeUser(row)
 			};
 
 			return <tr className={classnames(classes)} key={row.id.toString()}>
@@ -257,48 +382,65 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 			</tr>;
 		});
 	}
+	private shouldFadeUser(row: ListDataEntry): boolean {
+		if (this.props.list?.displaySettings?.fadeBots
+			&& row.actorGroups
+			&& (row.actorGroups.indexOf("bot") !== -1 || row.actorGroups.indexOf(FLAGLESS_BOT_VIRTUAL_GROUP_NAME) !== -1))
+			return true;
+
+		if (this.props.list?.displaySettings?.fadeNonSysops
+			&& (!row.actorGroups || row.actorGroups.indexOf("sysop") === -1))
+			return true;
+
+		return false;
+	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	private renderTableRow(actorId: number, data: any[]): React.ReactNode {
-		return data.map((data, idx) => {
-			const columnDefinition = this.data.list.columns[idx];
+	private renderTableRow(actorId: number, rowData: any[]): React.ReactNode {
+		if (!this.listData)
+			return;
 
-			const dataType: CellDataTypes = Object.prototype.hasOwnProperty.call(DATATYPE_MAP, columnDefinition.type)
-				? DATATYPE_MAP[columnDefinition.type]
+		const listData = this.listData;
+
+		return rowData.map((rowCellData, idx) => {
+			const columnDefinition = listData.list.columns[idx];
+
+			const dataType: CellDataTypes | undefined = Object.prototype.hasOwnProperty.call(LIST_COLUMN_DATATYPE_MAP, columnDefinition.type)
+				? LIST_COLUMN_DATATYPE_MAP[columnDefinition.type]
 				: "other";
 
 			let cellContent: React.ReactNode = "–";
 			if (columnDefinition.type === "counter") {
-				cellContent = typeof data === "number" ? `${data}.` : "";
+				cellContent = typeof rowCellData === "number" ? `${rowCellData}.` : "";
 			} else if (columnDefinition.type === "userName") {
-				cellContent = this.renderUserName(actorId, data, columnDefinition);
+				cellContent = this.renderUserName(actorId, rowCellData, columnDefinition);
 			} else if (columnDefinition.type === "userGroups") {
-				cellContent = this.renderUserGroups(data);
+				cellContent = this.renderUserGroups(rowCellData);
 			} else if (columnDefinition.type === "levelAtPeriodStart"
 				|| columnDefinition.type === "levelAtPeriodEnd") {
-				cellContent = this.renderUserLevel(data);
+				cellContent = this.renderUserLevel(rowCellData);
 			} else if (columnDefinition.type === "levelAtPeriodEndWithChange") {
-				cellContent = this.renderUserLevelWithChange(data);
-			} else if (typeof data === "number") {
+				cellContent = this.renderUserLevelWithChange(rowCellData);
+			} else if (typeof rowCellData === "number") {
 				if (dataType === "integer") {
-					cellContent = this.intFormatter.format(data);
+					cellContent = this.intFormatter.format(rowCellData);
 				} else if (dataType === "percentage") {
-					cellContent = this.percentFormatter.format(data);
+					cellContent = this.percentFormatter.format(rowCellData);
 				} else if (dataType === "float") {
-					cellContent = this.floatFormatter.format(data);
+					cellContent = this.floatFormatter.format(rowCellData);
 				} else {
-					cellContent = `${columnDefinition.type}, ${dataType}: ${data}`;
+					cellContent = `unknown number type: ${columnDefinition.type} should be ${dataType}, got: ${rowCellData}`;
 				}
-			} else if (typeof data === "string") {
-				cellContent = data;
-			} else if (Array.isArray(data) && data.length === 3) {
-				if (data[0] === 1900) {
+			} else if (typeof rowCellData === "string") {
+				cellContent = rowCellData;
+			} else if (Array.isArray(rowCellData) && rowCellData.length === 3) {
+				if (rowCellData[0] === 1900) {
 					cellContent = "–";
 				} else {
-					cellContent = moment.utc(data).format("YYYY-MM-DD");
+					cellContent = moment.utc(rowCellData).format("YYYY-MM-DD");
 				}
-			} else if (data != null) {
-				cellContent = `${typeof data}: ${data}`;
+			} else if (rowCellData != null) {
+				cellContent = `${typeof rowCellData}: ${rowCellData}`;
 			}
 
 			return <td
@@ -339,6 +481,18 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 					rel="noreferrer"
 					icon="history"
 					text={this.t("lists.userLinks.contributions")}
+				/>
+			);
+		}
+
+		if (columnDefinition.userLinks?.rightsLog === true) {
+			userLinks.push(
+				<MenuItem key="rights"
+					href={ListByIdPage.makeWikiLink(this.props.wikiBaseUrl, `Special:UserRights/${userName}`)}
+					target="_blank"
+					rel="noreferrer"
+					icon="hat"
+					text={this.t("lists.userLinks.rightsLog")}
 				/>
 			);
 		}
@@ -395,20 +549,26 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 }
 
 export const getServerSideProps = async (ctx: NextPageContext): Promise<GetPortalServerSidePropsResult<ListByIdPageProps>> => {
-
 	const appCtx = AppRunningContext.getInstance("portal");
+	appCtx.logger.info("[fullListId.getServerSideProps] 2");
 
 	const wiki = appCtx.getKnownWikiById(typeof ctx.query["wiki"] === "string" ? ctx.query["wiki"] : undefined);
+	appCtx.logger.info("[fullListId.getServerSideProps] 3");
 	const listsModule = moduleManager.getModuleById<ListsModule>(MODULE_IDENTIFIERS.lists);
+	appCtx.logger.info("[fullListId.getServerSideProps] 4");
 	const list = listsModule?.getListByFullId(wiki?.id, typeof ctx.query["fullListId"] === "string" ? ctx.query["fullListId"] : undefined);
+	appCtx.logger.info("[fullListId.getServerSideProps] 5");
 
-	return await withCommonServerSideProps<ListByIdPageProps>(ctx, {
+	const ret = await withCommonServerSideProps<ListByIdPageProps>(ctx, {
 		wikiFound: !!wiki,
 		wikiId: wiki?.id ?? null,
 		wikiBaseUrl: wiki?.domain ?? null,
 		listFound: !!list,
 		list: list ?? null,
 	});
+	appCtx.logger.info("[fullListId.getServerSideProps] 6");
+	return ret;
 };
 
 export default withRouter(ListByIdPage);
+

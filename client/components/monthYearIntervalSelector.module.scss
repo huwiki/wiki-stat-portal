@@ -1,0 +1,35 @@
+.intervalInput {
+	display: flex;
+	flex: 1 1 auto;
+}
+
+.intervalInputYearSelector,
+.intervalInputMonthSelector {
+	margin-right: 10px;
+
+	:global .wspInputLabel {
+		flex: 0 0 80px;
+	}
+
+	:global .bp3-popover-wrapper {
+		display: flex;
+		flex: 1 1 auto;
+
+		:global .bp3-popover-target {
+			display: flex;
+			flex: 1 1 auto;
+
+			>div {
+				flex: 1 1 auto;
+			}
+		}
+	}
+}
+
+.intervalInputYearSelector {
+	flex: 0 0 250px;
+}
+
+.intervalInputMonthSelector {
+	flex: 0 0 400px;
+}

@@ -53,7 +53,6 @@ class WikiListsPage extends NextBasePage<WikiListsPageProps> {
 		}
 
 		const groups = _.groupBy(this.props.lists, x => x.groupId);
-		console.log(groups);
 		return <>
 			{Object.keys(groups).map(listGroupKey => {
 				return this.renderList(listGroupKey, groups[listGroupKey]);

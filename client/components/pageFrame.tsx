@@ -1,4 +1,5 @@
 import { Button, Classes, Icon, IconName, Menu, MenuItem, Navbar, NavbarDivider, NavbarGroup, NavbarHeading, Popover, Tooltip } from "@blueprintjs/core";
+import * as classNames from "classnames";
 import Head from "next/head";
 import { NextRouter } from "next/router";
 import { setCookie } from "nookies";
@@ -15,10 +16,10 @@ interface PageParent {
 
 interface PageFrameProps {
 	parents?: PageParent[];
-	title: React.ReactNode;
 	icon: IconName;
+	title: React.ReactNode;
+	titleActions?: React.ReactNode;
 	children?: React.ReactNode;
-
 	router: NextRouter;
 	i18nProvider: I18nProvider;
 }
@@ -38,10 +39,13 @@ export class PageFrame extends React.Component<PageFrameProps> {
 			{this.renderNavbar()}
 			<h2 className={styles.pageTitle}>
 				<Icon className={styles.pageTitleIcon} icon={icon} iconSize={24} />
-				<ul className={Classes.BREADCRUMBS}>
+				<ul className={classNames(Classes.BREADCRUMBS, styles.pageTitleContent)}>
 					{parents && parents.length > 0 && this.renderParents(parents)}
-					<li className={styles.pageTitleContent}>{title}</li>
+					<li>{title}</li>
 				</ul>
+				{this.props.titleActions && <div className={styles.pageTitleActions}>
+					{this.props.titleActions}
+				</div>}
 			</h2>
 			{this.props.children}
 			{this.renderFooter()}

@@ -13,6 +13,10 @@ export abstract class NextBasePage<T extends CommonPageProps> extends React.Comp
 		return this.i18nProvider.t(key);
 	}
 
+	protected hasLocalization = (key: string): boolean => {
+		return this.i18nProvider.hasLocalization(key);
+	}
+
 	constructor(props: T) {
 		super(props);
 		this.i18nProvider = new I18nProvider(this.props.i18nData);

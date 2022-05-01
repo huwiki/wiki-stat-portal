@@ -11,5 +11,9 @@ export class I18nProvider {
 		return this.i18nData[key];
 	}
 
+	public hasLocalization(key: string): boolean {
+		return Object.prototype.hasOwnProperty.call(this.i18nData, key);
+	}
+
 	public t = (key: string): string => this.getLocalizedText(key);
 }

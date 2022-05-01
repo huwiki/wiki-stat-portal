@@ -1,5 +1,11 @@
 body {
 	background-color: #263038;
+
+	.bp3-select-popover {
+		max-height: 400px;
+		overflow: auto;
+		overflow-x: hidden;
+	}
 }
 
 .wspInput {
