@@ -501,6 +501,95 @@
 					}
 				}
 			]
+		},
+		{
+			"id": "quickActivationFunnel",
+			"i18nKey": "pyramid.quickActivationFunnel",
+			"groups": [
+				{
+					"i18nKey": "pyramid.activationFunnels.group.activated",
+					"requirements": {
+						"registrationAgeAtLeast": 30,
+						"registrationAgeAtMost": 60,
+						"totalEditsAtLeast": {
+							"count": 1,
+							"epoch": -60
+						}
+					}
+				},
+				{
+					"i18nKey": "pyramid.activationFunnels.group.survived",
+					"requirements": {
+						"registrationAgeAtLeast": 30,
+						"registrationAgeAtMost": 60,
+						"totalEditsAtLeast": {
+							"count": 1,
+							"epoch": -60
+						},
+						"inPeriodEditsAtLeast": {
+							"count": 1,
+							"period": 29,
+							"epoch": -30
+						}
+					}
+				},
+				{
+					"i18nKey": "pyramid.activationFunnels.group.active",
+					"requirements": {
+						"registrationAgeAtLeast": 30,
+						"registrationAgeAtMost": 60,
+						"totalEditsAtLeast": {
+							"count": 10,
+							"epoch": -30
+						},
+						"totalActiveDaysAtLeast": {
+							"count": 3,
+							"epoch": -30
+						}
+					}
+				}
+			]
+		},
+		{
+			"id": "slowActivationFunnel",
+			"i18nKey": "pyramid.slowActivationFunnel",
+			"groups": [
+				{
+					"i18nKey": "pyramid.activationFunnels.group.activated",
+					"requirements": {
+						"registrationAgeAtLeast": 30,
+						"registrationAgeAtMost": 60,
+						"totalEditsAtLeast": {
+							"count": 1,
+							"epoch": -30
+						}
+					}
+				},
+				{
+					"i18nKey": "pyramid.activationFunnels.group.survived",
+					"requirements": {
+						"registrationAgeAtLeast": 30,
+						"registrationAgeAtMost": 60,
+						"totalEditsAtLeast": {
+							"count": 1,
+							"epoch": -30
+						},
+						"inPeriodEditsAtLeast": {
+							"count": 1,
+							"period": 30
+						}
+					}
+				},
+				{
+					"i18nKey": "pyramid.activationFunnels.group.active",
+					"requirements": {
+						"registrationAgeAtLeast": 30,
+						"registrationAgeAtMost": 60,
+						"totalEditsAtLeast": 20,
+						"totalActiveDaysAtLeast": 6
+					}
+				}
+			]
 		}
 	]
 }
