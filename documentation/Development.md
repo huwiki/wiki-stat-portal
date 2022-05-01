@@ -63,4 +63,6 @@ Note: Currently wiki specific tables must be manually created when adding new su
 
 To build a version for hosting, use the `yarn run build` command. To start a server for the prebuild version use the `yarn run start` command. You can define the port of the running server with the `PORT` environment variable. For deployment you need the content of the following files and directories: `.next/`, `resources/`, `wikiStatConfig.json`.
 
+Note: It is very important that the Next version running on the Toolforge server should be **exactly** the same as the version used to build the production version. Next.js introduces breaking changes in non-major versions and run of the web service may fail if an other version is installed because there is a caret prefixed version in packages.json. Also use the same major version of Node.Js while developing and on the server.
+
 To build the CLI tools, use the `yarn run build:tools` command. Then you can use node to run the tool (e.g. `nodejs tools-out/tools/dataCacher/dataCacher`). It is important that the working directory should be where the `resources/` direcrtory and the `wikiStatConfig.json` file resides. For deployment  you need the content of the following files and directories: `tools-out/`, `resources/`, `wikiStatConfig.json`.
