@@ -236,6 +236,8 @@ Ha egy adott oszlop naplószűrést tartalmaz, akkor azt a `logFilter` paraméte
 | `logEventsSinceRegistrationPercentageToWikiTotal` | százalék | A fiók létrejötte óta a felhasználóval kapcsolatosan keletkezett naplóbejegyzések száma hány százaléka a wikin a wiki indulása óta keletkezett összes naplóbejegyzés számának.
 
 ## Adott típusú naplóeseményekkel kapcsolatos oszlopok
+| Típus | Adattípus | Leírás |
+|-------|-----------|--------|
 | `logEventsInPeriodByType` | szám |  A kiválasztott időszakban a felhasználóval kapcsolatosan keletkezett, megadott típusú (egy vagy több típus megadható) naplóesemények száma.
 | `logEventsSinceRegistrationByType` | szám | A fiók létrejötte óta a felhasználóval kapcsolatosan keletkezett, megadott típusú (egy vagy több típus megadható) naplóesemények száma.
 
