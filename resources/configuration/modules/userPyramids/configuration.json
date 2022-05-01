@@ -1,8 +1,5 @@
 {
 	"supportedWikis": [
-		"huwiki",
-		"huwikiquote",
-		"huwikisource",
-		"huwiktionary"
+		"huwiki"
 	]
 }
