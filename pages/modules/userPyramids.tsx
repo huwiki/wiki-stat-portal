@@ -227,21 +227,41 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 						)
 					}</li>}
 
-				{typeof group.requirements.userGroups !== "undefined"
-					&& group.requirements.userGroups.length === 1
+				{typeof group.requirements.inAnyUserGroups !== "undefined"
+					&& group.requirements.inAnyUserGroups.length === 1
 					&& <li key="userGroups">{
 						stringFormat(
 							this.t("userPyramids.groupRequirements.memberOfUserGroup"),
-							this.t(`userGroup.${group.requirements.userGroups[0]}`)
+							this.t(`userGroup.${group.requirements.inAnyUserGroups[0]}`)
 						)
 					}</li>}
 
-				{typeof group.requirements.userGroups !== "undefined"
-					&& group.requirements.userGroups.length > 1
+				{typeof group.requirements.inAnyUserGroups !== "undefined"
+					&& group.requirements.inAnyUserGroups.length > 1
 					&& <li key="userGroups">{
 						stringFormat(
-							this.t("userPyramids.groupRequirements.memberOfUserGroups"),
-							group.requirements.userGroups
+							this.t("userPyramids.groupRequirements.memberOfAnyUserGroups"),
+							group.requirements.inAnyUserGroups
+								.map(gn => this.t(`userGroup.${gn}`))
+								.join(", ")
+						)
+					}</li>}
+
+				{typeof group.requirements.inAllUserGroups !== "undefined"
+					&& group.requirements.inAllUserGroups.length === 1
+					&& <li key="userGroups">{
+						stringFormat(
+							this.t("userPyramids.groupRequirements.memberOfUserGroup"),
+							this.t(`userGroup.${group.requirements.inAllUserGroups[0]}`)
+						)
+					}</li>}
+
+				{typeof group.requirements.inAllUserGroups !== "undefined"
+					&& group.requirements.inAllUserGroups.length > 1
+					&& <li key="userGroups">{
+						stringFormat(
+							this.t("userPyramids.groupRequirements.memberOfAllUserGroups"),
+							group.requirements.inAllUserGroups
 								.map(gn => this.t(`userGroup.${gn}`))
 								.join(", ")
 						)
@@ -257,6 +277,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 
 				{typeof group.requirements.totalEditsAtLeast !== "undefined"
 					&& typeof group.requirements.totalEditsAtLeast !== "number"
+					&& typeof group.requirements.totalEditsAtLeast.epoch === "number"
 					&& <li key="totalEditsAtLeast.withEpoch">{
 						stringFormat(
 							this.t("userPyramids.groupRequirements.totalEditsAtLeast.withEpoch"),
@@ -275,6 +296,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 
 				{typeof group.requirements.totalEditsAtMost !== "undefined"
 					&& typeof group.requirements.totalEditsAtMost !== "number"
+					&& typeof group.requirements.totalEditsAtMost.epoch === "number"
 					&& <li key="totalEditsAtMost.withEpoch">{
 						stringFormat(
 							this.t("userPyramids.groupRequirements.totalEditsAtMost.withEpoch"),
