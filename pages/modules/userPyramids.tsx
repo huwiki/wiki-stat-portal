@@ -537,7 +537,7 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 				+ `&pyramidId=${this.selectedUserPyramid.id}`
 				+ `&date=${dateFormat(series.date, "yyyy-MM-dd")}`
 				+ `&languageCode=${this.props.languageCode}`,
-				{ timeout: 100000 }
+				{ timeout: 500000 }
 			);
 
 			if (resp.status === 200) {
