@@ -62,7 +62,8 @@
 			"displaySettings": {
 				"fadeBots": true,
 				"skipBotsFromCounting": true
-			}
+			},
+			"enableCaching": true
 		},
 		{
 			"id": "byEditCountInPeriod",
