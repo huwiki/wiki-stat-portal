@@ -1,5 +1,6 @@
 import * as _ from "lodash";
 import moment from "moment";
+import { format } from "react-string-format";
 import { Connection, EntityManager, getManager } from "typeorm";
 import { Logger } from "winston";
 import { FLAGLESS_BOT_VIRTUAL_GROUP_NAME } from "../../common/consts";
@@ -15,8 +16,9 @@ import { Revision } from "../../server/database/entities/mediawiki/revision";
 import { ActorTypeModel, createActorEntitiesForWiki, WikiStatisticsTypesResult } from "../../server/database/entities/toolsDatabase/actorByWiki";
 import { WikiProcessedRevisions } from "../../server/database/entities/toolsDatabase/wikiProcessedRevisions";
 import { compareMoments } from "../../server/helpers/comparers";
+import { getLocalizedString, hasLanguage } from "../../server/helpers/i18nServer";
+import { WikiBot } from "../../server/helpers/wikiBot";
 import { KnownWiki } from "../../server/interfaces/knownWiki";
-
 //const BASE_TIMESTAMP: string = "20211113000000";
 
 interface WikiEditCacherOptions {
@@ -115,6 +117,14 @@ interface RevertChangeTagParams {
 	version: string;
 }
 
+export interface ActorWithServiceAwardStatistics {
+	actorId: number;
+	actorName: string;
+	edits: number;
+	logEvents: number;
+	activeDays: number;
+}
+
 export class WikiEditCacher {
 	private readonly appConfig: ApplicationConfiguration;
 	private readonly wiki: KnownWiki;
@@ -150,6 +160,8 @@ export class WikiEditCacher {
 	private cachedChangeTagDefinitions: Map<number, string> = new Map();
 	private cachedUserPageTemplateLinks: Map<number, Set<number>> = new Map();
 
+	private localizationLanguage: string;
+
 	constructor(options: WikiEditCacherOptions) {
 		this.appConfig = options.appCtx.appConfig;
 		this.logger = options.appCtx.logger;
@@ -157,6 +169,9 @@ export class WikiEditCacher {
 		this.toolsConnection = options.toolsConnection;
 
 		this.wikiStatisticsEntities = createActorEntitiesForWiki(this.wiki.id);
+		this.localizationLanguage = hasLanguage(this.wiki.languageCode)
+			? this.wiki.languageCode
+			: "en";
 	}
 
 	public async run(): Promise<void> {
@@ -186,6 +201,7 @@ export class WikiEditCacher {
 		this.replicatedDatabaseConnection.close();
 
 		await this.saveCachedDataToToolsDb();
+		await this.saveServiceAwardStatisticsModuleDataToWiki();
 
 		this.logger.info(`[doWikiCacheProcess/${this.wiki.id}] Finished processing ${this.totalProcessedRevisions} revisions for ${this.wiki.id}.`);
 	}
@@ -2219,6 +2235,82 @@ export class WikiEditCacher {
 				.andWhere("wiki = :wiki", { wiki: this.wiki.id })
 				.execute();
 		}
+	}
+
+	private async saveServiceAwardStatisticsModuleDataToWiki() {
+		const connMan = getManager(this.toolsConnection.name);
+		await connMan.transaction(async (em: EntityManager) => {
+			const tableName = em.getRepository(this.wikiStatisticsEntities.actorDailyStatistics).metadata.tableName;
+
+			const query = em.getRepository(this.wikiStatisticsEntities.actor)
+				.createQueryBuilder("actor")
+				.select("actor.actorId", "actorId")
+				.addSelect("actor.actorName", "actorName")
+				.addSelect("IFNULL(ads.dailyEdits + ads.editsToDate, 0)", "edits")
+				.addSelect("IFNULL(ads.dailyServiceAwardLogEvents + ads.serviceAwardLogEventsToDate, 0)", "logEvents")
+				.addSelect("IFNULL(ads.dailyActiveDay + ads.activeDaysToDate, 0)", "activeDays")
+				.innerJoin(
+					this.wikiStatisticsEntities.actorDailyStatistics,
+					"ads",
+					"ads.actorId = actor.actorId "
+					+ `AND ads.date = (SELECT MAX(date) FROM ${tableName} WHERE actor_id = actor.actorId)`
+				)
+				.andWhere("actor.isRegistered = :isRegistered", { isRegistered: 1 })
+				.andWhere("(IFNULL(ads.dailyEdits + ads.editsToDate, 0) + IFNULL(ads.dailyServiceAwardLogEvents + ads.serviceAwardLogEventsToDate, 0)) >= 50")
+				.andWhere("IFNULL(ads.dailyActiveDay + ads.activeDaysToDate, 0) > 0");
+
+			const data: ActorWithServiceAwardStatistics[] = await query.getRawMany();
+			data.sort((a, b) =>
+				(a.actorName ?? "").localeCompare(b.actorName ?? ""));
+
+			const timestampAsString = moment.utc().format("YYYY-MM-DD HH:mm:ss");
+
+			let moduleContent = "-- "
+				+ format(
+					getLocalizedString(this.localizationLanguage, "serviceAward.moduleData.preamble"),
+					"https://wiki-stat-portal.toolforge.org/",
+					timestampAsString)
+				+ "\n\nreturn {\n";
+
+			for (const ele of data) {
+				const activeDays = ele.activeDays;
+				const editsAndLogEvents = ele.edits + ele.logEvents;
+				const currentLevelIndex = this.getUserLevel(activeDays, editsAndLogEvents);
+
+				moduleContent += `	["${ele.actorName.replace("\"", "\\\"")}"] = { ${currentLevelIndex}, ${ele.activeDays}, ${ele.edits}, ${ele.logEvents} },\n`;
+			}
+
+			moduleContent += "}\n";
+
+			const bot = new WikiBot(this.wiki, this.logger);
+			if (await bot.login()) {
+				bot.updatePage(
+					this.wiki.serviceAwardPageName,
+					moduleContent,
+					`Frissítés a WikiStatPortálról (${timestampAsString})`);
+			}
+		});
+	}
+
+	private getUserLevel(activeDays: number, editsAndLogEvents: number): number {
+		if (this.wiki.serviceAwardLevels.length === 0)
+			return -1;
+
+		let ret: number = -1;
+
+		for (let i = 0; i < this.wiki.serviceAwardLevels.length; i++) {
+			const level = this.wiki.serviceAwardLevels[i];
+
+			if (activeDays > level.requiredActiveDays
+				&& editsAndLogEvents > level.requiredContributions
+			) {
+				ret = i;
+			} else {
+				break;
+			}
+		}
+
+		return ret;
 	}
 
 	private static getActorName(actor: Actor): string {

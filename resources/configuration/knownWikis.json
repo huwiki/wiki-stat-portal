@@ -3,6 +3,9 @@
 		"id": "huwiki",
 		"domain": "hu.wikipedia.org",
 		"replicaDatabaseName": "huwiki_p",
-		"timeZone": "Europe/Budapest"
+		"languageCode": "hu",
+		"timeZone": "Europe/Budapest",
+		"hasServiceAwards": true,
+		"serviceAwardPageName": "Modul:ServiceAward/stat-wsp"
 	}
 ]

@@ -1,93 +1,74 @@
 [
 	{
-		"id": "Level0",
-		"label": "Wikiízlelő",
-		"requiredActiveDays": 2,
-		"requiredEdits": 100,
-		"requiredLogEntries": 0
-	},
-	{
 		"id": "Level1",
-		"label": "Wikisded",
+		"label": "1. szint",
 		"requiredActiveDays": 30,
-		"requiredEdits": 600,
-		"requiredLogEntries": 0
+		"requiredContributions": 600
 	},
 	{
 		"id": "Level2",
-		"label": "Wikinas",
+		"label": "2. szint",
 		"requiredActiveDays": 60,
-		"requiredEdits": 1200,
-		"requiredLogEntries": 0
+		"requiredContributions": 1200
 	},
 	{
 		"id": "Level3",
-		"label": "Wikigyakornok",
+		"label": "3. szint",
 		"requiredActiveDays": 115,
-		"requiredEdits": 2300,
-		"requiredLogEntries": 0
+		"requiredContributions": 2400
 	},
 	{
 		"id": "Level4",
-		"label": "Gyakorlott Helyi Erő",
+		"label": "4. szint",
 		"requiredActiveDays": 210,
-		"requiredEdits": 4200,
-		"requiredLogEntries": 0
+		"requiredContributions": 4500
 	},
 	{
 		"id": "Level5",
-		"label": "Közel Bennfentes",
+		"label": "5. szint",
 		"requiredActiveDays": 360,
-		"requiredEdits": 7200,
-		"requiredLogEntries": 0
+		"requiredContributions": 7900
 	},
 	{
 		"id": "Level6",
-		"label": "Tekintetes Sokatvanitt",
+		"label": "6. szint",
 		"requiredActiveDays": 585,
-		"requiredEdits": 11700,
-		"requiredLogEntries": 0
+		"requiredContributions": 14000
 	},
 	{
 		"id": "Level7",
-		"label": "Tekintetes Mégtöbbetvanitt",
+		"label": "7. szint",
 		"requiredActiveDays": 910,
-		"requiredEdits": 18200,
-		"requiredLogEntries": 0
+		"requiredContributions": 21840
 	},
 	{
 		"id": "Level8",
-		"label": "Nagyságos Wikiaddikt",
+		"label": "8. szint",
 		"requiredActiveDays": 1370,
-		"requiredEdits": 27400,
-		"requiredLogEntries": 0
+		"requiredContributions": 32880
 	},
 	{
 		"id": "Level9",
-		"label": "Wikiprofesszor",
+		"label": "9. szint",
 		"requiredActiveDays": 2010,
-		"requiredEdits": 40200,
-		"requiredLogEntries": 0
+		"requiredContributions": 48240
 	},
 	{
 		"id": "Level10",
-		"label": "Wikiprofessor emeritus",
+		"label": "10. szint",
 		"requiredActiveDays": 2880,
-		"requiredEdits": 57600,
-		"requiredLogEntries": 0
+		"requiredContributions": 69120
 	},
 	{
 		"id": "Level11",
-		"label": "Wikivén",
+		"label": "11. szint",
 		"requiredActiveDays": 4030,
-		"requiredEdits": 80600,
-		"requiredLogEntries": 0
+		"requiredContributions": 96720
 	},
 	{
 		"id": "Level12",
-		"label": "Wikizsálem",
+		"label": "12. szint",
 		"requiredActiveDays": 5500,
-		"requiredEdits": 110000,
-		"requiredLogEntries": 0
+		"requiredContributions": 132000
 	}
 ]

@@ -1,7 +1,7 @@
 import { isArray } from "lodash";
 import { NextApiRequest, NextApiResponse } from "next";
 import { isLocalizedListConfiguration } from "../../../common/modules/lists/listsConfiguration";
-import { getLocalizedString, hasLanguage, initializeI18nData } from "../../../server/helpers/i18nServer";
+import { getLocalizedString, hasLanguage } from "../../../server/helpers/i18nServer";
 import { ListsModule } from "../../../server/modules/listsModule/listsModule";
 import { moduleManager } from "../../../server/modules/moduleManager";
 
@@ -24,7 +24,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		return;
 	}
 
-	await initializeI18nData();
 	const languageCode = hasLanguage(rawLanguageCode)
 		? rawLanguageCode
 		: "en";

@@ -35,6 +35,7 @@ yarn-error.log*
 # configuration files
 wikiStatConfig.json
 wikiStatConfig.production.json
+knownWikis.secrets.json
 
 # vercel
 .vercel

@@ -2,9 +2,10 @@ import { Connection } from "typeorm";
 import { Logger } from "winston";
 import { ApplicationConfiguration } from "./configuration/applicationConfiguration";
 import { readApplicationConfiguration, readFlaglessBotList } from "./configuration/configurationReader";
-import { readKnownWikisConfiguration } from "./configuration/knownWikisConfigurationReader";
+import { readKnownWikisConfiguration, readKnownWikisSecretsConfiguration } from "./configuration/knownWikisConfigurationReader";
 import { readServiceAwardLevelsConfiguration } from "./configuration/serviceAwardLevelsConfigurationReader";
 import { createConnectionToUserDatabase } from "./database/connectionManager";
+import { initializeI18nData } from "./helpers/i18nServer";
 import { KnownWiki } from "./interfaces/knownWiki";
 import { createWikiStatLogger } from "./loggingHelper";
 
@@ -13,21 +14,6 @@ export class AppRunningContext {
 	public readonly logger: Logger;
 	public readonly appConfig: ApplicationConfiguration;
 	private readonly knownWikisConfiguration: KnownWiki[];
-
-	public getKnownWikis(): KnownWiki[] {
-		return this.knownWikisConfiguration.map(knownWiki => ({ ...knownWiki }));
-	}
-
-	public getKnownWikiById(wikiId?: string): KnownWiki | null {
-		if (!wikiId)
-			return null;
-
-		const knownWiki = this.knownWikisConfiguration.find(x => x.id === wikiId);
-		if (!knownWiki)
-			return null;
-
-		return { ...knownWiki };
-	}
 
 	private constructor(appName: string) {
 		this.logger = createWikiStatLogger(appName);
@@ -44,9 +30,20 @@ export class AppRunningContext {
 			this.logger.error(`[AppRunningContext.initialize] Failed to start tool due to invalid knownWikis.json: ${knownWikisConfiguration}`);
 			return;
 		}
+
+		const knownWikisSecretsConfiguration = readKnownWikisSecretsConfiguration();
+		if (typeof knownWikisSecretsConfiguration === "string" || knownWikisSecretsConfiguration.length === 0) {
+			this.logger.error(`[AppRunningContext.initialize] Failed to start tool due to invalid knownWikis.secrets.json: ${knownWikisSecretsConfiguration}`);
+			return;
+		}
+
 		this.knownWikisConfiguration = knownWikisConfiguration;
 
 		for (const wiki of knownWikisConfiguration) {
+			const secrets = knownWikisSecretsConfiguration.find(x => x.id === wiki.id);
+			wiki.botUserName = secrets?.botUserName;
+			wiki.botPassword = secrets?.botPassword;
+
 			wiki.flaglessBots = readFlaglessBotList(wiki);
 
 			const serviceAwardLevels = readServiceAwardLevelsConfiguration(wiki);
@@ -54,10 +51,27 @@ export class AppRunningContext {
 				this.logger.error(`[AppRunningContext.initialize/${wiki.id}] Failed to start tool due to invalid serviceAwardLevel.json: ${serviceAwardLevels}`);
 				return;
 			}
-			wiki.serviceAwardLevels = serviceAwardLevels;
+			wiki.serviceAwardLevels = serviceAwardLevels ?? [];
 		}
 
+		initializeI18nData();
+
 		this.isValid = true;
+	}
+
+	public getKnownWikis(): KnownWiki[] {
+		return this.knownWikisConfiguration.map(knownWiki => ({ ...knownWiki }));
+	}
+
+	public getKnownWikiById(wikiId?: string): KnownWiki | null {
+		if (!wikiId)
+			return null;
+
+		const knownWiki = this.knownWikisConfiguration.find(x => x.id === wikiId);
+		if (!knownWiki)
+			return null;
+
+		return { ...knownWiki };
 	}
 
 	public async getToolsDbConnection(): Promise<Connection> {

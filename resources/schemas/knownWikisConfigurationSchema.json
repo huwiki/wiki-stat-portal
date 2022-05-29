@@ -17,7 +17,16 @@
 				"replicaDatabaseName": {
 					"type": "string"
 				},
+				"languageCode": {
+					"type": "string"
+				},
 				"timeZone": {
+					"type": "string"
+				},
+				"hasServiceAwards": {
+					"type": "boolean"
+				},
+				"serviceAwardPageName": {
 					"type": "string"
 				}
 			},
@@ -25,6 +34,7 @@
 				"id",
 				"domain",
 				"replicaDatabaseName",
+				"languageCode",
 				"timeZone"
 			],
 			"additionalProperties": false

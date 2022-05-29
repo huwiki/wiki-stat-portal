@@ -28,6 +28,12 @@
 		},
 		{
 			"fileMatch": [
+				"./resources/configuration/knownWikis.secrets.json",
+			],
+			"url": "./resources/schemas/knownWikisSecretsConfigurationSchema.json"
+		},
+		{
+			"fileMatch": [
 				"resources/configuration/modules/userPyramids/*.userPyramids.json",
 			],
 			"url": "./resources/schemas/userPyramidsConfigurationSchema.json"

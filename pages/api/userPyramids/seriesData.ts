@@ -5,7 +5,7 @@ import { isLocalizedUserPyramidGroup, UserPyramidConfiguration } from "../../../
 import { AppRunningContext } from "../../../server/appRunningContext";
 import { createActorEntitiesForWiki } from "../../../server/database/entities/toolsDatabase/actorByWiki";
 import { createStatisticsQuery } from "../../../server/database/statisticsQueryBuilder";
-import { getLocalizedString, hasLanguage, initializeI18nData } from "../../../server/helpers/i18nServer";
+import { getLocalizedString, hasLanguage } from "../../../server/helpers/i18nServer";
 import { KnownWiki } from "../../../server/interfaces/knownWiki";
 import { moduleManager } from "../../../server/modules/moduleManager";
 import { UserPyramidsModule } from "../../../server/modules/userPyramidsModule/userPyramidsModule";
@@ -38,7 +38,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		return;
 	}
 
-	await initializeI18nData();
 	const languageCode = hasLanguage(rawLanguageCode)
 		? rawLanguageCode
 		: "en";
@@ -62,6 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			const users = await createStatisticsQuery({
 				appCtx: appCtx,
 				toolsDbConnection: conn,
+				wiki: wiki,
 				wikiEntities,
 				userRequirements: userGroup.requirements,
 				endDate: epochDate,

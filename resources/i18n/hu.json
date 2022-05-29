@@ -242,6 +242,7 @@
 	"lists.userLinks.talkPage": "Vitalap",
 	"lists.userLinks.contributions": "Szerkesztő közreműködései",
 	"lists.userLinks.rightsLog": "Jogosultságnapló",
+	"serviceAward.moduleData.preamble": "Ez a statisztika automatikusan frissül a WikiStatPortál ({0}) adatai alapján. A legutóbbi frissítés {1}-kor (UTC) történt.",
 	"cacheStatus.title": "Adatfeldolgozás állapota",
 	"cacheStatus.header.wikiId": "Wiki-azonosító",
 	"cacheStatus.header.lastRun": "Legutóbbi futás",

@@ -51,11 +51,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		return;
 	}
 
-	await initializeI18nData();
-	const languageCode = hasLanguage(rawLanguageCode)
-		? rawLanguageCode
-		: "en";
-
 	const { isValid, wiki, list, startDate, endDate } = processParameters(appCtx, res, rawWikiId, rawListId, rawStartDate, rawEndDate);
 	if (!isValid || !list || !wiki || !endDate)
 		return;

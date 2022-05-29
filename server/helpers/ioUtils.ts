@@ -14,14 +14,28 @@ export function* getSubdirectories(path = "./"): Generator<string> {
 	}
 }
 
-export function* getFiles(path = "./", recursive: boolean = false): Generator<string> {
+export function getFilesSync(path = "./", recursive: boolean = false): string[] {
+	const ret: string[] = [];
 	const entries = fs.readdirSync(path, { withFileTypes: true });
 
 	for (const entry of entries) {
 		if (entry.isDirectory() && recursive === true) {
-			yield* getFiles(`${path}/${entry.name}`, recursive);
+			ret.push(...getFilesSync(`${path}/${entry.name}`, recursive));
 		} else {
-			//yield { ...entry, path: path + entry.name }
+			ret.push(`${path}/${entry.name}`);
+		}
+	}
+
+	return ret;
+}
+
+export function* getFilesAsync(path = "./", recursive: boolean = false): Generator<string> {
+	const entries = fs.readdirSync(path, { withFileTypes: true });
+
+	for (const entry of entries) {
+		if (entry.isDirectory() && recursive === true) {
+			yield* getFilesAsync(`${path}/${entry.name}`, recursive);
+		} else {
 			yield `${path}/${entry.name}`;
 		}
 	}

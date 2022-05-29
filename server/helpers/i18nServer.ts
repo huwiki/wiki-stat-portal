@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { I18nDictionary, MultiLanguageI18nDictionary } from "../../common/interfaces/I18nCommon";
-import { getFiles } from "./ioUtils";
+import { getFilesSync } from "./ioUtils";
 
 const i18nData: MultiLanguageI18nDictionary = {};
 
@@ -11,18 +11,18 @@ export const getResourcesBasePath = (): string => {
 	return path.join(process.cwd(), "resources");
 };
 
-export const initializeI18nData = async (): Promise<void> => {
+export const initializeI18nData = (): void => {
 	if (isInitialized === true)
 		return;
 
 	const i18nBasePath = path.join(getResourcesBasePath(), "i18n") + "/";
 
-	for await (const languageFilePath of getFiles(i18nBasePath)) {
+	for (const languageFilePath of getFilesSync(i18nBasePath)) {
 		const fileName = path.basename(languageFilePath);
 		const fnMatch = fileName.match(/^(.+).json$/);
 		if (fnMatch && fnMatch.length === 2) {
 			const languageCode = path.basename(fnMatch[1]);
-			const fileContent = await fs.readFileSync(languageFilePath, { encoding: "utf-8" });
+			const fileContent = fs.readFileSync(languageFilePath, { encoding: "utf-8" });
 			i18nData[languageCode] = JSON.parse(fileContent);
 		}
 	}
