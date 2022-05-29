@@ -495,32 +495,45 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 	): React.ReactNode {
 		const userLinks: React.ReactNode[] = [];
 
-		if (columnDefinition.userLinks?.talkPage === true) {
+		if (columnDefinition.addUserLinks) {
 			userLinks.push(
+				<MenuItem key="userPage"
+					href={ListByIdPage.makeWikiLink(this.props.wikiBaseUrl, `User:${userName}`)}
+					target="_blank"
+					rel="noreferrer"
+					icon="user"
+					text={this.t("lists.userLinks.userPage")}
+				/>,
 				<MenuItem key="talkPage"
 					href={ListByIdPage.makeWikiLink(this.props.wikiBaseUrl, `User talk:${userName}`)}
 					target="_blank"
 					rel="noreferrer"
 					icon="chat"
 					text={this.t("lists.userLinks.talkPage")}
-				/>
-			);
-		}
-
-		if (columnDefinition.userLinks?.edits === true) {
-			userLinks.push(
+				/>,
+				<MenuDivider key="divider1" />,
 				<MenuItem key="contributions"
 					href={ListByIdPage.makeWikiLink(this.props.wikiBaseUrl, `Special:Contributions/${userName}`)}
 					target="_blank"
 					rel="noreferrer"
 					icon="history"
 					text={this.t("lists.userLinks.contributions")}
-				/>
-			);
-		}
-
-		if (columnDefinition.userLinks?.rightsLog === true) {
-			userLinks.push(
+				/>,
+				<MenuItem key="xToolsEditCounter"
+					href={ListByIdPage.makeXToolsLink("ec", this.props.wikiBaseUrl, userName)}
+					target="_blank"
+					rel="noreferrer"
+					icon="numerical"
+					text={this.t("lists.userLinks.xToolsEditCounter")}
+				/>,
+				<MenuItem key="xToolsPagesCreated"
+					href={ListByIdPage.makeXToolsLink("pages", this.props.wikiBaseUrl, userName)}
+					target="_blank"
+					rel="noreferrer"
+					icon="insert"
+					text={this.t("lists.userLinks.xToolsPagesCreated")}
+				/>,
+				<MenuDivider key="divider2" />,
 				<MenuItem key="rights"
 					href={ListByIdPage.makeWikiLink(this.props.wikiBaseUrl, `Special:UserRights/${userName}`)}
 					target="_blank"
@@ -586,6 +599,10 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 
 	private static makeWikiLink(wikiBaseUrl: string | null, subUrl: string): string | undefined {
 		return `https://${wikiBaseUrl}/wiki/${subUrl}`;
+	}
+
+	private static makeXToolsLink(tool: string, wikiBaseUrl: string | null, userName: string): string | undefined {
+		return `https://xtools.wmflabs.org/${tool}/${wikiBaseUrl}/${userName}`;
 	}
 
 	private getDisplayedColumnList(): ListColumn[] {

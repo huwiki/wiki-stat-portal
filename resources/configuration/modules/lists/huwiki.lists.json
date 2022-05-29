@@ -12,11 +12,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -80,11 +76,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -160,11 +152,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -462,11 +450,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -730,11 +714,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -794,11 +774,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -900,11 +876,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -967,11 +939,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1043,11 +1011,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1110,11 +1074,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1174,11 +1134,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1225,11 +1181,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1277,11 +1229,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1333,11 +1281,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1395,11 +1339,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1457,11 +1397,7 @@
 				{
 					"columnId": "userName",
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1518,11 +1454,7 @@
 				{
 					"columnId": "userName",
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1567,11 +1499,7 @@
 				{
 					"columnId": "userName",
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1634,11 +1562,7 @@
 				{
 					"columnId": "userName",
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1694,11 +1618,7 @@
 				{
 					"columnId": "userName",
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1811,11 +1731,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1873,11 +1789,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1923,11 +1835,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -1974,11 +1882,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -2025,11 +1929,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -2065,11 +1965,7 @@
 				},
 				{
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -2117,11 +2013,7 @@
 				{
 					"columnId": "userName",
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{
@@ -2235,11 +2127,7 @@
 				{
 					"columnId": "userName",
 					"type": "userName",
-					"userLinks": {
-						"edits": true,
-						"talkPage": true,
-						"rightsLog": true
-					},
+					"addUserLinks": true,
 					"headerI18nKey": "lists.header.user"
 				},
 				{

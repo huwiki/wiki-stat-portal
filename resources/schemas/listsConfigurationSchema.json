@@ -272,20 +272,8 @@
 				"headerI18nKey": {
 					"type": "string"
 				},
-				"userLinks": {
-					"type": "object",
-					"additionalProperties": false,
-					"properties": {
-						"talkPage": {
-							"type": "boolean"
-						},
-						"edits": {
-							"type": "boolean"
-						},
-						"rightsLog": {
-							"type": "boolean"
-						}
-					}
+				"addUserLinks": {
+					"type": "boolean"
 				},
 				"isHidden": {
 					"type": "boolean"

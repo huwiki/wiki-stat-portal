@@ -203,13 +203,7 @@ export function isParameterlessListColumn(obj: unknown): obj is ParameterlessLis
 
 export interface UserNameListColumn extends ColumnCommonProperties {
 	type: "userName";
-	userLinks?: UserLinksDefinition;
-}
-
-export interface UserLinksDefinition {
-	talkPage?: boolean;
-	edits?: boolean;
-	rightsLog?: boolean;
+	addUserLinks?: boolean;
 }
 
 export function isUserNameListColumn(obj: unknown): obj is UserNameListColumn {
