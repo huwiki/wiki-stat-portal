@@ -1,13 +1,13 @@
 import { AnchorButton, Button, Callout, Classes, Dialog, HTMLTable, Intent, Menu, MenuDivider, MenuItem, Popover, Position, Spinner, TextArea } from "@blueprintjs/core";
 import Axios from "axios";
 import * as classnames from "classnames";
-import { action, makeObservable, observable } from "mobx";
+import { action, computed, makeObservable, observable } from "mobx";
 import { observer } from "mobx-react";
 import moment from "moment";
 import { NextPageContext } from "next";
 import { withRouter } from "next/router";
 import * as React from "react";
-import { MonthYearIntervalSelector } from "../../../../client/components/monthYearIntervalSelector";
+import { DateRangeSelector } from "../../../../client/components/dateRangeSelector";
 import { PageFrame } from "../../../../client/components/pageFrame";
 import { ParameterBox } from "../../../../client/components/parameterBox";
 import { ParameterGroup } from "../../../../client/components/parameterGroup";
@@ -51,6 +51,10 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 	private floatFormatter: Intl.NumberFormat;
 	private percentFormatter: Intl.NumberFormat;
 
+	public get isValidDateRange(): boolean {
+		return !moment(this.toDate).isBefore(moment(this.fromDate));
+	}
+
 	constructor(props: ListByIdPageProps) {
 		super(props);
 
@@ -65,6 +69,8 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 			wikiTextContent: observable,
 			fromDate: observable,
 			toDate: observable,
+
+			isValidDateRange: computed,
 
 			// fetchData: action,
 			onExportToWikitextButtonClick: action,
@@ -98,10 +104,6 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		if (!this.props.list)
 			return;
 
-		this.isLoading = true;
-		this.listData = null;
-		this.failedToLoad = false;
-
 		let startDate: moment.Moment = moment();
 		let endDate: moment.Moment = moment();
 
@@ -115,6 +117,10 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		} else {
 			startDate = moment().subtract(1, "month");
 		}
+
+		this.isLoading = true;
+		this.listData = null;
+		this.failedToLoad = false;
 
 		try {
 			const resp = await Axios.post(
@@ -240,7 +246,7 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 
 		return <ParameterBox>
 			<ParameterGroup>
-				<MonthYearIntervalSelector
+				<DateRangeSelector
 					translate={this.t}
 					disabled={this.isLoading}
 					localizationProvider={this.getDateInputLocalizationProvider()}
@@ -252,8 +258,11 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 				<Button outlined
 					text={this.t("lists.load")}
 					onClick={this.onLoadButtonClick}
-					disabled={this.isLoading === true} />
+					disabled={this.isLoading === true || this.isValidDateRange === false} />
 			</ParameterGroup>
+			{moment(this.toDate).isBefore(moment(this.fromDate)) && <Callout intent={Intent.DANGER}>
+				{this.t("input.dateRange.endCannotBeEarlierThanStart")}
+			</Callout>}
 		</ParameterBox>;
 	}
 

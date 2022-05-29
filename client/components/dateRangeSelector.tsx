@@ -3,8 +3,8 @@ import { configure, makeObservable, observable } from "mobx";
 import { observer } from "mobx-react";
 import moment from "moment";
 import * as React from "react";
+import styles from "./dateRangeSelector.module.scss";
 import { DateInput, DateInputLocaliztaionProvider } from "./inputs/dateInput";
-import styles from "./monthYearIntervalSelector.module.scss";
 
 configure({
 	enforceActions: "never",
@@ -12,7 +12,7 @@ configure({
 
 const today = moment().startOf("day").toDate();
 
-interface MonthYearIntervalSelectorProps {
+interface DateRangeSelectorProps {
 	translate: (key: string) => string;
 	fromDate: Date;
 	onFromDateChange: (newValue: Date) => void;
@@ -23,10 +23,10 @@ interface MonthYearIntervalSelectorProps {
 }
 
 @observer
-export class MonthYearIntervalSelector extends React.Component<MonthYearIntervalSelectorProps> {
+export class DateRangeSelector extends React.Component<DateRangeSelectorProps> {
 	public selectedYear: number = today.getFullYear();
 
-	constructor(props: MonthYearIntervalSelectorProps) {
+	constructor(props: DateRangeSelectorProps) {
 		super(props);
 
 		makeObservable(this, {
@@ -36,6 +36,7 @@ export class MonthYearIntervalSelector extends React.Component<MonthYearInterval
 
 	public render(): JSX.Element {
 		return <div className={styles.intervalInput}>
+			{this.props.translate("input.dateRange.label")}
 			<DateInput
 				value={this.props.fromDate}
 				setValue={this.props.onFromDateChange}
@@ -52,8 +53,9 @@ export class MonthYearIntervalSelector extends React.Component<MonthYearInterval
 				disabled={this.props.disabled}
 			/>
 			<Popover content={this.renderQuickDateRangeSelector()}
+				disabled={this.props.disabled}
 				position="bottom">
-				<Button icon="lightning"></Button>
+				<Button icon="lightning" disabled={this.props.disabled} />
 			</Popover>
 		</div>;
 	}
@@ -63,7 +65,7 @@ export class MonthYearIntervalSelector extends React.Component<MonthYearInterval
 
 		return <div className={styles.popoverContent}>
 			<div className={styles.yearInputRow}>
-				<div className={styles.label}>Év:</div>
+				<div className={styles.label}>{this.props.translate("input.year")}</div>
 				<NumericInput
 					min={2004}
 					max={today.getFullYear()}
@@ -85,6 +87,9 @@ export class MonthYearIntervalSelector extends React.Component<MonthYearInterval
 	}
 
 	private setDateRange(range: string): void {
+		if (this.props.disabled)
+			return;
+
 		const fromDate = moment().year(this.selectedYear);
 		const toDate = moment().year(this.selectedYear);
 
