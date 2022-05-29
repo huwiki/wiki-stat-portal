@@ -563,11 +563,20 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		</>;
 	}
 
-	private renderUserNameList(users: GroupActor[]) {
+	private renderUserNameList(users: GroupActor[]): JSX.Element {
 		if (!users || Array.isArray(users) === false)
-			return "";
+			return <></>;
 
-		return users.map(x => x.name).join(", ");
+		return <>
+			{users.map((actor, idx) => <>
+				<a key={idx}
+					href={ListByIdPage.makeWikiLink(this.props.wikiBaseUrl, `User:${actor.name}`)}
+					rel="noreferrer"
+					target="_blank">
+					{actor.name}
+				</a>{idx < users.length - 1 && ", "}
+			</>)}
+		</>;
 	}
 
 	private renderUserGroups(groups: string[]) {
