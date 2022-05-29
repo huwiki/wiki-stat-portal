@@ -535,14 +535,13 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 			return <></>;
 
 		return <>
-			{users.map((actor, idx) => <>
-				<a key={idx}
-					href={ListByIdPage.makeWikiLink(this.props.wikiBaseUrl, `User:${actor.name}`)}
+			{users.map((actor, idx) => <React.Fragment key={idx}>
+				<a href={ListByIdPage.makeWikiLink(this.props.wikiBaseUrl, `User:${actor.name}`)}
 					rel="noreferrer"
 					target="_blank">
 					{actor.name}
 				</a>{idx < users.length - 1 && ", "}
-			</>)}
+			</React.Fragment>)}
 		</>;
 	}
 
