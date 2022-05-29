@@ -299,7 +299,6 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 
 	onSelectedSubYearRangeChange = (subYearRange: SelectableSubYearRangeValueType) => {
 		this.selectedSubYearRange = subYearRange;
-		console.log(this.selectedSubYearRange);
 	}
 
 	private renderContent(): JSX.Element {
@@ -349,6 +348,9 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 			return null;
 
 		return this.listData.list.columns.map((col, idx) => {
+			if (col.isHidden)
+				return null;
+
 			const headerProps: React.ThHTMLAttributes<HTMLTableHeaderCellElement> = {};
 
 			const dataType: CellDataTypes | undefined = Object.prototype.hasOwnProperty.call(LIST_COLUMN_DATATYPE_MAP, col.type)
@@ -404,6 +406,8 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 
 		return rowData.map((rowCellData, idx) => {
 			const columnDefinition = listData.list.columns[idx];
+			if (columnDefinition.isHidden)
+				return null;
 
 			const dataType: CellDataTypes | undefined = Object.prototype.hasOwnProperty.call(LIST_COLUMN_DATATYPE_MAP, columnDefinition.type)
 				? LIST_COLUMN_DATATYPE_MAP[columnDefinition.type]
@@ -550,14 +554,10 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 
 export const getServerSideProps = async (ctx: NextPageContext): Promise<GetPortalServerSidePropsResult<ListByIdPageProps>> => {
 	const appCtx = AppRunningContext.getInstance("portal");
-	appCtx.logger.info("[fullListId.getServerSideProps] 2");
 
 	const wiki = appCtx.getKnownWikiById(typeof ctx.query["wiki"] === "string" ? ctx.query["wiki"] : undefined);
-	appCtx.logger.info("[fullListId.getServerSideProps] 3");
 	const listsModule = moduleManager.getModuleById<ListsModule>(MODULE_IDENTIFIERS.lists);
-	appCtx.logger.info("[fullListId.getServerSideProps] 4");
 	const list = listsModule?.getListByFullId(wiki?.id, typeof ctx.query["fullListId"] === "string" ? ctx.query["fullListId"] : undefined);
-	appCtx.logger.info("[fullListId.getServerSideProps] 5");
 
 	const ret = await withCommonServerSideProps<ListByIdPageProps>(ctx, {
 		wikiFound: !!wiki,
@@ -566,7 +566,6 @@ export const getServerSideProps = async (ctx: NextPageContext): Promise<GetPorta
 		listFound: !!list,
 		list: list ?? null,
 	});
-	appCtx.logger.info("[fullListId.getServerSideProps] 6");
 	return ret;
 };
 

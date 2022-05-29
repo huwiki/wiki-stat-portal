@@ -119,6 +119,11 @@ const parameterlessListColumnTypes = [
 	"logEventsSinceRegistration",
 	"logEventsSinceRegistrationPercentageToWikiTotal",
 
+	"serviceAwardLogEventsInPeriod",
+	"serviceAwardLogEventsSinceRegistration",
+	"serviceAwardContributionsInPeriod",
+	"serviceAwardContributionsSinceRegistration",
+
 	"firstLogEventDate",
 	"lastLogEventDate",
 	"daysBetweenFirstAndLastLogEvent",
@@ -132,7 +137,8 @@ const parameterlessListColumnTypes = [
 
 	"levelAtPeriodStart",
 	"levelAtPeriodEnd",
-	"levelAtPeriodEndWithChange"
+	"levelAtPeriodEndWithChange",
+	"levelSortOrder"
 ] as const;
 export type ParameterlessListColumnTypes = typeof parameterlessListColumnTypes[number];
 
@@ -178,6 +184,7 @@ interface ColumnCommonProperties {
 	columnId?: string;
 	headerI18nKey?: string;
 	filterByRule?: "moreThanZero";
+	isHidden?: boolean;
 }
 
 export interface ParameterlessListColumn extends ColumnCommonProperties {

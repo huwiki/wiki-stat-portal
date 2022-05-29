@@ -66,8 +66,7 @@
 			"displaySettings": {
 				"fadeBots": true,
 				"skipBotsFromCounting": true
-			},
-			"enableCaching": true
+			}
 		},
 		{
 			"id": "byEditCountInPeriod",
@@ -2028,6 +2027,75 @@
 			"orderBy": [
 				{
 					"columnId": "lastEditDate",
+					"direction": "ascending"
+				}
+			],
+			"displaySettings": {
+				"fadeBots": true
+			}
+		},
+		{
+			"id": "userServiceAwardList",
+			"groupId": "serviceAward",
+			"i18nKey": "lists.list.activity.userServiceAwardList",
+			"itemCount": 0,
+			"userRequirements": {
+				"registrationStatus": "registered",
+				"serviceAwardLevel": "hasLevel"
+			},
+			"columns": [
+				{
+					"type": "counter",
+					"headerI18nKey": "lists.header.counter"
+				},
+				{
+					"columnId": "userName",
+					"type": "userName",
+					"userLinks": {
+						"edits": true,
+						"talkPage": true,
+						"rightsLog": true
+					},
+					"headerI18nKey": "lists.header.user"
+				},
+				{
+					"type": "levelAtPeriodEnd",
+					"headerI18nKey": "lists.header.serviceAward.level"
+				},
+				{
+					"type": "editsSinceRegistration",
+					"headerI18nKey": "lists.header.serviceAward.edits"
+				},
+				{
+					"type": "serviceAwardLogEventsSinceRegistration",
+					"headerI18nKey": "lists.header.serviceAward.logEvents"
+				},
+				{
+					"columnId": "contributions",
+					"type": "serviceAwardContributionsSinceRegistration",
+					"headerI18nKey": "lists.header.serviceAward.contributions"
+				},
+				{
+					"type": "activeDaysSinceRegistration",
+					"headerI18nKey": "lists.header.activeDays"
+				},
+				{
+					"columnId": "levelSortOrder",
+					"type": "levelSortOrder",
+					"isHidden": true
+				}
+			],
+			"orderBy": [
+				{
+					"columnId": "levelSortOrder",
+					"direction": "descending"
+				},
+				{
+					"columnId": "contributions",
+					"direction": "descending"
+				},
+				{
+					"columnId": "userName",
 					"direction": "ascending"
 				}
 			],

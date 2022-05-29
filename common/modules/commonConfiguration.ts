@@ -20,6 +20,8 @@ export interface UserRequirements {
 	notHasAnyUserPageTemplates?: string[];
 	notHasAllUserPageTemplates?: string[];
 
+	serviceAwardLevel?: "hasLevel" | "hasLevelAndChanged";
+
 	totalEditsAtLeast?: number | UserStatisticsInTimeRequirement;
 	totalEditsAtMost?: number | UserStatisticsInTimeRequirement;
 	inPeriodEditsAtLeast?: number | UserStatisticsInPeriodRequirement;

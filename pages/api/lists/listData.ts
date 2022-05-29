@@ -1,15 +1,12 @@
-import { isArray, isDate } from "lodash";
+import { isArray } from "lodash";
 import moment from "moment";
 import { NextApiRequest, NextApiResponse } from "next";
-import { FLAGLESS_BOT_VIRTUAL_GROUP_NAME } from "../../../common/consts";
 import { ListConfiguration } from "../../../common/modules/lists/listsConfiguration";
 import { MODULE_IDENTIFIERS } from "../../../common/modules/moduleIdentifiers";
 import { AppRunningContext } from "../../../server/appRunningContext";
 import { CacheEntryTypeModel, createActorEntitiesForWiki } from "../../../server/database/entities/toolsDatabase/actorByWiki";
-import { ActorLike, createStatisticsQuery as createAndRunStatisticsQuery } from "../../../server/database/statisticsQueryBuilder";
-import { hasLanguage, initializeI18nData } from "../../../server/helpers/i18nServer";
+import { ActorResult, createStatisticsQuery as createAndRunStatisticsQuery } from "../../../server/database/statisticsQueryBuilder";
 import { KnownWiki } from "../../../server/interfaces/knownWiki";
-import { ServiceAwardLevelDefinition } from "../../../server/interfaces/serviceAwardLevelDefinition";
 import { ListsModule } from "../../../server/modules/listsModule/listsModule";
 import { moduleManager } from "../../../server/modules/moduleManager";
 
@@ -71,12 +68,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				.getOne();
 		}
 
-		let resultActors: ActorLike[];
+		let resultActors: ActorResult[];
 		if (!cachedEntry) {
 			appCtx.logger.info(`[api/lists/listData] running query for '${list.id}'`);
 			resultActors = await createAndRunStatisticsQuery({
 				appCtx: appCtx,
 				toolsDbConnection: conn,
+				wiki: wiki,
 				wikiEntities,
 				userRequirements: list.userRequirements,
 				columns: list.columns,
@@ -84,23 +82,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				itemCount: list.itemCount,
 				startDate: startDate,
 				endDate: endDate,
+				skipBotsFromCounting: list.displaySettings?.skipBotsFromCounting ?? false
 			});
 		} else {
 			resultActors = JSON.parse(cachedEntry.content);
-		}
-
-		const actorGroupMap: Map<number, string[]> = new Map();
-		const actorGroups = await conn.getRepository(wikiEntities.actorGroup)
-			.createQueryBuilder()
-			.getMany();
-
-		for (const actorGroup of actorGroups) {
-			const actorArr = actorGroupMap.get(actorGroup.actorId);
-			if (actorArr) {
-				actorArr.push(actorGroup.groupName);
-			} else {
-				actorGroupMap.set(actorGroup.actorId, [actorGroup.groupName]);
-			}
 		}
 
 		const listDataResult: ListDataResult = {
@@ -108,81 +93,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			results: [],
 		};
 
-		let counter = 1;
 		for (const actorLike of resultActors) {
-			const userGroups = actorGroupMap.get(actorLike.actorId) ?? null;
-
-			const columns: unknown[] = [];
-			const isBot = userGroups != null
-				? !!userGroups.find(x => x === "bot" || x === FLAGLESS_BOT_VIRTUAL_GROUP_NAME)
-				: false;
-
-			let columnIndex = 0;
-			for (const columnDefinition of list.columns) {
-				const dataFromQuery = actorLike[`column${columnIndex}`];
-
-				if (columnDefinition.type === "counter") {
-					if (list.displaySettings?.skipBotsFromCounting === true && isBot) {
-						columns.push("");
-					} else {
-						columns.push(counter);
-					}
-				} else if (columnDefinition.type === "userName") {
-					columns.push(actorLike.actorName ?? "?");
-				} else if (columnDefinition.type === "userGroups") {
-					columns.push(userGroups ?? null);
-				} else if (columnDefinition.type === "levelAtPeriodStart") {
-					const startLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "start");
-					if (startLevel) {
-						columns.push([startLevel.id, startLevel.label]);
-					} else {
-						columns.push(null);
-					}
-				} else if (columnDefinition.type === "levelAtPeriodEnd") {
-					const endLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "end");
-					if (endLevel) {
-						columns.push([endLevel.id, endLevel.label]);
-					} else {
-						columns.push(null);
-					}
-				} else if (columnDefinition.type === "levelAtPeriodEndWithChange") {
-					const startLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "start");
-					const endLevel = getUserLevel(wiki.serviceAwardLevels, actorLike, columnIndex, "end");
-					if (endLevel) {
-						columns.push([endLevel.id, endLevel.label, startLevel === null || startLevel.id !== endLevel.id]);
-					} else {
-						columns.push(null);
-					}
-				} else if (isDate(dataFromQuery)) {
-					columns.push([dataFromQuery.getFullYear(), dataFromQuery.getMonth(), dataFromQuery.getDate()]);
-				} else if (typeof dataFromQuery === "string" && DATE_STRING_REGEX.test(dataFromQuery)) {
-					const date = moment.utc(dataFromQuery);
-					columns.push([date.year(), date.month(), date.date()]);
-				} else if (typeof dataFromQuery === "string") {
-					if (dataFromQuery.indexOf(".") !== -1) {
-						const floatNumber = Number.parseFloat(dataFromQuery);
-						columns.push(Number.isNaN(floatNumber) ? "?" : floatNumber);
-					} else {
-						const intNumber = Number.parseInt(dataFromQuery);
-						columns.push(Number.isNaN(intNumber) ? "?" : intNumber);
-					}
-				} else {
-					columns.push(dataFromQuery ?? null);
-				}
-
-				columnIndex++;
-			}
-
 			listDataResult.results.push({
 				id: actorLike.actorId,
-				actorName: actorLike.actorName ?? "?",
-				actorGroups: userGroups,
-				data: columns,
+				actorName: actorLike.name ?? "?",
+				actorGroups: actorLike.groups ?? null,
+				data: actorLike.columnData ?? [],
 			});
-
-			if (isBot === false || list.displaySettings?.skipBotsFromCounting !== true) {
-				counter++;
-			}
 		}
 
 		if (!cachedEntry && list.enableCaching) {
@@ -203,6 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 		res.status(200).json(listDataResult);
 	} catch (err) {
+		console.log(err);
 		appCtx.logger.error(err);
 		appCtx.logger.error({
 			errorMessage: "Error while serving list data",
@@ -319,21 +237,4 @@ function getQueryCacheKey(list: ListConfiguration, startDate: moment.Moment, end
 	return `list-${list.id}/${listVersionSubKey}-${startDateSubKey}-${endDateSubKey}`;
 }
 
-function getUserLevel(serviceAwardLevels: ServiceAwardLevelDefinition[] | null, user: ActorLike, columnIndex: number, where: "start" | "end") {
-	if (!serviceAwardLevels)
-		return null;
 
-	const edits = user[`column${columnIndex}_${where}Edits`];
-	//const logEntries = user[`column${columnIndex}_${where}LogEvents`];
-	const activeDays = user[`column${columnIndex}_${where}ActiveDays`];
-
-	let matchingServiceAvardLevel: ServiceAwardLevelDefinition | null = null;
-	for (const serviceAwardLevel of serviceAwardLevels) {
-		if (edits > serviceAwardLevel.requiredEdits
-			&& activeDays > serviceAwardLevel.requiredActiveDays) {
-			matchingServiceAvardLevel = serviceAwardLevel;
-		}
-	}
-
-	return matchingServiceAvardLevel;
-}

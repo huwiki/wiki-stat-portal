@@ -204,6 +204,10 @@
 						"logEventsInPeriodPercentageToWikiTotal",
 						"logEventsSinceRegistration",
 						"logEventsSinceRegistrationPercentageToWikiTotal",
+						"serviceAwardLogEventsInPeriod",
+						"serviceAwardLogEventsSinceRegistration",
+						"serviceAwardContributionsInPeriod",
+						"serviceAwardContributionsSinceRegistration",
 						"firstLogEventDate",
 						"lastLogEventDate",
 						"averageLogEventsPerDaySinceRegistration",
@@ -217,7 +221,8 @@
 						"averageEditsPerDayInPeriod",
 						"levelAtPeriodStart",
 						"levelAtPeriodEnd",
-						"levelAtPeriodEndWithChange"
+						"levelAtPeriodEndWithChange",
+						"levelSortOrder"
 					]
 				},
 				"headerI18nKey": {
@@ -228,6 +233,9 @@
 					"enum": [
 						"moreThanZero"
 					]
+				},
+				"isHidden": {
+					"type": "boolean"
 				}
 			},
 			"required": [
@@ -262,6 +270,9 @@
 							"type": "boolean"
 						}
 					}
+				},
+				"isHidden": {
+					"type": "boolean"
 				}
 			},
 			"required": [
@@ -323,6 +334,9 @@
 					"enum": [
 						"moreThanZero"
 					]
+				},
+				"isHidden": {
+					"type": "boolean"
 				}
 			},
 			"required": [
@@ -368,6 +382,9 @@
 					"enum": [
 						"moreThanZero"
 					]
+				},
+				"isHidden": {
+					"type": "boolean"
 				}
 			},
 			"required": [
@@ -412,6 +429,9 @@
 					"enum": [
 						"moreThanZero"
 					]
+				},
+				"isHidden": {
+					"type": "boolean"
 				}
 			},
 			"required": [
@@ -467,6 +487,9 @@
 						"type": "number"
 					},
 					"minItems": 1
+				},
+				"isHidden": {
+					"type": "boolean"
 				}
 			},
 			"required": [

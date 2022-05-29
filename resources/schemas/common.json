@@ -99,6 +99,14 @@
 					"minItems": 1,
 					"uniqueItems": true
 				},
+				"serviceAwardLevel": {
+					"description": "Filters users by service award level status. Use 'hasLevel' to filter for users who has a service award level, and user 'hasLevelAndChanged' for users who has a service award level and it changed in the selected period.",
+					"type": "string",
+					"enum": [
+						"hasLevel",
+						"hasLevelAndChanged"
+					]
+				},
 				"totalEditsAtLeast": {
 					"description": "If specified, only users with at least this amount of total edits at the requested date will be counted/shown.",
 					"oneOf": [

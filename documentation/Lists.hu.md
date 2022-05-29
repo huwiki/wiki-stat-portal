@@ -7,6 +7,7 @@ Az alábbi dokumentum leírja, hogy a WikiStatPortál listáit milyen adatokkal 
     * `fadeNonSysops` (`true`/`false`): Nem adminisztrátor felhasználók kiszűrése. Ez olyna listákhoz jó, amelyeken adminisztrátori statisztikákat jelenítünk meg anélkül, hogy az adminisztrátor jogosultsággal rendelkező felhasználókra szűrnénk.Így meg tudjuk mutatni azokat a felhasználókat is, akik korábban adminisztrátorok voltak, és gyűjtöttek ilyen jellegű adatokat, de vizuálisan jelezhetjük, hogy ők már nem adminisztrátorok.
     * `skipBotsFromCounting` (`true`/`false`): A számláló oszlop feltöltésekor hagyjuk-e ki a botokat és a flag nélküli botokat. Így a nagy szerkesztésszámmal rendelkező botok nem befolyásolják a rendes szerkesztők érdemeit.
 * `dateMode`: Ha az értéke `userSelectable`, akkor a felhasználó számára megjelenik a lista tetején egy dátumválasztó, amivel tetszőleges időszakra lekérheti a listát.
+* `isHidden`: Rejtett-e az oszlop. Az ilyen oszlopok nem jelennek meg a táblázatokban és az exportált adatokban. Elsősorban akkor hasznos az ilyen oszlop, ha olyan adatra van szükségünk, amely szerint rendezni akarunk, de nem akarjuk megjeleníteni a táblázatban.
 
 # Előfeltételek
 
@@ -234,6 +235,8 @@ Ha egy adott oszlop naplószűrést tartalmaz, akkor azt a `logFilter` paraméte
 | `logEventsInPeriodPercentageToWikiTotal` | százalék | A kiválasztott időszakban a felhasználóval kapcsolatosan keletkezett naplóesemények száma hány százaléka a wikin az adott időszakban összesen keletkezett naplóesemények számának.
 | `logEventsSinceRegistration` | egész szám | A fiók létrejötte óta a felhasználóval kapcsolatosan keletkezett naplóesemények száma.
 | `logEventsSinceRegistrationPercentageToWikiTotal` | százalék | A fiók létrejötte óta a felhasználóval kapcsolatosan keletkezett naplóbejegyzések száma hány százaléka a wikin a wiki indulása óta keletkezett összes naplóbejegyzés számának.
+| `serviceAwardLogEventsInPeriod` | egész szám | A kiválasztott időszakban a felhasználóval kapcsolatosan keletkezett, Szolgálati Emlékérembe beszámító naplóesemények száma.
+| `serviceAwardLogEventsSinceRegistration` | egész szám | A fiók létrejötte óta a felhasználóval kapcsolatosan keletkezett, Szolgálati Emlékérembe beszámító naplóesemények száma.
 
 ## Adott típusú naplóeseményekkel kapcsolatos oszlopok
 | Típus | Adattípus | Leírás |
@@ -244,6 +247,8 @@ Ha egy adott oszlop naplószűrést tartalmaz, akkor azt a `logFilter` paraméte
 ## Szolgálati Emlékélemmel kapcsolatos oszlopok
 | Típus | Adattípus | Leírás |
 |-------|-----------|--------|
+| `serviceAwardContributionsInPeriod` | egész szám | A kiválasztott időszakban a Szolgálati Emlékéremnél figyelembe fett közreműködések (szerkesztések és adott naplóesemények) száma.
+| `serviceAwardContributionsSinceRegistration` | egész szám | A fiók létrejötte óta a Szolgálati Emlékéremnél figyelembe fett közreműködések (szerkesztések és adott naplóesemények) száma.
 | `levelAtPeriodStart` | szint | A felhasználó szintje a kiválasztott időszak kezdetén.
 | `levelAtPeriodEnd` | szint | A felhasználó szintje a kiválasztott időszak végén.
 | `levelAtPeriodEndWithChange` | szint + volt-e váltzoás | A felhasználó szintje a kiválasztott időszak végén azzal az információval, hogy volt-e szintváltozása a felhasználónak a kiválasztott időszakban.
