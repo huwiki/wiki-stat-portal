@@ -1,0 +1,43 @@
+.listContainer {
+	column-count: 2;
+}
+
+.group {
+	page-break-inside: avoid;
+	margin: 0px;
+	padding: 0px;
+
+	border: 2px solid #0388b5;
+	margin-bottom: 10px;
+
+	h4 {
+		background: linear-gradient(to bottom, hsl(195, 97%, 26%) 0%,hsl(194, 86%, 24%) 40%,hsl(195, 95%, 20%) 100%);
+		margin: 0px;
+		text-align: center;
+		padding: 5px;
+		font-size: 125%;
+	}
+
+	ul {
+		list-style: none;
+		padding: 0px;
+		margin: 10px 0px;
+
+		li {
+			padding: 5px 15px;
+
+			&:hover {
+				background-color: rgba(3, 136, 181, 0.2);
+			}
+
+			a {
+				text-decoration: none;
+				font-weight: bold;
+
+				&:hover {
+					color: white;
+				}
+			}
+		}
+	}
+}

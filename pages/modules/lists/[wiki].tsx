@@ -15,6 +15,7 @@ import { withCommonServerSideProps } from "../../../server/helpers/serverSidePag
 import { GetPortalServerSidePropsResult } from "../../../server/interfaces/getPortalServerSidePropsResult";
 import { ListsModule } from "../../../server/modules/listsModule/listsModule";
 import { moduleManager } from "../../../server/modules/moduleManager";
+import styles from "./[wiki].module.scss";
 
 interface WikiListsPageProps extends CommonPageProps {
 	wikiFound: boolean;
@@ -53,15 +54,15 @@ class WikiListsPage extends NextBasePage<WikiListsPageProps> {
 		}
 
 		const groups = _.groupBy(this.props.lists, x => x.groupId);
-		return <>
+		return <div className={styles.listContainer}>
 			{Object.keys(groups).map(listGroupKey => {
 				return this.renderList(listGroupKey, groups[listGroupKey]);
 			})}
-		</>;
+		</div>;
 	}
 
 	private renderList(listGroupKey: string, listItems: ListConfiguration[]): JSX.Element {
-		return <React.Fragment key={listGroupKey}>
+		return <div className={styles.group} key={listGroupKey}>
 			<h4>{this.t(`lists.group.${listGroupKey}`)}</h4>
 			<ul>
 				{listItems.map(l => <li key={l.id}>
@@ -70,7 +71,7 @@ class WikiListsPage extends NextBasePage<WikiListsPageProps> {
 					</a>
 				</li>)}
 			</ul>
-		</React.Fragment>;
+		</div>;
 	}
 
 	private goToListPage(wikiId: string | null, listId?: string) {
