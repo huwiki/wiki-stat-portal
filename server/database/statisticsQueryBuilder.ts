@@ -152,7 +152,7 @@ export async function createStatisticsQuery(params: CreateStatisticsQueryParamet
 			const groupResults = doGrouping(ctx, actorResults);
 			return groupResults;
 		} else {
-			appCtx.logger.info(`[createStatisticsQuery] Returning ${data.length} items.`);
+			appCtx.logger.info(`[createStatisticsQuery] Returning ${actorResults.length} items.`);
 			return actorResults;
 		}
 
