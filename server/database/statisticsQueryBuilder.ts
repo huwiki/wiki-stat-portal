@@ -684,7 +684,7 @@ function generateUserGroupUserRequirementWhereClauses(
 
 		query = query.andWhere("("
 			+ userGroups.map((group: string): string => {
-				return `${sanitizeNameForSql(group)}GroupCheck.actorId = actor.actorId`;
+				return `${sanitizeNameForSql(group)}GroupCheck.actorId IS NOT NULL`;
 			}).join(" OR ")
 			+ ")");
 	}
@@ -694,7 +694,7 @@ function generateUserGroupUserRequirementWhereClauses(
 
 		query = query.andWhere("("
 			+ userGroups.map((group: string): string => {
-				return `${sanitizeNameForSql(group)}GroupCheck.actorId = actor.actorId`;
+				return `${sanitizeNameForSql(group)}GroupCheck.actorId IS NOT NULL`;
 			}).join(" AND ")
 			+ ")");
 	}
@@ -705,7 +705,7 @@ function generateUserGroupUserRequirementWhereClauses(
 
 		query = query.andWhere("("
 			+ userGroups.map((group: string): string => {
-				return `${sanitizeNameForSql(group)}GroupCheck.actorId <> actor.actorId`;
+				return `${sanitizeNameForSql(group)}GroupCheck.actorId IS NULL`;
 			}).join(" OR ")
 			+ ")");
 	}
@@ -715,7 +715,7 @@ function generateUserGroupUserRequirementWhereClauses(
 
 		query = query.andWhere("("
 			+ userGroups.map((group: string): string => {
-				return `${sanitizeNameForSql(group)}GroupCheck.actorId <> actor.actorId`;
+				return `${sanitizeNameForSql(group)}GroupCheck.actorId IS NULL`;
 			}).join(" AND ")
 			+ ")");
 	}
