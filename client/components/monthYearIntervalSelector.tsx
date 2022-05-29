@@ -1,108 +1,137 @@
+import { Button, Classes, NumericInput, Popover } from "@blueprintjs/core";
 import { configure, makeObservable, observable } from "mobx";
 import { observer } from "mobx-react";
 import moment from "moment";
 import * as React from "react";
-import { SelectInput } from "./inputs/selectInput";
+import { DateInput, DateInputLocaliztaionProvider } from "./inputs/dateInput";
 import styles from "./monthYearIntervalSelector.module.scss";
 
 configure({
 	enforceActions: "never",
-	// computedRequiresReaction: true,
-	// reactionRequiresObservable: true,
-	// observableRequiresReaction: true,
-	// disableErrorBoundaries: true
 });
 
-class SelectableYear {
-	constructor(public year: number) {
-	}
-}
-
-const SELECTABLE_SUB_YEAR_RANGES: SelectableSubYearRangeValueType[] = [
-	"fullYear", "firstHalf", "secondHalf", "q1", "q2", "q3", "q4"
-];
-export type SelectableSubYearRangeValueType = "fullYear" | "firstHalf" | "secondHalf" | "q1" | "q2" | "q3" | "q4" | number;
-
-class SelectableSubYearRange {
-	constructor(public subYear: SelectableSubYearRangeValueType) {
-	}
-}
+const today = moment().startOf("day").toDate();
 
 interface MonthYearIntervalSelectorProps {
 	translate: (key: string) => string;
-	startYear: number;
-	endYear: number;
-	selectedYear: number;
-	onSelectedYearChange: (newSelectedYear: number) => void;
-	selectedSubYearRange: SelectableSubYearRangeValueType;
-	onSelectedSubYearRangeChange: (selectedSubYearRange: SelectableSubYearRangeValueType) => void;
+	fromDate: Date;
+	onFromDateChange: (newValue: Date) => void;
+	toDate: Date;
+	onToDateChange: (newValue: Date) => void;
+	localizationProvider?: DateInputLocaliztaionProvider;
 	disabled: boolean;
 }
 
 @observer
 export class MonthYearIntervalSelector extends React.Component<MonthYearIntervalSelectorProps> {
-	public availableYears: SelectableYear[] = [];
-	public availableSubYearRanges: SelectableSubYearRange[] = [];
+	public selectedYear: number = today.getFullYear();
 
 	constructor(props: MonthYearIntervalSelectorProps) {
 		super(props);
 
-		for (let i = props.startYear; i <= props.endYear; i++) {
-			this.availableYears.push(new SelectableYear(i));
-		}
-
-		for (const subYearRange of SELECTABLE_SUB_YEAR_RANGES) {
-			this.availableSubYearRanges.push(new SelectableSubYearRange(subYearRange));
-		}
-		for (let i = 1; i <= 12; i++) {
-			this.availableSubYearRanges.push(new SelectableSubYearRange(i));
-		}
-
 		makeObservable(this, {
-			availableYears: observable,
-			availableSubYearRanges: observable
+			selectedYear: observable
 		});
 	}
 
 	public render(): JSX.Element {
 		return <div className={styles.intervalInput}>
-			<SelectInput<SelectableYear>
-				inputClassName={styles.intervalInputYearSelector}
-				inputLabel={this.props.translate("lists.year")}
-				items={this.availableYears}
-				value={this.availableYears.find(x => x.year === this.props.selectedYear)}
-				setValue={(newValue) => {
-					this.props.onSelectedYearChange(newValue.year);
-				}}
-				itemKeySelector={ele => ele.year.toString()}
-				itemRenderer={this.renderYear}
+			<DateInput
+				value={this.props.fromDate}
+				setValue={this.props.onFromDateChange}
+				localizationProvider={this.props.localizationProvider}
 				disabled={this.props.disabled}
-				noSelectedItemsLabel={"NOPE"}
-
 			/>
-			<SelectInput<SelectableSubYearRange>
-				inputClassName={styles.intervalInputMonthSelector}
-				inputLabel={this.props.translate("lists.subYearRange")}
-				items={this.availableSubYearRanges}
-				value={this.availableSubYearRanges.find(x => x.subYear === this.props.selectedSubYearRange)}
-				setValue={(newValue) => {
-					this.props.onSelectedSubYearRangeChange(newValue.subYear);
-				}}
-				itemKeySelector={ele => ele.subYear.toString()}
-				itemRenderer={this.renderMonth}
+			&nbsp;
+			{"–"}
+			&nbsp;
+			<DateInput
+				value={this.props.toDate}
+				setValue={this.props.onToDateChange}
+				localizationProvider={this.props.localizationProvider}
 				disabled={this.props.disabled}
-				noSelectedItemsLabel={"NOPE"}
 			/>
+			<Popover content={this.renderQuickDateRangeSelector()}
+				position="bottom">
+				<Button icon="lightning"></Button>
+			</Popover>
 		</div>;
 	}
 
-	private renderYear = (selectableYear: SelectableYear) => {
-		return selectableYear.year.toString();
+	private renderQuickDateRangeSelector(): JSX.Element {
+		const { translate } = this.props;
+
+		return <div className={styles.popoverContent}>
+			<div className={styles.yearInputRow}>
+				<div className={styles.label}>Év:</div>
+				<NumericInput
+					min={2004}
+					max={today.getFullYear()}
+					value={this.selectedYear}
+					onValueChange={(newValue) => {
+						this.selectedYear = newValue;
+					}}
+				/>
+			</div>
+			<div className={styles.yearRangeSelectors}>
+				{["fullYear", "firstHalf", "secondHalf", "q1", "q2", "q3", "q4", "twoYears", "fiveYears", "tenYears"].map(range => <Button
+					className={Classes.POPOVER_DISMISS}
+					key={range}
+					text={translate(`input.subYearRange.${range}`)}
+					onClick={() => this.setDateRange(range)}
+				/>)}
+			</div>
+		</div>;
 	}
 
-	private renderMonth = (selectableSubYearRange: SelectableSubYearRange) => {
-		return typeof selectableSubYearRange.subYear === "string"
-			? this.props.translate(`input.subYearRange.${selectableSubYearRange.subYear}`)
-			: moment().month(selectableSubYearRange.subYear - 1).format("MMMM");
+	private setDateRange(range: string): void {
+		const fromDate = moment().year(this.selectedYear);
+		const toDate = moment().year(this.selectedYear);
+
+		switch (range) {
+			case "fullYear":
+				fromDate.month(0).date(1);
+				toDate.month(11).date(31);
+				break;
+			case "firstHalf":
+				fromDate.month(0).date(1);
+				toDate.month(5).date(30);
+				break;
+			case "secondHalf":
+				fromDate.month(6).date(1);
+				toDate.month(11).date(31);
+				break;
+			case "q1":
+				fromDate.month(0).date(1);
+				toDate.month(2).date(31);
+				break;
+			case "q2":
+				fromDate.month(3).date(1);
+				toDate.month(5).date(30);
+				break;
+			case "q3":
+				fromDate.month(6).date(1);
+				toDate.month(8).date(30);
+				break;
+			case "q4":
+				fromDate.month(9).date(1);
+				toDate.month(11).date(31);
+				break;
+			case "twoYears":
+				fromDate.year(fromDate.year() - 1).month(0).date(1);
+				toDate.month(11).date(31);
+				break;
+			case "fiveYears":
+				fromDate.year(fromDate.year() - 4).month(0).date(1);
+				toDate.month(11).date(31);
+				break;
+			case "tenYears":
+				fromDate.year(fromDate.year() - 9).month(0).date(1);
+				toDate.month(11).date(31);
+				break;
+		}
+
+		this.props.onFromDateChange(fromDate.toDate());
+		this.props.onToDateChange(toDate.toDate());
 	}
 }

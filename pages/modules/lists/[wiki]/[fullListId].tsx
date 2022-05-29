@@ -7,7 +7,7 @@ import moment from "moment";
 import { NextPageContext } from "next";
 import { withRouter } from "next/router";
 import * as React from "react";
-import { MonthYearIntervalSelector, SelectableSubYearRangeValueType } from "../../../../client/components/monthYearIntervalSelector";
+import { MonthYearIntervalSelector } from "../../../../client/components/monthYearIntervalSelector";
 import { PageFrame } from "../../../../client/components/pageFrame";
 import { ParameterBox } from "../../../../client/components/parameterBox";
 import { ParameterGroup } from "../../../../client/components/parameterGroup";
@@ -44,8 +44,8 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 	isWikiTextDialogOpen: boolean = false;
 	wikiTextContent: string = "";
 
-	selectedYear: number = moment().year();
-	selectedSubYearRange: SelectableSubYearRangeValueType = "fullYear";
+	fromDate: Date;
+	toDate: Date;
 
 	private intFormatter: Intl.NumberFormat;
 	private floatFormatter: Intl.NumberFormat;
@@ -54,19 +54,22 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 	constructor(props: ListByIdPageProps) {
 		super(props);
 
+		this.fromDate = moment().startOf("year").toDate();
+		this.toDate = moment().startOf("day").toDate();
+
 		makeObservable(this, {
 			isLoading: observable,
 			failedToLoad: observable,
 			listData: observable,
 			isWikiTextDialogOpen: observable,
 			wikiTextContent: observable,
-			selectedYear: observable,
-			selectedSubYearRange: observable,
+			fromDate: observable,
+			toDate: observable,
 
 			// fetchData: action,
 			onExportToWikitextButtonClick: action,
-			onSelectedYearChange: action,
-			onSelectedSubYearRangeChange: action,
+			onFromDateChange: action,
+			onToDateChange: action,
 			onLoadButtonClick: action
 		});
 
@@ -100,10 +103,15 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		this.failedToLoad = false;
 
 		let startDate: moment.Moment = moment();
-		const endDate: moment.Moment = moment();
+		let endDate: moment.Moment = moment();
 
 		if (this.props.list.dateMode === "userSelectable") {
-			this.processUserDateSelection(startDate, endDate);
+			startDate = moment(this.fromDate);
+			endDate = moment(this.toDate);
+
+			if (endDate.isBefore(startDate)) {
+				return;
+			}
 		} else {
 			startDate = moment().subtract(1, "month");
 		}
@@ -132,46 +140,6 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		}
 
 		this.isLoading = false;
-	}
-
-	private processUserDateSelection(startDate: moment.Moment, endDate: moment.Moment) {
-		startDate.year(this.selectedYear);
-		endDate.year(this.selectedYear);
-
-		switch (this.selectedSubYearRange) {
-			case "fullYear":
-				startDate.month(0).date(1);
-				endDate.month(11).date(31);
-				break;
-			case "firstHalf":
-				startDate.month(0).date(1);
-				endDate.month(5).date(30);
-				break;
-			case "secondHalf":
-				startDate.month(6).date(1);
-				endDate.month(11).date(31);
-				break;
-			case "q1":
-				startDate.month(0).date(1);
-				endDate.month(2).date(31);
-				break;
-			case "q2":
-				startDate.month(3).date(1);
-				endDate.month(5).date(30);
-				break;
-			case "q3":
-				startDate.month(6).date(1);
-				endDate.month(8).date(30);
-				break;
-			case "q4":
-				startDate.month(9).date(1);
-				endDate.month(11).date(31);
-				break;
-			default:
-				startDate.month(this.selectedSubYearRange - 1).date(1);
-				endDate.month(this.selectedSubYearRange - 1).date(1).add(1, "month").subtract(1, "day");
-				break;
-		}
 	}
 
 	public render(): JSX.Element {
@@ -275,12 +243,11 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 				<MonthYearIntervalSelector
 					translate={this.t}
 					disabled={this.isLoading}
-					selectedYear={this.selectedYear}
-					onSelectedYearChange={this.onSelectedYearChange}
-					selectedSubYearRange={this.selectedSubYearRange}
-					onSelectedSubYearRangeChange={this.onSelectedSubYearRangeChange}
-					startYear={2004}
-					endYear={2022}
+					localizationProvider={this.getDateInputLocalizationProvider()}
+					fromDate={this.fromDate}
+					onFromDateChange={this.onFromDateChange}
+					toDate={this.toDate}
+					onToDateChange={this.onToDateChange}
 				/>
 				<Button outlined
 					text={this.t("lists.load")}
@@ -294,12 +261,12 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		this.fetchData();
 	}
 
-	onSelectedYearChange = (year: number) => {
-		this.selectedYear = year;
+	onFromDateChange = (date: Date) => {
+		this.fromDate = date;
 	}
 
-	onSelectedSubYearRangeChange = (subYearRange: SelectableSubYearRangeValueType) => {
-		this.selectedSubYearRange = subYearRange;
+	onToDateChange = (date: Date) => {
+		this.toDate = date;
 	}
 
 	private renderContent(): JSX.Element {
