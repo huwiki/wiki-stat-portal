@@ -1,6 +1,7 @@
 import { isArray } from "lodash";
 import moment from "moment";
 import { NextApiRequest, NextApiResponse } from "next";
+import { ActorResult } from "../../../common/interfaces/statisticsQueryModels";
 import { isLocalizedUserPyramidGroup, UserPyramidConfiguration } from "../../../common/modules/userPyramids/userPyramidConfiguration";
 import { AppRunningContext } from "../../../server/appRunningContext";
 import { createActorEntitiesForWiki } from "../../../server/database/entities/toolsDatabase/actorByWiki";
@@ -65,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				wikiEntities,
 				userRequirements: userGroup.requirements,
 				endDate: epochDate,
-			});
+			}) as ActorResult[];
 
 			const usersInThisGroup = new Set<number>(users.map(x => x.actorId));
 

@@ -1,11 +1,14 @@
 import { stringify } from "csv-stringify/dist/umd/sync";
 import moment from "moment";
-import { ListDataResult } from "../../pages/api/lists/listData";
+import { GroupActor } from "../../common/interfaces/statisticsQueryModels";
+import { ListColumn, ListConfiguration } from "../../common/modules/lists/listsConfiguration";
+import { ListDataActorEntry, ListDataGroupEntry, ListDataResult } from "../../pages/api/lists/listData";
 import { CellDataTypes, LIST_COLUMN_DATATYPE_MAP } from "./listColumnDataTypes";
 
 
 export const generateCsvFromListData = (
 	data: ListDataResult,
+	columns: ListColumn[],
 	translate: (key: string) => string
 ): string => {
 	const result: unknown[][] = [];
@@ -16,13 +19,17 @@ export const generateCsvFromListData = (
 		minimumFractionDigits: 0,
 	});
 
-	result.push(data.list.columns.map((column) => {
+	result.push(columns.filter(column => column.isHidden !== true).map((column) => {
 		return column.headerI18nKey ? translate(column.headerI18nKey) : column.type;
 	}));
 
 	for (const row of data.results) {
-		result.push(row.data.map((rowData, idx) => {
-			const columnDefinition = data.list.columns[idx];
+		const columnData = getRowColumnData(data.list, row);
+
+		result.push(columnData.map((rowData, idx) => {
+			const columnDefinition = columns[idx];
+			if (columnDefinition.isHidden)
+				return null;
 
 			const dataType: CellDataTypes | undefined = Object.prototype.hasOwnProperty.call(LIST_COLUMN_DATATYPE_MAP, columnDefinition.type)
 				? LIST_COLUMN_DATATYPE_MAP[columnDefinition.type]
@@ -34,6 +41,11 @@ export const generateCsvFromListData = (
 
 			if (columnDefinition.type === "userName") {
 				return rowData;
+			}
+
+			if (columnDefinition.type === "userNames") {
+				const userList = rowData as GroupActor[];
+				return userList.map(x => x.name).join(";");
 			}
 
 			if (columnDefinition.type === "userGroups") {
@@ -86,7 +98,7 @@ export const generateCsvFromListData = (
 			}
 
 			return "–";
-		}));
+		}).filter(x => x != null));
 	}
 
 	return stringify(result);
@@ -94,6 +106,7 @@ export const generateCsvFromListData = (
 
 export const generateWikitextFromListData = (
 	data: ListDataResult,
+	columns: ListColumn[],
 	translate: (key: string) => string,
 	locale: string
 ): string => {
@@ -115,14 +128,18 @@ export const generateWikitextFromListData = (
 
 	let result = "{| class=\"sortable wikitable\"\n";
 
-	result += "!" + data.list.columns.map((column) => {
+	result += "!" + columns.filter(column => column.isHidden !== true).map((column) => {
 		return column.headerI18nKey ? translate(column.headerI18nKey) : column.type;
 	}).join(" !! ") + "\n";
 
 	for (const row of data.results) {
 		result += "|-\n| ";
-		result += row.data.map((rowData, idx) => {
-			const columnDefinition = data.list.columns[idx];
+		const columnData = getRowColumnData(data.list, row);
+
+		result += columnData.map((rowData, idx) => {
+			const columnDefinition = columns[idx];
+			if (columnDefinition.isHidden)
+				return null;
 
 			const dataType: CellDataTypes | undefined = Object.prototype.hasOwnProperty.call(LIST_COLUMN_DATATYPE_MAP, columnDefinition.type)
 				? LIST_COLUMN_DATATYPE_MAP[columnDefinition.type]
@@ -134,6 +151,11 @@ export const generateWikitextFromListData = (
 
 			if (columnDefinition.type === "userName") {
 				return `{{User2|${rowData}}}`;
+			}
+
+			if (columnDefinition.type === "userNames") {
+				const userList = rowData as GroupActor[];
+				return userList.map(x => `[[User:${x.name}|${x.name}]]`).join(", ");
 			}
 
 			if (columnDefinition.type === "userGroups") {
@@ -186,7 +208,7 @@ export const generateWikitextFromListData = (
 			}
 
 			return "–";
-		}).join(" || ") + "\n";
+		}).filter(x => x != null).join(" || ") + "\n";
 	}
 
 	result += "|}\n";
@@ -201,3 +223,17 @@ export const convertUserGroupsToString = (groups: string[], translate: (key: str
 	const groupsLocalized = groups.map(group => translate(`userGroup.${group}.member`));
 	return groupsLocalized.join(", ");
 };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getRowColumnData(list: ListConfiguration, row: ListDataGroupEntry | ListDataActorEntry): any[] {
+	let columnData;
+	if (list.groupBy && list.groupBy.length > 0) {
+		const groupRow = row as ListDataGroupEntry;
+		columnData = [...groupRow.data, groupRow.users];
+	} else {
+		const actorRow = row as ListDataActorEntry;
+		columnData = actorRow.columnData;
+	}
+	return columnData;
+}
+

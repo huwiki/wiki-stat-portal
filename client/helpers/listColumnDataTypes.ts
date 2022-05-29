@@ -5,6 +5,7 @@ export type CellDataTypes = "date" | "datetime" | "string" | "integer" | "float"
 export const LIST_COLUMN_DATATYPE_MAP: { [index in AllColumnTypes]?: CellDataTypes } = {
 	"counter": "integer",
 	"userName": "string",
+	"userNames": "string",
 	"userGroups": "string",
 	"editsInPeriod": "integer",
 	"editsInPeriodPercentageToWikiTotal": "percentage",

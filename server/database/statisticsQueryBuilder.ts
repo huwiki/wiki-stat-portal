@@ -1,7 +1,9 @@
 import { isDate, round } from "lodash";
 import moment from "moment";
 import { Connection, SelectQueryBuilder } from "typeorm";
+import { Logger } from "winston";
 import { FLAGLESS_BOT_VIRTUAL_GROUP_NAME } from "../../common/consts";
+import { ActorLike, ActorResult, GroupedResult } from "../../common/interfaces/statisticsQueryModels";
 import { UserGroup, UserRequirements, UserStatisticsInPeriodRequirement, UserStatisticsInTimeRequirement } from "../../common/modules/commonConfiguration";
 import { ChangeTagFilterDefinition, ListColumn, ListOrderBy, LogFilterDefinition } from "../../common/modules/lists/listsConfiguration";
 import { AppRunningContext } from "../appRunningContext";
@@ -50,12 +52,14 @@ type ChangeTagStatisticsRequiredColumns = RequiredColumns & {
 
 class StatisticsQueryBuildingContext {
 	public readonly conn: Connection;
+	public readonly logger: Logger;
 	public readonly wiki: KnownWiki;
 	public readonly wikiEntities: WikiStatisticsTypesResult;
 	public readonly userRequirements: UserRequirements | undefined;
 	public readonly columns: ListColumn[] | undefined;
 	public readonly orderBy: ListOrderBy[] | undefined;
 	public readonly itemCount: number | undefined;
+	public readonly groupBy: string[] | undefined;
 	public readonly startDate: moment.Moment | undefined;
 	public readonly endDate: moment.Moment;
 	public readonly skipBotsFromCounting: boolean;
@@ -69,6 +73,7 @@ class StatisticsQueryBuildingContext {
 
 	constructor(params: CreateStatisticsQueryParameters) {
 		this.conn = params.toolsDbConnection;
+		this.logger = params.appCtx.logger;
 		this.wiki = params.wiki;
 		this.wikiEntities = params.wikiEntities;
 		this.columns = params.columns;
@@ -77,6 +82,7 @@ class StatisticsQueryBuildingContext {
 		this.itemCount = params.itemCount;
 		this.startDate = params.startDate;
 		this.endDate = params.endDate;
+		this.groupBy = params.groupBy;
 		this.skipBotsFromCounting = params.skipBotsFromCounting ?? false;
 		this.requiredColumns = {
 			neededDates: {
@@ -101,19 +107,6 @@ class StatisticsQueryBuildingContext {
 	}
 }
 
-export interface ActorLike {
-	actorId: number;
-	actorName?: string;
-	actorGroups?: string[];
-}
-
-export interface ActorResult {
-	actorId: number;
-	name?: string;
-	groups?: string[];
-	columnData?: unknown[];
-}
-
 interface CreateStatisticsQueryParameters {
 	appCtx: AppRunningContext;
 	toolsDbConnection: Connection;
@@ -123,13 +116,14 @@ interface CreateStatisticsQueryParameters {
 	columns?: ListColumn[];
 	orderBy?: ListOrderBy[];
 	itemCount?: number;
+	groupBy?: string[];
 	startDate?: moment.Moment;
 	endDate: moment.Moment;
 	skipBotsFromCounting?: boolean;
 }
 
-export async function createStatisticsQuery(params: CreateStatisticsQueryParameters): Promise<ActorResult[]> {
-	const { appCtx, columns, orderBy } = params;
+export async function createStatisticsQuery(params: CreateStatisticsQueryParameters): Promise<ActorResult[] | GroupedResult[]> {
+	const { appCtx, columns, orderBy, groupBy } = params;
 
 	const ctx: StatisticsQueryBuildingContext = new StatisticsQueryBuildingContext(params);
 
@@ -153,9 +147,15 @@ export async function createStatisticsQuery(params: CreateStatisticsQueryParamet
 
 		const actorResults = createActorResultSet(ctx, data);
 
-		appCtx.logger.info(`[createStatisticsQuery] Returning ${data.length} items.`);
+		if (groupBy && groupBy.length > 0) {
+			appCtx.logger.info("[createStatisticsQuery] Grouping users...");
+			const groupResults = doGrouping(ctx, actorResults);
+			return groupResults;
+		} else {
+			appCtx.logger.info(`[createStatisticsQuery] Returning ${data.length} items.`);
+			return actorResults;
+		}
 
-		return actorResults;
 	} else {
 		return await query.getRawMany<{ actorId: number }>();
 	}
@@ -209,8 +209,8 @@ function collectSingleColumnJoinInformation(ctx: StatisticsQueryBuildingContext,
 		case "characterChangesSinceRegistrationMilestone":
 		case "receivedThanksSinceRegistrationMilestone":
 			ctx.requiredColumns.needsSelectedPeriodActorStatistics = true;
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
 			break;
 
 		case "editsInPeriodPercentageToWikiTotal":
@@ -221,10 +221,10 @@ function collectSingleColumnJoinInformation(ctx: StatisticsQueryBuildingContext,
 		case "logEventsInPeriodPercentageToWikiTotal":
 			ctx.requiredColumns.needsSelectedPeriodActorStatistics = true;
 			ctx.requiredColumns.needsSelectedPeriodWikiStatistics = true;
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededWikiPeriodStarts, startDate);
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededWikiPeriodEnds, endDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededWikiPeriodStarts, startDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededWikiPeriodEnds, endDate);
 			break;
 
 		case "editsSinceRegistration":
@@ -235,7 +235,7 @@ function collectSingleColumnJoinInformation(ctx: StatisticsQueryBuildingContext,
 		case "sentThanksSinceRegistration":
 		case "logEventsSinceRegistration":
 			ctx.requiredColumns.needsSinceRegisteredActorStatistics = true;
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
 			break;
 
 		case "editsSinceRegistrationPercentageToWikiTotal":
@@ -246,8 +246,8 @@ function collectSingleColumnJoinInformation(ctx: StatisticsQueryBuildingContext,
 		case "logEventsSinceRegistrationPercentageToWikiTotal":
 			ctx.requiredColumns.needsSinceRegisteredActorStatistics = true;
 			ctx.requiredColumns.needsSinceRegisteredWikiStatistics = true;
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededWikiPeriodEnds, endDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededWikiPeriodEnds, endDate);
 			break;
 
 		case "editsInNamespaceInPeriod":
@@ -258,15 +258,15 @@ function collectSingleColumnJoinInformation(ctx: StatisticsQueryBuildingContext,
 			for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
 				const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
 				namespaceCollector.needsSelectedPeriodActorStatistics = true;
-				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodStarts, startDate);
-				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
+				addMomentToArray(namespaceCollector.neededDates.neededActorPeriodStarts, startDate);
+				addMomentToArray(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
 			}
 
 			if (column.type === "editsInNamespaceInPeriodPercentageToOwnTotalEdits"
 				|| column.type === "revertedEditsInNamespaceInPeriodPercentageToOwnTotalEdits") {
 				ctx.requiredColumns.needsSinceRegisteredActorStatistics = true;
-				addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
-				addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
+				addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
+				addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
 			}
 			break;
 		}
@@ -277,10 +277,10 @@ function collectSingleColumnJoinInformation(ctx: StatisticsQueryBuildingContext,
 				const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
 				namespaceCollector.needsSelectedPeriodActorStatistics = true;
 				namespaceCollector.needsSelectedPeriodWikiStatistics = true;
-				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodStarts, startDate);
-				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
-				addNeededPeriodToCollection(namespaceCollector.neededDates.neededWikiPeriodStarts, startDate);
-				addNeededPeriodToCollection(namespaceCollector.neededDates.neededWikiPeriodEnds, endDate);
+				addMomentToArray(namespaceCollector.neededDates.neededActorPeriodStarts, startDate);
+				addMomentToArray(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
+				addMomentToArray(namespaceCollector.neededDates.neededWikiPeriodStarts, startDate);
+				addMomentToArray(namespaceCollector.neededDates.neededWikiPeriodEnds, endDate);
 			}
 			break;
 		}
@@ -292,12 +292,12 @@ function collectSingleColumnJoinInformation(ctx: StatisticsQueryBuildingContext,
 			for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
 				const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
 				namespaceCollector.needsSinceRegisteredActorStatistics = true;
-				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
+				addMomentToArray(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
 			}
 
 			if (column.type === "editsInNamespaceSinceRegistrationPercentageToOwnTotalEdits") {
 				ctx.requiredColumns.needsSinceRegisteredActorStatistics = true;
-				addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
+				addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
 			}
 
 			break;
@@ -309,8 +309,8 @@ function collectSingleColumnJoinInformation(ctx: StatisticsQueryBuildingContext,
 				const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
 				namespaceCollector.needsSinceRegisteredActorStatistics = true;
 				namespaceCollector.needsSinceRegisteredWikiStatistics = true;
-				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
-				addNeededPeriodToCollection(namespaceCollector.neededDates.neededWikiPeriodEnds, endDate);
+				addMomentToArray(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
+				addMomentToArray(namespaceCollector.neededDates.neededWikiPeriodEnds, endDate);
 			}
 
 			break;
@@ -321,8 +321,8 @@ function collectSingleColumnJoinInformation(ctx: StatisticsQueryBuildingContext,
 			for (const ct of Array.isArray(column.changeTag) ? column.changeTag : [column.changeTag]) {
 				const ctCollector = getOrCreateChangeTagCollector(ctx, ct);
 				ctCollector.needsSelectedPeriodActorStatistics = true;
-				addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodStarts, startDate);
-				addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodEnds, endDate);
+				addMomentToArray(ctCollector.neededDates.neededActorPeriodStarts, startDate);
+				addMomentToArray(ctCollector.neededDates.neededActorPeriodEnds, endDate);
 			}
 			break;
 		}
@@ -332,7 +332,7 @@ function collectSingleColumnJoinInformation(ctx: StatisticsQueryBuildingContext,
 			for (const ct of Array.isArray(column.changeTag) ? column.changeTag : [column.changeTag]) {
 				const ctCollector = getOrCreateChangeTagCollector(ctx, ct);
 				ctCollector.needsSinceRegisteredActorStatistics = true;
-				addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodEnds, endDate);
+				addMomentToArray(ctCollector.neededDates.neededActorPeriodEnds, endDate);
 			}
 			break;
 		}
@@ -341,27 +341,27 @@ function collectSingleColumnJoinInformation(ctx: StatisticsQueryBuildingContext,
 			for (const ns of Array.isArray(column.namespace) ? column.namespace : [column.namespace]) {
 				const namespaceCollector = getOrCreateNamespaceCollector(ctx, ns);
 				namespaceCollector.needsSinceRegisteredActorStatistics = true;
-				addNeededPeriodToCollection(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
+				addMomentToArray(namespaceCollector.neededDates.neededActorPeriodEnds, endDate);
 			}
 			break;
 		}
 
 		case "averageEditsPerDayInPeriod":
 			ctx.requiredColumns.needsSelectedPeriodActorStatistics = true;
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
 			break;
 		case "averageEditsPerDaySinceRegistration":
 			ctx.requiredColumns.needsSinceRegisteredActorStatistics = true;
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
 			break;
 
 		case "logEventsInPeriodByType": {
 			for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
 				const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
 				logTypeCollector.needsSelectedPeriodActorStatistics = true;
-				addNeededPeriodToCollection(logTypeCollector.neededDates.neededActorPeriodStarts, startDate);
-				addNeededPeriodToCollection(logTypeCollector.neededDates.neededActorPeriodEnds, endDate);
+				addMomentToArray(logTypeCollector.neededDates.neededActorPeriodStarts, startDate);
+				addMomentToArray(logTypeCollector.neededDates.neededActorPeriodEnds, endDate);
 			}
 			break;
 		}
@@ -369,7 +369,7 @@ function collectSingleColumnJoinInformation(ctx: StatisticsQueryBuildingContext,
 			for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
 				const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
 				logTypeCollector.needsSinceRegisteredActorStatistics = true;
-				addNeededPeriodToCollection(logTypeCollector.neededDates.neededActorPeriodEnds, endDate);
+				addMomentToArray(logTypeCollector.neededDates.neededActorPeriodEnds, endDate);
 			}
 			break;
 		}
@@ -377,41 +377,41 @@ function collectSingleColumnJoinInformation(ctx: StatisticsQueryBuildingContext,
 			for (const logFilter of Array.isArray(column.logFilter) ? column.logFilter : [column.logFilter]) {
 				const logTypeCollector = getOrCreateLogTypeCollector(ctx, logFilter);
 				logTypeCollector.needsLastLogEntryDate = true;
-				addNeededPeriodToCollection(logTypeCollector.neededDates.neededActorPeriodEnds, endDate);
+				addMomentToArray(logTypeCollector.neededDates.neededActorPeriodEnds, endDate);
 			}
 			break;
 		}
 
 		case "activeDaysInPeriod":
 			ctx.requiredColumns.needsSelectedPeriodActorStatistics = true;
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
 			break;
 
 		case "levelAtPeriodStart":
 			ctx.requiredColumns.needsSelectedPeriodActorStatistics = true;
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
 			if (startDate) {
-				ctx.requiredColumns.neededLevelDates.push(startDate);
+				addMomentToArray(ctx.requiredColumns.neededLevelDates, startDate);
 			}
 			break;
 
 		case "levelAtPeriodEnd":
 		case "levelSortOrder":
 			ctx.requiredColumns.needsSinceRegisteredActorStatistics = true;
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
-			ctx.requiredColumns.neededLevelDates.push(endDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
+			addMomentToArray(ctx.requiredColumns.neededLevelDates, endDate);
 			break;
 
 		case "levelAtPeriodEndWithChange":
 			ctx.requiredColumns.needsSelectedPeriodActorStatistics = true;
 			ctx.requiredColumns.needsSinceRegisteredActorStatistics = true;
-			addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
-			addNeededPeriodToCollection(ctx.requiredColumns.neededLevelDates, endDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
+			addMomentToArray(ctx.requiredColumns.neededLevelDates, endDate);
 
 			if (startDate) {
-				addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
-				addNeededPeriodToCollection(ctx.requiredColumns.neededLevelDates, startDate);
+				addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
+				addMomentToArray(ctx.requiredColumns.neededLevelDates, startDate);
 			}
 			break;
 	}
@@ -469,7 +469,7 @@ function addUserRequirementJoins(
 				: moment.utc(endDate).subtract(ele.epoch * -1, "days");
 
 		ctx.requiredColumns.needsSinceRegisteredActorStatistics = true;
-		addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodEnds, epochDate);
+		addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, epochDate);
 	}
 
 	for (const ele of [
@@ -493,8 +493,8 @@ function addUserRequirementJoins(
 			: moment.utc(endDate).subtract(ele.epoch * -1, "days");
 
 		ctx.requiredColumns.needsSelectedPeriodActorStatistics = true;
-		addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodStarts, periodStatCalculationStartDate);
-		addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodEnds, periodStatCalculationEndDate);
+		addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodStarts, periodStatCalculationStartDate);
+		addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, periodStatCalculationEndDate);
 	}
 
 	for (const ele of [
@@ -507,8 +507,8 @@ function addUserRequirementJoins(
 			continue;
 
 		ctx.requiredColumns.needsSelectedPeriodActorStatistics = true;
-		addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
-		addNeededPeriodToCollection(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
+		addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
+		addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
 	}
 
 	for (const ele of [
@@ -525,7 +525,7 @@ function addUserRequirementJoins(
 		for (const ct of Array.isArray(ele.namespace) ? ele.namespace : [ele.namespace]) {
 			const ctCollector = getOrCreateNamespaceCollector(ctx, ct);
 			ctCollector.needsSinceRegisteredActorStatistics = true;
-			addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodEnds, epochDate);
+			addMomentToArray(ctCollector.neededDates.neededActorPeriodEnds, epochDate);
 		}
 	}
 
@@ -547,8 +547,8 @@ function addUserRequirementJoins(
 		for (const ct of Array.isArray(ele.namespace) ? ele.namespace : [ele.namespace]) {
 			const ctCollector = getOrCreateNamespaceCollector(ctx, ct);
 			ctCollector.needsSelectedPeriodActorStatistics = true;
-			addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodStarts, periodStatCalculationStartDate);
-			addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodEnds, periodStatCalculationEndDate);
+			addMomentToArray(ctCollector.neededDates.neededActorPeriodStarts, periodStatCalculationStartDate);
+			addMomentToArray(ctCollector.neededDates.neededActorPeriodEnds, periodStatCalculationEndDate);
 		}
 	}
 
@@ -566,7 +566,7 @@ function addUserRequirementJoins(
 		for (const ct of Array.isArray(ele.changeTag) ? ele.changeTag : [ele.changeTag]) {
 			const ctCollector = getOrCreateChangeTagCollector(ctx, ct);
 			ctCollector.needsSinceRegisteredActorStatistics = true;
-			addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodEnds, epochDate);
+			addMomentToArray(ctCollector.neededDates.neededActorPeriodEnds, epochDate);
 		}
 	}
 
@@ -588,16 +588,20 @@ function addUserRequirementJoins(
 		for (const ct of Array.isArray(ele.changeTag) ? ele.changeTag : [ele.changeTag]) {
 			const ctCollector = getOrCreateChangeTagCollector(ctx, ct);
 			ctCollector.needsSelectedPeriodActorStatistics = true;
-			addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodStarts, periodStatCalculationStartDate);
-			addNeededPeriodToCollection(ctCollector.neededDates.neededActorPeriodEnds, periodStatCalculationEndDate);
+			addMomentToArray(ctCollector.neededDates.neededActorPeriodStarts, periodStatCalculationStartDate);
+			addMomentToArray(ctCollector.neededDates.neededActorPeriodEnds, periodStatCalculationEndDate);
 		}
 	}
 
 	if (userRequirements.serviceAwardLevel) {
-		ctx.requiredColumns.neededLevelDates.push(endDate);
+		ctx.requiredColumns.needsSinceRegisteredActorStatistics = true;
+		addMomentToArray(ctx.requiredColumns.neededLevelDates, endDate);
+		addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodEnds, endDate);
 
 		if (userRequirements.serviceAwardLevel === "hasLevelAndChanged" && startDate) {
-			ctx.requiredColumns.neededLevelDates.push(startDate);
+			ctx.requiredColumns.needsSelectedPeriodActorStatistics = true;
+			addMomentToArray(ctx.requiredColumns.neededLevelDates, startDate);
+			addMomentToArray(ctx.requiredColumns.neededDates.neededActorPeriodStarts, startDate);
 		}
 	}
 
@@ -3284,7 +3288,7 @@ function sanitizeNameForSql(userGroup: string) {
 	return userGroup.replace(/-/g, "_");
 }
 
-function addNeededPeriodToCollection(reqs: moment.Moment[], date: moment.Moment | undefined) {
+function addMomentToArray(reqs: moment.Moment[], date: moment.Moment | undefined) {
 	if (!date) {
 		return;
 	}
@@ -3326,3 +3330,115 @@ async function fetchActorGroups(ctx: StatisticsQueryBuildingContext): Promise<vo
 
 	ctx.actorGroups = actorGroupMap;
 }
+
+function doGrouping(ctx: StatisticsQueryBuildingContext, actorResults: ActorResult[]): GroupedResult[] {
+	const { columns, groupBy } = ctx;
+
+	if (!columns || !groupBy || columns.length === 0 || groupBy.length === 0) {
+		ctx.logger.error("[doGrouping] Grouping requires non empty groupBy and columns for the list.");
+		return [];
+	}
+
+	const ret: GroupedResult[] = [];
+	const columnReferences: Map<string, ListColumn> = new Map();
+	const columnIndices: Map<string, number> = new Map();
+
+	for (const groupColumnId of groupBy) {
+		const referencedColumnIndex = columns.findIndex(x => x.columnId === groupColumnId);
+		if (referencedColumnIndex === -1) {
+			ctx.logger.error(`[doGrouping] Column referenced by groupId not found: ${groupColumnId}.`);
+			return [];
+		}
+
+		const matchingColumn = columns[referencedColumnIndex];
+
+		columnReferences.set(groupColumnId, matchingColumn);
+		columnIndices.set(groupColumnId, referencedColumnIndex);
+	}
+
+	for (const actor of actorResults) {
+		if (!actor.columnData)
+			continue;
+
+		const bucket: unknown[] = [];
+
+		for (const groupColumnId of groupBy) {
+			const index = columnIndices.get(groupColumnId);
+			if (index == null)
+				continue;
+
+			const columnValue = actor.columnData[index];
+			bucket.push(columnValue);
+		}
+
+		const groupEntry = findOrCreateGroupEntry(ret, bucket);
+		groupEntry.users.push({
+			id: actor.actorId,
+			name: actor.name
+		});
+	}
+
+	return ret;
+}
+
+function findOrCreateGroupEntry(existingGroups: GroupedResult[], bucket: unknown[]) {
+	let ret: GroupedResult | null = null;
+	for (const ele of existingGroups) {
+		if (arraysEqual(ele.columnData, bucket)) {
+			ret = ele;
+			break;
+		}
+	}
+
+	if (!ret) {
+		ret = {
+			columnData: bucket,
+			users: []
+		};
+		existingGroups.push(ret);
+	}
+
+	return ret;
+}
+
+const arraysEqual = (columnData: unknown[], bucket: unknown[]): boolean => {
+	for (let i = 0; i < columnData.length; i++) {
+		const a = columnData[i];
+		const b = bucket[i];
+
+		if (a == null && b == null || a === b)
+			continue;
+
+		if ((a == null && b != null) || (a != null && b == null))
+			return false;
+
+		if (typeof a === "number") {
+			if (typeof b !== "number")
+				return false;
+
+			if (a !== b)
+				return false;
+		} else if (typeof a === "string") {
+			if (typeof b !== "string")
+				return false;
+
+			if (a !== b)
+				return false;
+		} else if (typeof a === "boolean") {
+			if (typeof b !== "boolean")
+				return false;
+
+			if (a !== b)
+				return false;
+		} else if (Array.isArray(a) && Array.isArray(b)) {
+			const equal = arraysEqual(a, b);
+			if (!equal)
+				return false;
+		} else {
+			console.log(`unknown error while comparing values: ${a} vs ${b}`);
+		}
+	}
+
+	return true;
+};
+

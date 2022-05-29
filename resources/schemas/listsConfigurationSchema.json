@@ -75,6 +75,14 @@
 					"enum": [
 						"userSelectable"
 					]
+				},
+				"groupBy": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 1
 				}
 			},
 			"required": [
@@ -125,6 +133,14 @@
 					"enum": [
 						"userSelectable"
 					]
+				},
+				"groupBy": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 1
 				}
 			},
 			"required": [

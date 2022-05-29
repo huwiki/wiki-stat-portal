@@ -34,6 +34,7 @@ interface LocalizationListConfigurationCommon {
 	displaySettings: ListDisplaySettings;
 	enableCaching: boolean;
 	dateMode?: DateMode;
+	groupBy?: string[];
 }
 
 export interface NonLocalizedListConfiguration extends LocalizationListConfigurationCommon {
@@ -78,6 +79,8 @@ export type ListColumn =
 	| ListColumnWithMilestoneParameter;
 
 const parameterlessListColumnTypes = [
+	"userNames",
+
 	"counter",
 	"userGroups",
 

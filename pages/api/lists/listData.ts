@@ -1,28 +1,32 @@
 import { isArray } from "lodash";
 import moment from "moment";
 import { NextApiRequest, NextApiResponse } from "next";
+import { ActorResult, GroupActor, GroupedResult } from "../../../common/interfaces/statisticsQueryModels";
 import { ListConfiguration } from "../../../common/modules/lists/listsConfiguration";
 import { MODULE_IDENTIFIERS } from "../../../common/modules/moduleIdentifiers";
 import { AppRunningContext } from "../../../server/appRunningContext";
 import { CacheEntryTypeModel, createActorEntitiesForWiki } from "../../../server/database/entities/toolsDatabase/actorByWiki";
-import { ActorResult, createStatisticsQuery as createAndRunStatisticsQuery } from "../../../server/database/statisticsQueryBuilder";
+import { createStatisticsQuery as createAndRunStatisticsQuery } from "../../../server/database/statisticsQueryBuilder";
 import { KnownWiki } from "../../../server/interfaces/knownWiki";
 import { ListsModule } from "../../../server/modules/listsModule/listsModule";
 import { moduleManager } from "../../../server/modules/moduleManager";
 
-const DATE_STRING_REGEX = new RegExp(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
-
 export interface ListDataResult {
 	list: ListConfiguration;
-	results: ListDataEntry[];
+	results: ListDataActorEntry[] | ListDataGroupEntry[];
 }
 
-export interface ListDataEntry {
-	id: number;
-	actorName: string;
-	actorGroups: string[] | null;
+export interface ListDataActorEntry {
+	actorId: number;
+	name: string;
+	groups: string[] | null;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	data: any[];
+	columnData: unknown[];
+}
+
+export interface ListDataGroupEntry {
+	data: unknown[];
+	users: GroupActor[];
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
@@ -68,10 +72,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				.getOne();
 		}
 
-		let resultActors: ActorResult[];
+		let resultSet: ActorResult[] | GroupedResult[];
 		if (!cachedEntry) {
 			appCtx.logger.info(`[api/lists/listData] running query for '${list.id}'`);
-			resultActors = await createAndRunStatisticsQuery({
+			resultSet = await createAndRunStatisticsQuery({
 				appCtx: appCtx,
 				toolsDbConnection: conn,
 				wiki: wiki,
@@ -81,25 +85,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				orderBy: list.orderBy,
 				itemCount: list.itemCount,
 				startDate: startDate,
+				groupBy: list.groupBy,
 				endDate: endDate,
-				skipBotsFromCounting: list.displaySettings?.skipBotsFromCounting ?? false
+				skipBotsFromCounting: list.displaySettings?.skipBotsFromCounting ?? false,
 			});
 		} else {
-			resultActors = JSON.parse(cachedEntry.content);
+			resultSet = JSON.parse(cachedEntry.content);
 		}
 
 		const listDataResult: ListDataResult = {
 			list: list,
-			results: [],
+			results: []
 		};
 
-		for (const actorLike of resultActors) {
-			listDataResult.results.push({
-				id: actorLike.actorId,
-				actorName: actorLike.name ?? "?",
-				actorGroups: actorLike.groups ?? null,
-				data: actorLike.columnData ?? [],
-			});
+		if (list.groupBy && list.groupBy.length > 0) {
+			const groupResultSet = resultSet as GroupedResult[];
+			const results: ListDataGroupEntry[] = [];
+
+			for (const group of groupResultSet) {
+				results.push({
+					data: group.columnData,
+					users: group.users
+				});
+			}
+
+			listDataResult.results = results;
+		} else {
+			const actorResultSet = resultSet as ActorResult[];
+			const results: ListDataActorEntry[] = [];
+
+			for (const actor of actorResultSet) {
+				results.push({
+					actorId: actor.actorId,
+					name: actor.name ?? "?",
+					groups: actor.groups ?? null,
+					columnData: actor.columnData ?? [],
+				});
+			}
+
+			listDataResult.results = results;
 		}
 
 		if (!cachedEntry && list.enableCaching) {
@@ -112,7 +136,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 					cacheTimestamp: moment.utc().toDate(),
 					startDate: startDateKeySource.toDate(),
 					endDate: endDate.toDate(),
-					content: JSON.stringify(resultActors)
+					content: JSON.stringify(resultSet)
 				});
 		}
 

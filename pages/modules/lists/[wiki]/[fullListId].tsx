@@ -16,7 +16,8 @@ import { CellDataTypes, LIST_COLUMN_DATATYPE_MAP } from "../../../../client/help
 import { NextBasePage } from "../../../../client/helpers/nextBasePage";
 import { FLAGLESS_BOT_VIRTUAL_GROUP_NAME } from "../../../../common/consts";
 import { CommonPageProps } from "../../../../common/interfaces/commonPageProps";
-import { isLocalizedListConfiguration, ListConfiguration, UserNameListColumn } from "../../../../common/modules/lists/listsConfiguration";
+import { GroupActor } from "../../../../common/interfaces/statisticsQueryModels";
+import { isLocalizedListConfiguration, ListColumn, ListConfiguration, UserNameListColumn } from "../../../../common/modules/lists/listsConfiguration";
 import { MODULE_ICONS } from "../../../../common/modules/moduleIcons";
 import { MODULE_IDENTIFIERS } from "../../../../common/modules/moduleIdentifiers";
 import { AppRunningContext } from "../../../../server/appRunningContext";
@@ -24,7 +25,7 @@ import { withCommonServerSideProps } from "../../../../server/helpers/serverSide
 import { GetPortalServerSidePropsResult } from "../../../../server/interfaces/getPortalServerSidePropsResult";
 import { ListsModule } from "../../../../server/modules/listsModule/listsModule";
 import { moduleManager } from "../../../../server/modules/moduleManager";
-import { ListDataEntry, ListDataResult } from "../../../api/lists/listData";
+import { ListDataActorEntry, ListDataGroupEntry, ListDataResult } from "../../../api/lists/listData";
 import styles from "./[fullListId].module.scss";
 
 interface ListByIdPageProps extends CommonPageProps {
@@ -222,22 +223,22 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		if (!this.listData)
 			return;
 
-		const content = generateCsvFromListData(this.listData, this.t);
+		const columns = this.getDisplayedColumnList();
+		const content = generateCsvFromListData(this.listData, columns, this.t);
 		const contentBlob = new Blob([content], {
 			type: "text/csv;charset=utf-8"
 		});
 
-		this.wikiTextContent = generateWikitextFromListData(this.listData, this.t, this.props.languageCode);
-		this.isWikiTextDialogOpen = true;
-		// const { saveAs } = await import("save-as");
-		// saveAs(contentBlob, `statisticsExport-${moment().format("yyyy-MM-dd-HH-mm-ss.csv")}.csv`);
+		const { saveAs } = await import("save-as");
+		saveAs(contentBlob, `statisticsExport-${moment().format("yyyy-MM-dd-HH-mm-ss.csv")}.csv`);
 	}
 
 	onExportToWikitextButtonClick = () => {
 		if (!this.listData)
 			return;
 
-		this.wikiTextContent = generateWikitextFromListData(this.listData, this.t, this.props.languageCode);
+		const columns = this.getDisplayedColumnList();
+		this.wikiTextContent = generateWikitextFromListData(this.listData, columns, this.t, this.props.languageCode);
 		this.isWikiTextDialogOpen = true;
 	}
 
@@ -347,116 +348,145 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		if (!this.listData)
 			return null;
 
-		return this.listData.list.columns.map((col, idx) => {
-			if (col.isHidden)
-				return null;
-
-			const headerProps: React.ThHTMLAttributes<HTMLTableHeaderCellElement> = {};
-
-			const dataType: CellDataTypes | undefined = Object.prototype.hasOwnProperty.call(LIST_COLUMN_DATATYPE_MAP, col.type)
-				? LIST_COLUMN_DATATYPE_MAP[col.type]
-				: "other";
-
-			return <th
-				key={idx.toString()}
-				className={classnames({
-					[`listColumn-type-${col.type}`]: true,
-					[`listColumn-dataType-${dataType}`]: true
-				})}
-				{...headerProps}
-			>
-				{col.headerI18nKey ? this.t(col.headerI18nKey) : col.type}
-			</th>;
-		});
+		const columnList = this.getDisplayedColumnList();
+		return columnList.map(this.renderSingleTableColumnHeader);
 	}
+
+	private renderSingleTableColumnHeader = (col, idx) => {
+		if (col.isHidden)
+			return null;
+
+		const headerProps: React.ThHTMLAttributes<HTMLTableHeaderCellElement> = {};
+
+		const dataType: CellDataTypes | undefined = Object.prototype.hasOwnProperty.call(LIST_COLUMN_DATATYPE_MAP, col.type)
+			? LIST_COLUMN_DATATYPE_MAP[col.type]
+			: "other";
+
+		return <th
+			key={idx.toString()}
+			className={classnames({
+				[`listColumn-type-${col.type}`]: true,
+				[`listColumn-dataType-${dataType}`]: true
+			})}
+			{...headerProps}
+		>
+			{col.headerI18nKey ? this.t(col.headerI18nKey) : col.type}
+		</th>;
+	};
 
 	private renderTableRows(): React.ReactNode {
 		if (!this.listData)
 			return null;
 
-		return this.listData.results.map((row) => {
-			const classes = {
-				"listRow-fadeUser": this.shouldFadeUser(row)
-			};
+		const isGrouped = this.listData?.list.groupBy && this.listData.list.groupBy.length > 0;
+		const columns = this.getDisplayedColumnList();
 
-			return <tr className={classnames(classes)} key={row.id.toString()}>
-				{this.renderTableRow(row.id, row.data)}
-			</tr>;
+		return this.listData.results.map((row: ListDataActorEntry | ListDataGroupEntry, idx: number) => {
+			if (isGrouped) {
+				const groupRow = row as ListDataGroupEntry;
+
+				return <tr key={idx.toString()}>
+					{this.renderGroupTableRow(columns, groupRow.data, groupRow.users)}
+				</tr>;
+			} else {
+				const actorRow = row as ListDataActorEntry;
+
+				const classes = {
+					"listRow-fadeUser": this.shouldFadeUser(actorRow)
+				};
+
+				return <tr className={classnames(classes)} key={actorRow.actorId.toString()}>
+					{this.renderActorTableRow(actorRow.actorId, actorRow.columnData)}
+				</tr>;
+			}
 		});
 	}
-	private shouldFadeUser(row: ListDataEntry): boolean {
+	private shouldFadeUser(row: ListDataActorEntry): boolean {
 		if (this.props.list?.displaySettings?.fadeBots
-			&& row.actorGroups
-			&& (row.actorGroups.indexOf("bot") !== -1 || row.actorGroups.indexOf(FLAGLESS_BOT_VIRTUAL_GROUP_NAME) !== -1))
+			&& row.groups
+			&& (row.groups.indexOf("bot") !== -1 || row.groups.indexOf(FLAGLESS_BOT_VIRTUAL_GROUP_NAME) !== -1))
 			return true;
 
 		if (this.props.list?.displaySettings?.fadeNonSysops
-			&& (!row.actorGroups || row.actorGroups.indexOf("sysop") === -1))
+			&& (!row.groups || row.groups.indexOf("sysop") === -1))
 			return true;
 
 		return false;
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	private renderTableRow(actorId: number, rowData: any[]): React.ReactNode {
+	private renderActorTableRow(actorId: number, rowData: any[]): React.ReactNode {
 		if (!this.listData)
 			return;
 
 		const listData = this.listData;
 
 		return rowData.map((rowCellData, idx) => {
-			const columnDefinition = listData.list.columns[idx];
-			if (columnDefinition.isHidden)
-				return null;
-
-			const dataType: CellDataTypes | undefined = Object.prototype.hasOwnProperty.call(LIST_COLUMN_DATATYPE_MAP, columnDefinition.type)
-				? LIST_COLUMN_DATATYPE_MAP[columnDefinition.type]
-				: "other";
-
-			let cellContent: React.ReactNode = "–";
-			if (columnDefinition.type === "counter") {
-				cellContent = typeof rowCellData === "number" ? `${rowCellData}.` : "";
-			} else if (columnDefinition.type === "userName") {
-				cellContent = this.renderUserName(actorId, rowCellData, columnDefinition);
-			} else if (columnDefinition.type === "userGroups") {
-				cellContent = this.renderUserGroups(rowCellData);
-			} else if (columnDefinition.type === "levelAtPeriodStart"
-				|| columnDefinition.type === "levelAtPeriodEnd") {
-				cellContent = this.renderUserLevel(rowCellData);
-			} else if (columnDefinition.type === "levelAtPeriodEndWithChange") {
-				cellContent = this.renderUserLevelWithChange(rowCellData);
-			} else if (typeof rowCellData === "number") {
-				if (dataType === "integer") {
-					cellContent = this.intFormatter.format(rowCellData);
-				} else if (dataType === "percentage") {
-					cellContent = this.percentFormatter.format(rowCellData);
-				} else if (dataType === "float") {
-					cellContent = this.floatFormatter.format(rowCellData);
-				} else {
-					cellContent = `unknown number type: ${columnDefinition.type} should be ${dataType}, got: ${rowCellData}`;
-				}
-			} else if (typeof rowCellData === "string") {
-				cellContent = rowCellData;
-			} else if (Array.isArray(rowCellData) && rowCellData.length === 3) {
-				if (rowCellData[0] === 1900) {
-					cellContent = "–";
-				} else {
-					cellContent = moment.utc(rowCellData).format("YYYY-MM-DD");
-				}
-			} else if (rowCellData != null) {
-				cellContent = `${typeof rowCellData}: ${rowCellData}`;
-			}
-
-			return <td
-				key={idx.toString()}
-				className={classnames({
-					[`listCell-type-${columnDefinition.type}`]: true,
-					[`listCell-dataType-${dataType}`]: true
-				})}>
-				{cellContent}
-			</td>;
+			return this.renderRowCellData(listData.list.columns, rowCellData, idx, actorId);
 		});
 	}
+
+	private renderGroupTableRow(groupColumns: ListColumn[], rowData: any[], users: GroupActor[]): React.ReactNode {
+		return [...rowData, users].map((rowCellData, idx) => {
+			return this.renderRowCellData(groupColumns, rowCellData, idx);
+		});
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	private renderRowCellData = (columns: ListColumn[], rowCellData: any, idx: number, actorId: number = -1) => {
+		const columnDefinition = columns[idx];
+		if (columnDefinition.isHidden)
+			return null;
+
+		const dataType: CellDataTypes | undefined = Object.prototype.hasOwnProperty.call(LIST_COLUMN_DATATYPE_MAP, columnDefinition.type)
+			? LIST_COLUMN_DATATYPE_MAP[columnDefinition.type]
+			: "other";
+
+		let cellContent: React.ReactNode = "–";
+		if (columnDefinition.type === "counter") {
+			cellContent = typeof rowCellData === "number" ? `${rowCellData}.` : "";
+		} else if (columnDefinition.type === "userName") {
+			cellContent = this.renderUserName(actorId, rowCellData, columnDefinition);
+		} else if (columnDefinition.type === "userNames") {
+			cellContent = this.renderUserNameList(rowCellData);
+		} else if (columnDefinition.type === "userGroups") {
+			cellContent = this.renderUserGroups(rowCellData);
+		} else if (columnDefinition.type === "levelAtPeriodStart"
+			|| columnDefinition.type === "levelAtPeriodEnd") {
+			cellContent = this.renderUserLevel(rowCellData);
+		} else if (columnDefinition.type === "levelAtPeriodEndWithChange") {
+			cellContent = this.renderUserLevelWithChange(rowCellData);
+		} else if (typeof rowCellData === "number") {
+			if (dataType === "integer") {
+				cellContent = this.intFormatter.format(rowCellData);
+			} else if (dataType === "percentage") {
+				cellContent = this.percentFormatter.format(rowCellData);
+			} else if (dataType === "float") {
+				cellContent = this.floatFormatter.format(rowCellData);
+			} else {
+				cellContent = `unknown number type: ${columnDefinition.type} should be ${dataType}, got: ${rowCellData}`;
+			}
+		} else if (typeof rowCellData === "string") {
+			cellContent = rowCellData;
+		} else if (Array.isArray(rowCellData) && rowCellData.length === 3) {
+			if (rowCellData[0] === 1900) {
+				cellContent = "–";
+			} else {
+				cellContent = moment.utc(rowCellData).format("YYYY-MM-DD");
+			}
+		} else if (rowCellData != null) {
+			cellContent = `${typeof rowCellData}: ${rowCellData}`;
+		}
+
+		return <td
+			key={idx.toString()}
+			className={classnames({
+				[`listCell-type-${columnDefinition.type}`]: true,
+				[`listCell-dataType-${dataType}`]: true
+			})}>
+			{cellContent}
+		</td>;
+	};
 
 	private renderUserName(
 		actorId: number,
@@ -520,6 +550,13 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		</>;
 	}
 
+	private renderUserNameList(users: GroupActor[]) {
+		if (!users || Array.isArray(users) === false)
+			return "";
+
+		return users.map(x => x.name).join(", ");
+	}
+
 	private renderUserGroups(groups: string[]) {
 		if (!groups || Array.isArray(groups) === false)
 			return "";
@@ -549,6 +586,31 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 
 	private static makeWikiLink(wikiBaseUrl: string | null, subUrl: string): string | undefined {
 		return `https://${wikiBaseUrl}/wiki/${subUrl}`;
+	}
+
+	private getDisplayedColumnList(): ListColumn[] {
+		if (!this.listData || !this.listData.list)
+			return [];
+
+		if (!this.listData.list.groupBy || this.listData.list.groupBy.length === 0)
+			return this.listData.list.columns;
+
+		const ret: ListColumn[] = [];
+		for (const columnId of this.listData.list.groupBy) {
+			const referencedColumn = this.listData.list.columns.find(x => x.columnId === columnId);
+			if (referencedColumn) {
+				ret.push(referencedColumn);
+			} else {
+				console.log(`could not find column with id: ${columnId}`);
+			}
+		}
+
+		ret.push({
+			type: "userNames",
+			headerI18nKey: "lists.header.users",
+		});
+
+		return ret;
 	}
 }
 
