@@ -2060,6 +2060,7 @@
 					"direction": "ascending"
 				}
 			],
+			"dateMode": "userSelectable",
 			"displaySettings": {
 				"fadeBots": true
 			}
@@ -2178,6 +2179,7 @@
 					"direction": "ascending"
 				}
 			],
+			"dateMode": "userSelectable",
 			"displaySettings": {
 				"fadeBots": true
 			}
@@ -2223,6 +2225,7 @@
 					"direction": "ascending"
 				}
 			],
+			"dateMode": "userSelectable",
 			"displaySettings": {
 				"fadeBots": true
 			}
