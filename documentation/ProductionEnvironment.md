@@ -30,24 +30,21 @@ Use this to install dependencies using `npm install` (yarn is not available). Fo
 The main command which runs caching of the edit statistics must be run periodically. The job will be scheduled on a job server using the `jsub` command:
 
 ```
-jsub -cwd -mem 2g -once -N wikiStatPortal-dataCacher node ./tools-out/tools/dataCacher/dataCacher
+toolforge-jobs run wikiStatPortal-dataCacher-kube --command ./runWikiEditCacher.sh --image tf-node10-DEPRECATED --mem 2Gi
 ```
 where
-* `-cwd` means that the current working directory (`~/tools`) will be used as the working directory on the job server (it is required by the tool)
-* `-mem 2g` means that 2Gb memory will be allocated for the tool (1g is not enough and the job will be terminated based on tests)
-* `-once` means that if there is an already running instance of the job, no new job will be created
-* `-N wikiStatPortal-dataCacher` is the name of the job
+* The name after run defines the name of the job. This can be used to identify the job.
+* `-mem 2Gi` means that 2Gb memory will be allocated for the tool (1g is not enough and the job will be terminated based on tests)
+* `-image tf-node10-DEPRECATED` means that if NodeJs 10 will be available in the execution environment
 
-The id of the currently running job can be queried using:
+You need to make sure the working directory is correct (it is required by the tool). The most obvious solution is a bash script which  navigates to the correct directory (`~/tools`).
+
+Status of the jobs can be queryied using the following command:
 ```
-job wikiStatPortal-dataCacher
-```
-The status of the currently running job can be queried using the ID returned by either the jsub or the job command using qstat:
-```
-qstat -j 3016746
+toolforge-jobs list
 ```
 
-The job is scheduled using crontab to run every 30 minutes:
+The job is scheduled using crontab to run every hour at '53:
 ```
-30 * * * * cd ./tools && /usr/bin/jsub -cwd -mem 2g -once -N wikiStatPortal-dataCacher-cron node ./tools-out/tools/dataCacher/dataCacher
+toolforge-jobs run wikiStatPortal-dataCacher-kcron --command ./runWikiEditCacher.sh --image tf-node10-DEPRECATED --mem 2Gi --schedule "53 * * * *"
 ```
