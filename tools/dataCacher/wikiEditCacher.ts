@@ -2275,7 +2275,9 @@ export class WikiEditCacher {
 			for (const ele of data) {
 				const activeDays = ele.activeDays;
 				const editsAndLogEvents = ele.edits + ele.logEvents;
-				const currentLevelIndex = this.getUserLevel(activeDays, editsAndLogEvents) + 1;
+				let currentLevelIndex = this.getUserLevel(activeDays, editsAndLogEvents);
+				if (currentLevelIndex !== -1)
+					currentLevelIndex += 1;
 
 				moduleContent += `	["${ele.actorName.replace("\"", "\\\"")}"] = { ${currentLevelIndex}, ${ele.activeDays}, ${ele.edits}, ${ele.logEvents} },\n`;
 			}
