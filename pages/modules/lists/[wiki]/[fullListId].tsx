@@ -570,13 +570,13 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		return data[1];
 	}
 
-	private renderUserLevelWithChange(data: [string, string, boolean]) {
+	private renderUserLevelWithChange(data: [string, string, number, boolean]) {
 		if (!data) {
 			return "–";
 		}
 
 		return <>
-			{data[2] && "🔺"}
+			{data[3] && "🔺"}
 			{data[1]}
 		</>;
 	}

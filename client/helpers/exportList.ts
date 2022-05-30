@@ -66,7 +66,9 @@ export const generateCsvFromListData = (
 					return "–";
 				}
 
-				return (rowData[2] ? "🔺" : "") + rowData[1];
+
+				const changeIndicator = rowData.length > 2 && rowData[3] ? "🔺" : "";
+				return changeIndicator + rowData[1];
 			}
 
 			if (typeof rowData === "number") {
@@ -168,7 +170,9 @@ export const generateWikitextFromListData = (
 					return "–";
 				}
 
-				return rowData[1];
+				const sortKey = rowData.length > 2 ? `{{Rrk|${rowData[2].toFixed()}}}` : "";
+				const levelName = rowData[1].replace(/ /g, "&nbsp");
+				return `${sortKey}${levelName}`;
 			}
 
 			if (columnDefinition.type === "levelAtPeriodEndWithChange") {
@@ -176,7 +180,10 @@ export const generateWikitextFromListData = (
 					return "–";
 				}
 
-				return (rowData[2] ? "{{Szintlépés}}" : "") + rowData[1];
+				const sortKey = rowData.length > 2 ? `{{Rrk|${rowData[2].toFixed()}}}` : "";
+				const levelName = rowData[1].replace(/ /g, "&nbsp");
+				const levelUp = rowData[3] ? "{{Szintlépés}}" : "";
+				return `${sortKey}${levelUp}${levelName}`;
 			}
 
 			if (typeof rowData === "number") {

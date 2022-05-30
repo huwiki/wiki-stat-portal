@@ -2889,14 +2889,14 @@ function updateCalculatedColums(
 			} else if (columnDefinition.type === "levelAtPeriodStart") {
 				const startLevel = getUserLevelWithDetails(ctx.wiki.serviceAwardLevels, actor, ctx.startDate);
 				if (startLevel.currentLevel) {
-					actor[columnId] = [startLevel.currentLevel.id, startLevel.currentLevel.label];
+					actor[columnId] = [startLevel.currentLevel.id, startLevel.currentLevel.label, startLevel.levelSortOrder];
 				} else {
 					actor[columnId] = null;
 				}
 			} else if (columnDefinition.type === "levelAtPeriodEnd") {
 				const endLevel = getUserLevelWithDetails(ctx.wiki.serviceAwardLevels, actor, ctx.endDate);
 				if (endLevel.currentLevel) {
-					actor[columnId] = [endLevel.currentLevel.id, endLevel.currentLevel.label];
+					actor[columnId] = [endLevel.currentLevel.id, endLevel.currentLevel.label, endLevel.levelSortOrder];
 				} else {
 					actor[columnId] = null;
 				}
@@ -2908,6 +2908,7 @@ function updateCalculatedColums(
 					actor[columnId] = [
 						endLevel.currentLevel.id,
 						endLevel.currentLevel.label,
+						endLevel.levelSortOrder,
 						startLevel.currentLevel == null || startLevel.currentLevel.id !== endLevel.currentLevel.id
 					];
 				} else {
@@ -3364,10 +3365,20 @@ function doGrouping(ctx: StatisticsQueryBuildingContext, actorResults: ActorResu
 
 		for (const groupColumnId of groupBy) {
 			const index = columnIndices.get(groupColumnId);
-			if (index == null)
+			const column = columnReferences.get(groupColumnId);
+			if (index == null || column == null)
 				continue;
 
-			const columnValue = actor.columnData[index];
+			let columnValue = actor.columnData[index];
+			if (columnValue
+				&& (column.type === "levelAtPeriodStart"
+					|| column.type === "levelAtPeriodEnd"
+					|| column.type === "levelAtPeriodEndWithChange")
+			) {
+				// Chop off level sort order && change indicator
+				columnValue = (columnValue as Array<unknown>).slice(0, 2);
+			}
+
 			bucket.push(columnValue);
 		}
 
