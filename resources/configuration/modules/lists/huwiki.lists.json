@@ -2118,7 +2118,7 @@
 			"userRequirements": {
 				"registrationStatus": "registered",
 				"serviceAwardLevel": "hasLevelAndChanged",
-				"notInAnyUserGroups": [
+				"notInAllUserGroups": [
 					"bot",
 					"flaglessBot"
 				]
@@ -2192,13 +2192,14 @@
 			"userRequirements": {
 				"registrationStatus": "registered",
 				"serviceAwardLevel": "hasLevelAndChanged",
-				"notInAnyUserGroups": [
+				"notInAllUserGroups": [
 					"bot",
 					"flaglessBot"
 				]
 			},
 			"columns": [
 				{
+					"columnId": "levelAtPeriodEnd",
 					"type": "levelAtPeriodEnd",
 					"headerI18nKey": "lists.header.serviceAward.levelAtPeriodEnd"
 				},
