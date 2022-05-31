@@ -16,10 +16,6 @@ export class Page {
 	@Column({ name: "page_title", type: "varbinary", length: 255, transformer: bufferToStringTransformer })
 	public title: string;
 
-	// page_restrictions varbinary(255)
-	@Column({ name: "page_restrictions", type: "varbinary", length: 255, scale: 0, transformer: bufferToStringTransformer })
-	public restrictions: string;
-
 	// page_is_redirect tinyint(1) UN
 	@Column({ name: "page_is_redirect", type: "tinyint", unsigned: true, transformer: intToBooleanTransformer })
 	public isRedirect: boolean;
