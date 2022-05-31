@@ -30,7 +30,7 @@ Use this to install dependencies using `npm install` (yarn is not available). Fo
 The main command which runs caching of the edit statistics must be run periodically. The job will be scheduled on a job server using the `jsub` command:
 
 ```
-toolforge-jobs run wikiStatPortal-dataCacher-kube --command ./runWikiEditCacher.sh --image tf-node10-DEPRECATED --mem 2Gi
+toolforge-jobs run wikistatportal-datacacher-kube --command ./runWikiEditCacher.sh --image tf-node10-DEPRECATED --mem 2Gi
 ```
 where
 * The name after run defines the name of the job. This can be used to identify the job.
@@ -46,5 +46,5 @@ toolforge-jobs list
 
 The job is scheduled using crontab to run every hour at '53:
 ```
-toolforge-jobs run wikiStatPortal-dataCacher-kcron --command ./runWikiEditCacher.sh --image tf-node10-DEPRECATED --mem 2Gi --schedule "53 * * * *"
+toolforge-jobs run wikistatportal-datacacher-kcron --command ./runWikiEditCacher.sh --image tf-node10-DEPRECATED --mem 2Gi --schedule "53 * * * *"
 ```
