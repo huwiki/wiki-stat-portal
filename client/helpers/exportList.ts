@@ -171,7 +171,7 @@ export const generateWikitextFromListData = (
 				}
 
 				const sortKey = rowData.length > 2 ? `{{Rrk|${rowData[2].toFixed()}}}` : "";
-				const levelName = rowData[1].replace(/ /g, "&nbsp");
+				const levelName = rowData[1].replace(/ /g, "&nbsp;");
 				return `${sortKey}${levelName}`;
 			}
 
@@ -181,7 +181,7 @@ export const generateWikitextFromListData = (
 				}
 
 				const sortKey = rowData.length > 2 ? `{{Rrk|${rowData[2].toFixed()}}}` : "";
-				const levelName = rowData[1].replace(/ /g, "&nbsp");
+				const levelName = rowData[1].replace(/ /g, "&nbsp;");
 				const levelUp = rowData[3] ? "{{Szintlépés}}" : "";
 				return `${sortKey}${levelUp}${levelName}`;
 			}
