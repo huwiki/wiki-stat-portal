@@ -313,9 +313,10 @@ export class WikiEditCacher {
 				CONVERT(templatePage.page_title USING UTF8) as templatePageName
 			FROM templatelinks tl
 			LEFT JOIN page AS referrer ON tl.tl_from = referrer.page_id AND tl.tl_from_namespace = referrer.page_namespace
-			LEFT JOIN page AS templatePage ON templatePage.page_title = tl.tl_title AND templatePage.page_namespace = tl.tl_namespace
+			LEFT JOIN linktarget as usedTemplate ON tl.tl_target_id = usedTemplate.lt_id
+			LEFT JOIN page AS templatePage ON templatePage.page_title = usedTemplate.lt_title AND templatePage.page_namespace = usedTemplate.lt_namespace
 			WHERE (tl_from_namespace = 2 OR tl_from_namespace = 3)
-				AND tl_namespace = 10
+				AND usedTemplate.lt_namespace = 10
 				AND referrer.page_title NOT LIKE "%/%"
 				AND templatePage.page_title LIKE "%-meta"
 				AND templatePage.page_id IS NOT NULL;
