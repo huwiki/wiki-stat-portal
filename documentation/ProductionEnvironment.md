@@ -27,7 +27,7 @@ For a webservice shell you can use: `webservice --backend=kubernetes node12 shel
 Use this to install dependencies using `npm install` (yarn is not available). For the normal project account, node.js 10 is not available.
 
 # Setting up continuous job
-The main command which runs caching of the edit statistics must be run periodically. The job will be scheduled on a job server using the `jsub` command:
+The main command which runs caching of the edit statistics must be run periodically. The job will be scheduled on a job server using the `toolforge-jobs` command:
 
 ```
 toolforge-jobs run wikistatportal-datacacher-kube --command ./runWikiEditCacher.sh --image tf-node10-DEPRECATED --mem 2Gi
