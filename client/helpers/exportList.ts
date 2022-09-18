@@ -1,4 +1,4 @@
-import { stringify } from "csv-stringify/dist/umd/sync";
+import { stringify } from "csv-stringify/browser/esm/sync";
 import moment from "moment";
 import { GroupActor } from "../../common/interfaces/statisticsQueryModels";
 import { ListColumn, ListConfiguration } from "../../common/modules/lists/listsConfiguration";
@@ -170,7 +170,7 @@ export const generateWikitextFromListData = (
 					return "–";
 				}
 
-				const sortKey = rowData.length > 2 ? `{{Rrk|${rowData[2].toFixed()}}}` : "";
+				const sortKey = rowData.length > 2 ? `{{Rrk|${rowData[2].toFixed(4)}}}` : "";
 				const levelName = rowData[1].replace(/ /g, "&nbsp;");
 				return `${sortKey}${levelName}`;
 			}
@@ -180,7 +180,7 @@ export const generateWikitextFromListData = (
 					return "–";
 				}
 
-				const sortKey = rowData.length > 2 ? `{{Rrk|${rowData[2].toFixed()}}}` : "";
+				const sortKey = rowData.length > 2 ? `{{Rrk|${rowData[2].toFixed(4)}}}` : "";
 				const levelName = rowData[1].replace(/ /g, "&nbsp;");
 				const levelUp = rowData[3] ? "{{Szintlépés}}" : "";
 				return `${sortKey}${levelUp}${levelName}`;

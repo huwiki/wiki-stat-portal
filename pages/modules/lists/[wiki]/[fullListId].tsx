@@ -1,6 +1,6 @@
 import { AnchorButton, Button, Callout, Classes, Dialog, HTMLTable, Intent, Menu, MenuDivider, MenuItem, Popover, Position, Spinner, TextArea } from "@blueprintjs/core";
 import Axios from "axios";
-import * as classnames from "classnames";
+import classnames from "classnames";
 import { action, computed, makeObservable, observable } from "mobx";
 import { observer } from "mobx-react";
 import moment from "moment";
@@ -332,7 +332,7 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		if (col.isHidden)
 			return null;
 
-		const headerProps: React.ThHTMLAttributes<HTMLTableHeaderCellElement> = {};
+		const headerProps: React.ThHTMLAttributes<HTMLTableCellElement> = {};
 
 		const dataType: CellDataTypes | undefined = Object.prototype.hasOwnProperty.call(LIST_COLUMN_DATATYPE_MAP, col.type)
 			? LIST_COLUMN_DATATYPE_MAP[col.type]

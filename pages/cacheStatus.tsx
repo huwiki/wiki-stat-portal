@@ -3,7 +3,6 @@ import { observer } from "mobx-react";
 import moment from "moment";
 import { NextPageContext } from "next";
 import { withRouter } from "next/router";
-import * as React from "react";
 import { PageFrame } from "../client/components/pageFrame";
 import { NextBasePage } from "../client/helpers/nextBasePage";
 import { CommonPageProps } from "../common/interfaces/commonPageProps";

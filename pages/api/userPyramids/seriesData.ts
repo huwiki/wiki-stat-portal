@@ -104,9 +104,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 const processParameters = (
 	appCtx: AppRunningContext,
 	res: NextApiResponse,
-	rawWikiId: string | string[],
-	rawPyramidId: string | string[],
-	rawDate: string | string[]
+	rawWikiId: string | string[] | undefined,
+	rawPyramidId: string | string[] | undefined,
+	rawDate: string | string[] | undefined
 ): {
 	isValid: boolean;
 	wiki?: KnownWiki;

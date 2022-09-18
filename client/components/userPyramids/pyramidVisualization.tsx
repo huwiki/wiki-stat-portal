@@ -1,5 +1,5 @@
 import { Position, Tooltip } from "@blueprintjs/core";
-import * as classnames from "classnames";
+import classnames from "classnames";
 import * as React from "react";
 import pyramidVisualizationStyles from "./pyramidVisualization.module.scss";
 

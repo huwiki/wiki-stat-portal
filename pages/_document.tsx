@@ -1,6 +1,5 @@
 import Document, { DocumentContext, DocumentInitialProps, Head, Html, Main, NextScript } from "next/document";
 import { parseCookies } from "nookies";
-import * as React from "react";
 
 interface WikiStatDocumentProps extends DocumentInitialProps {
 	languageCode: string;

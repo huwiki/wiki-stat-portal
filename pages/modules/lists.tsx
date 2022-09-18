@@ -1,11 +1,10 @@
 import { Button, Card, Icon } from "@blueprintjs/core";
 import { IconName } from "@blueprintjs/icons";
-import * as classnames from "classnames";
+import classnames from "classnames";
 import { makeObservable, observable } from "mobx";
 import { observer } from "mobx-react";
 import { NextPageContext } from "next";
 import { withRouter } from "next/router";
-import * as React from "react";
 import { PageFrame } from "../../client/components/pageFrame";
 import { NextBasePage } from "../../client/helpers/nextBasePage";
 import { SelectableValue } from "../../client/models/selectableValue";

@@ -11,8 +11,6 @@
 		"run:dataCacher": " node tools-out/tools/dataCacher/dataCacher"
 	},
 	"dependencies": {
-		"@babel/plugin-proposal-class-properties": "^7.12.1",
-		"@babel/plugin-proposal-decorators": "^7.12.1",
 		"@blueprintjs/core": "^3.51.3",
 		"@blueprintjs/datetime": "^3.23.18",
 		"@blueprintjs/select": "^3.18.10",
@@ -28,10 +26,10 @@
 		"moment-timezone": "^0.5.31",
 		"mwn": "^1.11.4",
 		"mysql2": "^2.2.5",
-		"next": "10.0.0",
-		"nookies": "^2.4.1",
-		"react": "16.14.0",
-		"react-dom": "16.14.0",
+		"next": "^12.3.0",
+		"nookies": "^2.5.2",
+		"react": "17",
+		"react-dom": "17",
 		"react-string-format": "^0.1.0",
 		"reflect-metadata": "^0.1.10",
 		"sass": "^1.27.0",
@@ -41,6 +39,9 @@
 		"winston-daily-rotate-file": "^4.5.0"
 	},
 	"devDependencies": {
+		"@babel/core": "^7.19.1",
+		"@babel/plugin-proposal-class-properties": "^7.12.1",
+		"@babel/plugin-proposal-decorators": "^7.19.1",
 		"@types/lodash": "^4.14.164",
 		"@types/moment-timezone": "^0.5.30",
 		"@types/node": "^14",

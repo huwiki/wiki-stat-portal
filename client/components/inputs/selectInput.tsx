@@ -1,6 +1,6 @@
 import { Classes, Icon, MenuItem } from "@blueprintjs/core";
 import { IItemRendererProps, Select } from "@blueprintjs/select";
-import * as classnames from "classnames";
+import classnames from "classnames";
 import { observer } from "mobx-react";
 import * as React from "react";
 import { InputProps, InputWrapper } from "./inputWrapper";

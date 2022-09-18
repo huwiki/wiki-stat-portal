@@ -1,4 +1,4 @@
-import { NextPageContext } from "next/dist/next-server/lib/utils";
+import { NextPageContext } from "next";
 import { parseCookies } from "nookies";
 import { CommonPageProps } from "../../common/interfaces/commonPageProps";
 import { AppRunningContext } from "../appRunningContext";

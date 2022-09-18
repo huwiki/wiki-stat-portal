@@ -1,5 +1,5 @@
 import { Button, Classes, Icon, IconName, Menu, MenuItem, Navbar, NavbarDivider, NavbarGroup, NavbarHeading, Popover, Tooltip } from "@blueprintjs/core";
-import * as classNames from "classnames";
+import classNames from "classnames";
 import Head from "next/head";
 import { NextRouter } from "next/router";
 import { setCookie } from "nookies";
