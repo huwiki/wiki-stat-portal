@@ -1,7 +1,9 @@
-body {
-	background-color: #263038;
+@import "~@blueprintjs/core/lib/scss/variables";
 
-	.bp3-select-popover {
+body {
+	background-color: $dark-gray2;
+
+	.#{$ns}-select-popover {
 		max-height: 400px;
 		overflow: auto;
 		overflow-x: hidden;
@@ -16,10 +18,10 @@ body {
 	display: flex;
 	align-items: center;
 
-	.bp3-popover-wrapper {
+	.#{$ns}-popover-wrapper {
 		display: inline-block;
 
-		.bp3-popover-target {
+		.#{$ns}-popover-target {
 			display: inline-block;
 		}
 	}
@@ -36,7 +38,7 @@ body {
 		margin: 0px;
 	}
 
-	.moduleCardIcon.bp3-icon {
+	.moduleCardIcon.#{$ns}-icon {
 		opacity: 0.1;
 		position: absolute;
 		left: calc(100% - 80px);

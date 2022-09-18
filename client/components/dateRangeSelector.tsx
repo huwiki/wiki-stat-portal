@@ -1,4 +1,5 @@
-import { Button, Classes, NumericInput, Popover } from "@blueprintjs/core";
+import { Button, Classes, NumericInput } from "@blueprintjs/core";
+import { Popover2 } from "@blueprintjs/popover2";
 import { configure, makeObservable, observable } from "mobx";
 import { observer } from "mobx-react";
 import moment from "moment";
@@ -52,11 +53,11 @@ export class DateRangeSelector extends React.Component<DateRangeSelectorProps> {
 				localizationProvider={this.props.localizationProvider}
 				disabled={this.props.disabled}
 			/>
-			<Popover content={this.renderQuickDateRangeSelector()}
+			<Popover2 content={this.renderQuickDateRangeSelector()}
 				disabled={this.props.disabled}
 				position="bottom">
 				<Button icon="lightning" disabled={this.props.disabled} />
-			</Popover>
+			</Popover2>
 		</div>;
 	}
 

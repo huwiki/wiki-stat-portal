@@ -1,4 +1,5 @@
-import { AnchorButton, Button, Callout, Classes, Dialog, HTMLTable, Intent, Menu, MenuDivider, MenuItem, Popover, Position, Spinner, TextArea } from "@blueprintjs/core";
+import { AnchorButton, Button, Callout, Classes, Dialog, HTMLTable, Intent, Menu, MenuDivider, MenuItem, Spinner, TextArea } from "@blueprintjs/core";
+import { Popover2 } from "@blueprintjs/popover2";
 import Axios from "axios";
 import classnames from "classnames";
 import { action, computed, makeObservable, observable } from "mobx";
@@ -174,7 +175,7 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 	}
 
 	private renderTitleActions() {
-		return <Popover minimal
+		return <Popover2 minimal
 			placement="top-end"
 			content={this.renderExportMenu()}
 			disabled={this.isLoading === true}
@@ -183,7 +184,7 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 				text={this.t("lists.export")}
 				rightIcon="caret-down"
 				disabled={this.isLoading === true} />
-		</Popover>;
+		</Popover2>;
 	}
 
 	private renderExportMenu() {
@@ -523,8 +524,8 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 		return <>
 			<div className="userNameCell-firstRow">
 				<b>{userName}</b>
-				{userLinks.length > 0 && <Popover
-					position={Position.BOTTOM}
+				{userLinks.length > 0 && <Popover2
+					position="bottom"
 					content={<Menu>
 						{userLinks}
 						<MenuDivider title="Debug info" />
@@ -534,7 +535,7 @@ class ListByIdPage extends NextBasePage<ListByIdPageProps> {
 					</Menu>}
 				>
 					<AnchorButton className="userLinks-button" small minimal icon="menu" />
-				</Popover>}
+				</Popover2>}
 			</div>
 		</>;
 	}

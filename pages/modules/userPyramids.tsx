@@ -1,4 +1,5 @@
-import { AnchorButton, Button, Callout, Icon, IconName, Intent, Spinner, Switch, Tooltip } from "@blueprintjs/core";
+import { AnchorButton, Button, Callout, Icon, IconName, Intent, Spinner, Switch } from "@blueprintjs/core";
+import { Tooltip2 } from "@blueprintjs/popover2";
 import Axios from "axios";
 import { format as dateFormat, isSameDay } from "date-fns";
 import { computed, makeObservable, observable } from "mobx";
@@ -436,23 +437,23 @@ class UserPyramidModulePage extends NextBasePage<UserPyramidModulePageProps> {
 					<span className={userPyramidsStyles.seriesFailedToLoad}>
 						{this.t("userPyramids.seriesFailedToLoad")}
 					</span>
-					<Tooltip content={this.t("userPyramids.series.retry")}>
+					<Tooltip2 content={this.t("userPyramids.series.retry")}>
 						<AnchorButton
 							icon="refresh"
 							small
 							intent={Intent.WARNING}
 							minimal
 							onClick={() => this.loadSeries(series)} />
-					</Tooltip>
+					</Tooltip2>
 				</>}
-			<Tooltip content={this.t("userPyramids.series.delete")}>
+			<Tooltip2 content={this.t("userPyramids.series.delete")}>
 				<AnchorButton
 					icon="cross"
 					small
 					intent={Intent.DANGER}
 					minimal
 					onClick={this.deleteSeries(series)} />
-			</Tooltip>
+			</Tooltip2>
 		</div>);
 	}
 

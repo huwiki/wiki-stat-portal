@@ -1,4 +1,5 @@
-import { Button, Classes, Icon, IconName, Menu, MenuItem, Navbar, NavbarDivider, NavbarGroup, NavbarHeading, Popover, Tooltip } from "@blueprintjs/core";
+import { Button, Classes, Icon, IconName, Menu, MenuItem, Navbar, NavbarDivider, NavbarGroup, NavbarHeading } from "@blueprintjs/core";
+import { Popover2, Tooltip2 } from "@blueprintjs/popover2";
 import classNames from "classnames";
 import Head from "next/head";
 import { NextRouter } from "next/router";
@@ -75,11 +76,11 @@ export class PageFrame extends React.Component<PageFrameProps> {
 				</NavbarGroup>
 
 				<NavbarGroup align="right">
-					<Popover content={this.renderLanguageSelectorMenu()}>
-						<Tooltip content={this.t("changeLanguage")}>
+					<Popover2 content={this.renderLanguageSelectorMenu()}>
+						<Tooltip2 content={this.t("changeLanguage")}>
 							<Button icon="translate" minimal />
-						</Tooltip>
-					</Popover>
+						</Tooltip2>
+					</Popover2>
 				</NavbarGroup>
 			</div>
 		</Navbar>;

@@ -1,3 +1,4 @@
+import { Classes } from "@blueprintjs/core";
 import Document, { DocumentContext, DocumentInitialProps, Head, Html, Main, NextScript } from "next/document";
 import { parseCookies } from "nookies";
 
@@ -18,7 +19,7 @@ class WikiStatDocument extends Document<WikiStatDocumentProps> {
 	render(): JSX.Element {
 		return <Html>
 			<Head />
-			<body className="bp3-dark">
+			<body className={Classes.getClassNamespace() + "-dark"}>
 				<Main />
 				<NextScript />
 			</body>

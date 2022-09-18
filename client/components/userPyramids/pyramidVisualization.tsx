@@ -1,4 +1,5 @@
-import { Position, Tooltip } from "@blueprintjs/core";
+import { Position } from "@blueprintjs/core";
+import { Tooltip2 } from "@blueprintjs/popover2";
 import classnames from "classnames";
 import * as React from "react";
 import pyramidVisualizationStyles from "./pyramidVisualization.module.scss";
@@ -163,7 +164,7 @@ export class PyramidVisualization extends React.Component<IPyramidVisualizationP
 		return <div key={group.id} className={pyramidVisualizationStyles.tableRow}>
 			<div className={pyramidVisualizationStyles.groupLabel}>
 				{group.tooltip
-					? <Tooltip position={Position.BOTTOM_LEFT} content={group.tooltip}>{group.description}</Tooltip>
+					? <Tooltip2 position={Position.BOTTOM_LEFT} content={group.tooltip}>{group.description}</Tooltip2>
 					: group.description}
 			</div>
 			<div className={pyramidVisualizationStyles.bars}>
