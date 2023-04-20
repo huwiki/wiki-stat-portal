@@ -65,7 +65,7 @@ CREATE TABLE `huwiki_daily_stats` (
 	`daily_reverted_edits` int(11) NOT NULL,
 	`reverted_edits_to_date` int(11) NOT NULL,
 	`daily_character_changes` int(11) NOT NULL,
-	`character_changes_to_date` int(11) NOT NULL,
+	`character_changes_to_date` bigint NOT NULL,
 	`daily_received_thanks` int(11) NOT NULL,
 	`received_thanks_to_date` int(11) NOT NULL,
 	`daily_sent_thanks` int(11) NOT NULL,
@@ -108,7 +108,7 @@ CREATE TABLE `huwiki_daily_stats_by_ns` (
 	`daily_reverted_edits` int(11) NOT NULL,
 	`reverted_edits_to_date` int(11) NOT NULL,
 	`daily_character_changes` int(11) NOT NULL,
-	`character_changes_to_date` int(11) NOT NULL,
+	`character_changes_to_date` bigint NOT NULL,
 	`daily_log_events` int(11) NOT NULL,
 	`log_events_to_date` int(11) NOT NULL,
 	PRIMARY KEY (`namespace`, `date`)
@@ -139,7 +139,7 @@ CREATE TABLE `huwiki_edit_stats_by_tag` (
 	`daily_edits` int(11) NOT NULL,
 	`edits_to_date` int(11) NOT NULL,
 	`daily_character_changes` int(11) NOT NULL,
-	`character_changes_to_date` int(11) NOT NULL,
+	`character_changes_to_date` bigint NOT NULL,
 	PRIMARY KEY (`change_tag_id`, `date`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
@@ -164,7 +164,7 @@ CREATE TABLE `huwiki_edit_stats_by_ns_tag` (
 	`daily_edits` int(11) NOT NULL,
 	`edits_to_date` int(11) NOT NULL,
 	`daily_character_changes` int(11) NOT NULL,
-	`character_changes_to_date` int(11) NOT NULL,
+	`character_changes_to_date` bigint NOT NULL,
 	PRIMARY KEY (`namespace`, `change_tag_id`, `date`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 

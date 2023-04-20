@@ -36,3 +36,8 @@ export const intToBooleanTransformer = {
 		? (source ? 1 : 0)
 		: null
 };
+
+export const bigintStringToNumberTransformer = {
+	from: (bigint: string | null): number | undefined => bigint != null ? parseInt(bigint, 10) : undefined,
+	to: (bigint?: number): string | undefined => bigint?.toString(),
+};

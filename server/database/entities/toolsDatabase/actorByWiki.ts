@@ -1,5 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn } from "typeorm";
-import { intToBooleanTransformer } from "../../transformers";
+import { bigintStringToNumberTransformer, intToBooleanTransformer } from "../../transformers";
 
 /**
  * Type models for these classes are required so we can type the return value of `createActorEntitiesForWiki` method
@@ -437,7 +437,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@Column({ name: "daily_character_changes", type: "int" })
 		public dailyCharacterChanges: number;
 
-		@Column({ name: "character_changes_to_date", type: "int" })
+		@Column({ name: "character_changes_to_date", type: "bigint", transformer: bigintStringToNumberTransformer })
 		public characterChangesToDate: number;
 
 		@Column({ name: "daily_received_thanks", type: "int" })
@@ -539,7 +539,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@Column({ name: "daily_character_changes", type: "int" })
 		public dailyCharacterChanges: number;
 
-		@Column({ name: "character_changes_to_date", type: "int" })
+		@Column({ name: "character_changes_to_date", type: "bigint", transformer: bigintStringToNumberTransformer })
 		public characterChangesToDate: number;
 
 		@Column({ name: "daily_log_events", type: "int" })
@@ -602,7 +602,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@Column({ name: "daily_character_changes", type: "int" })
 		public dailyCharacterChanges: number;
 
-		@Column({ name: "character_changes_to_date", type: "int" })
+		@Column({ name: "character_changes_to_date", type: "bigint", transformer: bigintStringToNumberTransformer })
 		public characterChangesToDate: number;
 	}
 
@@ -650,7 +650,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@Column({ name: "daily_character_changes", type: "int" })
 		public dailyCharacterChanges: number;
 
-		@Column({ name: "character_changes_to_date", type: "int" })
+		@Column({ name: "character_changes_to_date", type: "bigint", transformer: bigintStringToNumberTransformer })
 		public characterChangesToDate: number;
 	}
 
