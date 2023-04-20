@@ -1,6 +1,6 @@
 # Tech stack
 
-The site uses Next.js for the backend under Node.js 10+. Node 10 support is required as this is the current latest supported version of Node.js on the Wikimedia ToolForge platform.
+The site uses Next.js for the backend under Node.js 16. Node 16 is required because it is the current latest supported version of Node.js on the Wikimedia ToolForge platform.
 
 For the frontend we use React. Our main React component library is BlueprintJS, and we use MobX for state management. CSS is written using SASS (SCSS).
 
@@ -8,7 +8,7 @@ For data storage we use a [user database](https://wikitech.wikimedia.org/wiki/He
 
 Support target of the site is the latest version of Firefox and Chrome. As of now, no special considerations were taken to support older browsers (e.g. Internet Explorer, non-chromium Edge).
 
-Only Linux (Ubuntu and Debian) is supported for now as it is the platform of the Wikimedia ToolForge platform.
+Only Linux (Ubuntu and Debian) is supported for now as it is the platform of the Wikimedia ToolForge platform but it should run on other platforms with minimal effort.
 
 # Repository layout
 
