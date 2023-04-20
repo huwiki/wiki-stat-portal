@@ -340,7 +340,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@Column({ name: "cache_entry_end_date", type: "date" })
 		public endDate: Date;
 
-		@Column({ name: "cache_entry_content", type: "varchar", length: 255, charset: "utf8" })
+		@Column({ name: "cache_entry_content", type: "varchar", length: 255, charset: "utf8mb4" })
 		public content: string;
 	}
 
@@ -349,7 +349,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@PrimaryColumn({ name: "template_page_id", type: "bigint", unsigned: true })
 		public templatePageId: number;
 
-		@Column({ name: "template_name", type: "varchar", length: 255, charset: "utf8" })
+		@Column({ name: "template_name", type: "varchar", length: 255, charset: "utf8mb4" })
 		public templateName: string;
 	}
 
@@ -358,7 +358,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@PrimaryColumn({ name: "change_tag_def_id", type: "bigint", unsigned: true })
 		public changeTagDefinitionId: number;
 
-		@Column({ name: "change_tag_def_name", type: "varchar", length: 255, charset: "utf8" })
+		@Column({ name: "change_tag_def_name", type: "varchar", length: 255, charset: "utf8mb4" })
 		public changeTagDefinitionName: string;
 	}
 
@@ -367,7 +367,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@PrimaryColumn({ name: "actor_id", type: "bigint", unsigned: true })
 		public actorId: number;
 
-		@Column({ name: "actor_name", type: "varchar", length: 255, charset: "utf8" })
+		@Column({ name: "actor_name", type: "varchar", length: 255, charset: "utf8mb4" })
 		public actorName: string;
 
 		@Column({ name: "is_registered", type: "tinyint", transformer: intToBooleanTransformer })
@@ -404,7 +404,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@JoinColumn({ name: "actor_id" })
 		public actor: Actor;
 
-		@PrimaryColumn({ name: "group_name", type: "varchar", length: 255, charset: "utf8" })
+		@PrimaryColumn({ name: "group_name", type: "varchar", length: 255, charset: "utf8mb4" })
 		public groupName: string;
 	}
 
@@ -683,7 +683,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 	@Entity({ name: logStatisticsByLogTypeTableName })
 	class LogStatisticsByLogType {
-		@Column({ name: "log_type", type: "varchar", length: 32, charset: "utf8" })
+		@Column({ name: "log_type", type: "varchar", length: 32, charset: "utf8mb4" })
 		public logType: string;
 
 		@PrimaryColumn({ type: "date" })
@@ -701,7 +701,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@PrimaryColumn({ name: "actor_id", type: "bigint" })
 		public actorId: number;
 
-		@Column({ name: "log_type", type: "varchar", length: 32, charset: "utf8" })
+		@Column({ name: "log_type", type: "varchar", length: 32, charset: "utf8mb4" })
 		public logType: string;
 
 		@PrimaryColumn({ type: "date" })
@@ -716,7 +716,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 	@Entity({ name: logStatisticsByLogActionTableName })
 	class LogStatisticsByLogAction {
-		@PrimaryColumn({ name: "log_action", type: "varchar", length: 32, charset: "utf8" })
+		@PrimaryColumn({ name: "log_action", type: "varchar", length: 32, charset: "utf8mb4" })
 		public logAction: string;
 
 		@PrimaryColumn({ type: "date" })
@@ -734,7 +734,7 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@PrimaryColumn({ name: "actor_id", type: "bigint" })
 		public actorId: number;
 
-		@PrimaryColumn({ name: "log_action", type: "varchar", length: 32, charset: "utf8" })
+		@PrimaryColumn({ name: "log_action", type: "varchar", length: 32, charset: "utf8mb4" })
 		public logAction: string;
 
 		@PrimaryColumn({ type: "date" })
@@ -749,10 +749,10 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 
 	@Entity({ name: logStatisticsByLogTypeAndLogActionTableName })
 	class LogStatisticsByLogTypeAndLogAction {
-		@PrimaryColumn({ name: "log_type", type: "varchar", length: 32, charset: "utf8" })
+		@PrimaryColumn({ name: "log_type", type: "varchar", length: 32, charset: "utf8mb4" })
 		public logType: string;
 
-		@PrimaryColumn({ name: "log_action", type: "varchar", length: 32, charset: "utf8" })
+		@PrimaryColumn({ name: "log_action", type: "varchar", length: 32, charset: "utf8mb4" })
 		public logAction: string;
 
 		@PrimaryColumn({ type: "date" })
@@ -770,10 +770,10 @@ export const createActorEntitiesForWiki = (wikiId: string): WikiStatisticsTypesR
 		@PrimaryColumn({ name: "actor_id", type: "bigint" })
 		public actorId: number;
 
-		@PrimaryColumn({ name: "log_type", type: "varchar", length: 32, charset: "utf8" })
+		@PrimaryColumn({ name: "log_type", type: "varchar", length: 32, charset: "utf8mb4" })
 		public logType: string;
 
-		@PrimaryColumn({ name: "log_action", type: "varchar", length: 32, charset: "utf8" })
+		@PrimaryColumn({ name: "log_action", type: "varchar", length: 32, charset: "utf8mb4" })
 		public logAction: string;
 
 		@PrimaryColumn({ type: "date" })

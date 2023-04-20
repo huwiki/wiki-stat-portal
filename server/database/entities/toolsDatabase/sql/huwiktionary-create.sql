@@ -6,7 +6,7 @@
 -- Actor table
 CREATE TABLE `huwiktionary_actor` (
 	`actor_id` bigint(20) NOT NULL,
-	`actor_name` varchar(255) CHARACTER SET utf8 NOT NULL,
+	`actor_name` varchar(255) CHARACTER SET utf8mb4 NOT NULL,
 	`is_registered` tinyint(1) NOT NULL,
 	`registration_timestamp` datetime DEFAULT NULL,
 	`is_registration_timestamp_from_first_edit` tinyint(1) DEFAULT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE `huwiktionary_actor` (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 CREATE TABLE `huwiktionary_actor_groups` (
 	`actor_id` bigint(20) NOT NULL,
-	`group_name` varchar(255) CHARACTER SET utf8 NOT NULL,
+	`group_name` varchar(255) CHARACTER SET utf8mb4 NOT NULL,
 	PRIMARY KEY (`actor_id`, `group_name`),
 	CONSTRAINT `huwiktionary_actor_groups_actor` FOREIGN KEY (`actor_id`) REFERENCES `huwiktionary_actor` (`actor_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
@@ -150,7 +150,7 @@ CREATE TABLE `huwiktionary_actor_edit_stats_by_ns_tag` (
 
 -- Statistics by log type
 CREATE TABLE `huwiktionary_log_stats_by_type` (
-	`log_action` varchar(32) CHARACTER SET utf8 NOT NULL,
+	`log_action` varchar(32) CHARACTER SET utf8mb4 NOT NULL,
 	`date` date NOT NULL,
 	`daily_log_events` int(11) NOT NULL,
 	`log_events_to_date` int(11) NOT NULL,
@@ -159,7 +159,7 @@ CREATE TABLE `huwiktionary_log_stats_by_type` (
 
 CREATE TABLE `huwiktionary_actor_log_stats_by_type` (
 	`actor_id` bigint(20) NOT NULL,
-	`log_type` varchar(32) CHARACTER SET utf8 NOT NULL,
+	`log_type` varchar(32) CHARACTER SET utf8mb4 NOT NULL,
 	`date` date NOT NULL,
 	`daily_log_events` int(11) NOT NULL,
 	`log_events_to_date` int(11) NOT NULL,
@@ -174,7 +174,7 @@ CREATE TABLE `huwiktionary_actor_log_stats_by_type` (
 
 -- Statistics by log action
 CREATE TABLE `huwiktionary_log_stats_by_action` (
-	`log_action` varchar(32) CHARACTER SET utf8 NOT NULL,
+	`log_action` varchar(32) CHARACTER SET utf8mb4 NOT NULL,
 	`date` date NOT NULL,
 	`daily_log_events` int(11) NOT NULL,
 	`log_events_to_date` int(11) NOT NULL,
@@ -183,7 +183,7 @@ CREATE TABLE `huwiktionary_log_stats_by_action` (
 
 CREATE TABLE `huwiktionary_actor_log_stats_by_action` (
 	`actor_id` bigint(20) NOT NULL,
-	`log_action` varchar(32) CHARACTER SET utf8 NOT NULL,
+	`log_action` varchar(32) CHARACTER SET utf8mb4 NOT NULL,
 	`date` date NOT NULL,
 	`daily_log_events` int(11) NOT NULL,
 	`log_events_to_date` int(11) NOT NULL,
@@ -198,8 +198,8 @@ CREATE TABLE `huwiktionary_actor_log_stats_by_action` (
 
 -- Statistics by log type and action
 CREATE TABLE `huwiktionary_log_stats_by_type_action` (
-	`log_type` varchar(32) CHARACTER SET utf8 NOT NULL,
-	`log_action` varchar(32) CHARACTER SET utf8 NOT NULL,
+	`log_type` varchar(32) CHARACTER SET utf8mb4 NOT NULL,
+	`log_action` varchar(32) CHARACTER SET utf8mb4 NOT NULL,
 	`date` date NOT NULL,
 	`daily_log_events` int(11) NOT NULL,
 	`log_events_to_date` int(11) NOT NULL,
@@ -208,8 +208,8 @@ CREATE TABLE `huwiktionary_log_stats_by_type_action` (
 
 CREATE TABLE `huwiktionary_actor_log_stats_by_type_action` (
 	`actor_id` bigint(20) NOT NULL,
-	`log_type` varchar(32) CHARACTER SET utf8 NOT NULL,
-	`log_action` varchar(32) CHARACTER SET utf8 NOT NULL,
+	`log_type` varchar(32) CHARACTER SET utf8mb4 NOT NULL,
+	`log_action` varchar(32) CHARACTER SET utf8mb4 NOT NULL,
 	`date` date NOT NULL,
 	`daily_log_events` int(11) NOT NULL,
 	`log_events_to_date` int(11) NOT NULL,
