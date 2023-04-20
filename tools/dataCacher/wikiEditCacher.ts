@@ -2280,7 +2280,7 @@ export class WikiEditCacher {
 				if (currentLevelIndex !== -1)
 					currentLevelIndex += 1;
 
-				moduleContent += `	["${ele.actorName.replace("\"", "\\\"")}"] = { ${currentLevelIndex}, ${ele.activeDays}, ${ele.edits}, ${ele.logEvents} },\n`;
+				moduleContent += `	["${ele.actorName.replace(/"/, "\\\"")}"] = { ${currentLevelIndex}, ${ele.activeDays}, ${ele.edits}, ${ele.logEvents} },\n`;
 			}
 
 			moduleContent += "}\n";
@@ -2304,8 +2304,8 @@ export class WikiEditCacher {
 		for (let i = 0; i < this.wiki.serviceAwardLevels.length; i++) {
 			const level = this.wiki.serviceAwardLevels[i];
 
-			if (activeDays > level.requiredActiveDays
-				&& editsAndLogEvents > level.requiredContributions
+			if (activeDays >= level.requiredActiveDays
+				&& editsAndLogEvents >= level.requiredContributions
 			) {
 				ret = i;
 			} else {
