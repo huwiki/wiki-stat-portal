@@ -2280,7 +2280,7 @@ export class WikiEditCacher {
 				if (currentLevelIndex !== -1)
 					currentLevelIndex += 1;
 
-				moduleContent += `	["${ele.actorName.replace(/"/, "\\\"")}"] = { ${currentLevelIndex}, ${ele.activeDays}, ${ele.edits}, ${ele.logEvents} },\n`;
+				moduleContent += `	["${ele.actorName.replace(/(["'[\]\\])/g, "\\$1")}"] = { ${currentLevelIndex}, ${ele.activeDays}, ${ele.edits}, ${ele.logEvents} },\n`;
 			}
 
 			moduleContent += "}\n";
