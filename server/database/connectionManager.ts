@@ -57,6 +57,7 @@ export const createConnectionToUserDatabase = async (appConfig: ApplicationConfi
 		synchronize: false,
 		logging: false,
 		bigNumberStrings: false,
+		charset: "utf8mb4",
 		timezone: "Z",
 		entities: [
 			WikiProcessedRevisions,
