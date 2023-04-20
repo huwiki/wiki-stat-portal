@@ -46,10 +46,10 @@ jobs:
         # Prefix the list here with "+" to use these queries and those in the config file.
         # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
-    - name: Use Node.js 10.x
+    - name: Use Node.js 16.x
       uses: actions/setup-node@v1
       with:
-        node-version: '10.x'
+        node-version: '16.x'
 
     - name: Install dependencies
       run: yarn
